@@ -1,0 +1,165 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 1
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Heading,Arial,100,&H0033CCFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,2,8,100,100,150,1
+Style: Subheading,Arial,70,&H00000000,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,0,1,8,100,100,300,1
+Style: Bullet,Arial,60,&H00000000,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,0,1,7,200,100,450,1
+Style: CodeBlock,Courier New,38,&H00FFFFFF,&H000000FF,&H00000000,&H00111111,0,0,0,0,100,100,0,0,3,15,0,7,150,150,450,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:01:27.74,Heading,,0,0,0,,Welcome to Python OOPS!
+Dialogue: 0,0:00:00.00,0:01:27.74,Subheading,,0,0,0,,Object-Oriented Programming: A New Paradigm
+Dialogue: 0,0:00:00.00,0:01:27.74,Bullet,,0,0,0,,• Introduction to OOP in Python\N\N• Why learn OOP?\N\N• Benefits of OOP\N\N• Setting the stage for our journey
+Dialogue: 0,0:01:27.74,0:03:03.55,Heading,,0,0,0,,What is Object-Oriented Programming (OOP)?
+Dialogue: 0,0:01:27.74,0:03:03.55,Subheading,,0,0,0,,Modeling the Real World with Code
+Dialogue: 0,0:01:27.74,0:03:03.55,CodeBlock,,0,0,0,,{\c&HFFFFFF&}A programming paradigm\NOrganizing code around {\c&H55FF55&}'objects'{\c&HFFFFFF&}\NFocus on data {\c&H0088FF&}and{\c&HFFFFFF&} behavior\NContrast {\c&H0088FF&}with{\c&HFFFFFF&} procedural programming
+Dialogue: 0,0:03:03.55,0:05:14.78,Heading,,0,0,0,,Why Use OOP in Python?
+Dialogue: 0,0:03:03.55,0:05:14.78,Subheading,,0,0,0,,The Advantages of an Object-Oriented Approach
+Dialogue: 0,0:03:03.55,0:05:14.78,Bullet,,0,0,0,,• Modularity and Reusability\N\N• Maintainability and Scalability\N\N• Code Organization and Clarity\N\N• Handling Complexity Effectively
+Dialogue: 0,0:05:14.78,0:07:17.01,Heading,,0,0,0,,Core Pillars of OOPS
+Dialogue: 0,0:05:14.78,0:07:17.01,Subheading,,0,0,0,,The Fundamental Concepts We'll Explore
+Dialogue: 0,0:05:14.78,0:07:17.01,Bullet,,0,0,0,,• Classes and Objects\N\N• Encapsulation\N\N• Inheritance\N\N• Polymorphism\N\N• Abstraction
+Dialogue: 0,0:07:17.01,0:09:11.01,Heading,,0,0,0,,Classes: The Blueprint
+Dialogue: 0,0:07:17.01,0:09:11.01,Subheading,,0,0,0,,Defining a New Type of Object
+Dialogue: 0,0:07:17.01,0:09:11.01,Bullet,,0,0,0,,• A template or blueprint for creating objects\N\N• Defines attributes (data) and methods (behavior)\N\N• Does not occupy memory directly\N\N• Think of it as a cookie cutter
+Dialogue: 0,0:09:11.01,0:11:00.35,Heading,,0,0,0,,Objects: Instances of a Class
+Dialogue: 0,0:09:11.01,0:11:00.35,Subheading,,0,0,0,,Bringing the Blueprint to Life
+Dialogue: 0,0:09:11.01,0:11:00.35,Bullet,,0,0,0,,• A concrete instance of a class\N\N• Occupies memory and has specific values for attributes\N\N• Can perform actions defined by its class's methods\N\N• Think of it as an actual cookie made from the cutter
+Dialogue: 0,0:11:00.35,0:12:59.75,Heading,,0,0,0,,Basic Class and Object Creation
+Dialogue: 0,0:11:00.35,0:12:59.75,Subheading,,0,0,0,,Defining Attributes and a Simple Method
+Dialogue: 0,0:11:00.35,0:12:59.75,CodeBlock,,0,0,0,,{\c&HFFFFFF&}Define a {\c&H0088FF&}class{\c&HFFFFFF&} using the `{\c&H0088FF&}class{\c&HFFFFFF&}` keyword.\NUse `{\c&HFFFF33&}__init__{\c&HFFFFFF&}` {\c&H0088FF&}for{\c&HFFFFFF&} initial setup of object attributes.\N`{\c&HFFFF33&}self{\c&HFFFFFF&}` refers to the instance of the {\c&H0088FF&}class{\c&HFFFFFF&}.\NCreate an object by calling the {\c&H0088FF&}class{\c&HFFFFFF&}.
+Dialogue: 0,0:12:59.75,0:14:55.17,Heading,,0,0,0,,Basic Example Program: Dog Class
+Dialogue: 0,0:12:59.75,0:14:55.17,Subheading,,0,0,0,,A Simple Class with Attributes and Behavior
+Dialogue: 0,0:12:59.75,0:14:55.17,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}class{\c&HFFFFFF&} Dog:\N    {\c&H0088FF&}def{\c&HFFFF33&}__init__{\c&HFFFFFF&}({\c&HFFFF33&}self{\c&HFFFFFF&}, name, breed):\N        {\c&HFFFF33&}self{\c&HFFFFFF&}.name = name\N        {\c&HFFFF33&}self{\c&HFFFFFF&}.breed = breed\N    {\c&H0088FF&}def{\c&HFFFFFF&} bark({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}return{\c&HFFFFFF&} f{\c&H55FF55&}'{self.name} says Woof!'{\c&HFFFFFF&}
+Dialogue: 0,0:14:55.17,0:16:48.74,Heading,,0,0,0,,Creating and Interacting with Dog Objects
+Dialogue: 0,0:14:55.17,0:16:48.74,Subheading,,0,0,0,,Instantiating and Calling Methods
+Dialogue: 0,0:14:55.17,0:16:48.74,CodeBlock,,0,0,0,,{\c&HFFFFFF&}my_dog = Dog({\c&H55FF55&}'Buddy'{\c&HFFFFFF&}, {\c&H55FF55&}'Golden Retriever'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'My dog is a {my_dog.breed} named {my_dog.name}.'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(my_dog.bark())\Nanother_dog = Dog({\c&H55FF55&}'Lucy'{\c&HFFFFFF&}, {\c&H55FF55&}'Labrador'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'{another_dog.name} is a {another_dog.breed}.'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(another_dog.bark())
+Dialogue: 0,0:16:48.74,0:18:34.94,Heading,,0,0,0,,Advanced Class and Object Concepts
+Dialogue: 0,0:16:48.74,0:18:34.94,Subheading,,0,0,0,,Class Attributes vs. Instance Attributes
+Dialogue: 0,0:16:48.74,0:18:34.94,Bullet,,0,0,0,,• Instance attributes are unique to each object.\N\N• Class attributes are shared by all objects of a class.\N\N• Use cases for class attributes (e.g., constants, counters).\N\N• Class methods and static methods (brief intro).
+Dialogue: 0,0:18:34.94,0:20:28.51,Heading,,0,0,0,,Advanced Example Program: Vehicle Counter
+Dialogue: 0,0:18:34.94,0:20:28.51,Subheading,,0,0,0,,Using Class Attributes and Methods
+Dialogue: 0,0:18:34.94,0:20:28.51,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}class{\c&HFFFFFF&} Vehicle:\N    total_vehicles = {\c&HFF88FF&}0{\c&H888888&}# Class attribute{\c&HFFFFFF&}\N    {\c&H0088FF&}def{\c&HFFFF33&}__init__{\c&HFFFFFF&}({\c&HFFFF33&}self{\c&HFFFFFF&}, make, model):\N        {\c&HFFFF33&}self{\c&HFFFFFF&}.make = make\N        {\c&HFFFF33&}self{\c&HFFFFFF&}.model = model\N        Vehicle.total_vehicles += {\c&HFF88FF&}1{\c&HFFFFFF&}\N    @classmethod\N    {\c&H0088FF&}def{\c&HFFFFFF&} get_total_vehicles(cls):\N        {\c&H0088FF&}return{\c&HFFFFFF&} cls.total_vehicles
+Dialogue: 0,0:20:28.51,0:22:35.54,Heading,,0,0,0,,Demonstrating Vehicle Counter
+Dialogue: 0,0:20:28.51,0:22:35.54,Subheading,,0,0,0,,Interacting with Class and Instance Data
+Dialogue: 0,0:20:28.51,0:22:35.54,CodeBlock,,0,0,0,,{\c&HFFFFFF&}car1 = Vehicle({\c&H55FF55&}'Toyota'{\c&HFFFFFF&}, {\c&H55FF55&}'Camry'{\c&HFFFFFF&})\Ncar2 = Vehicle({\c&H55FF55&}'Honda'{\c&HFFFFFF&}, {\c&H55FF55&}'CRV'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'Car 1: {car1.make} {car1.model}'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'Car 2: {car2.make} {car2.model}'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'Total vehicles created: {Vehicle.get_total_vehicles()}'{\c&HFFFFFF&})\Nbike = Vehicle({\c&H55FF55&}'Harley'{\c&HFFFFFF&}, {\c&H55FF55&}'Iron 883'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'Total vehicles after bike: {Vehicle.total_vehicles}'{\c&HFFFFFF&})
+Dialogue: 0,0:22:35.54,0:24:11.51,Heading,,0,0,0,,Encapsulation: Keeping Things Tidy
+Dialogue: 0,0:22:35.54,0:24:11.51,Subheading,,0,0,0,,Bundling Data and Methods, Hiding Complexity
+Dialogue: 0,0:22:35.54,0:24:11.51,Bullet,,0,0,0,,• Binding data and methods together (a 'capsule')\N\N• Controlling access to an object's internal state\N\N• Protection from unintended external modification\N\N• Concept of 'information hiding'
+Dialogue: 0,0:24:11.51,0:26:12.88,Heading,,0,0,0,,Encapsulation in Python
+Dialogue: 0,0:24:11.51,0:26:12.88,Subheading,,0,0,0,,No Strict Private Keywords, but Conventions
+Dialogue: 0,0:24:11.51,0:26:12.88,Bullet,,0,0,0,,• Python doesn't have strict private keywords (like `private` in Java/C++).\N\N• Uses naming conventions for 'protected' and 'private'.\N\N• Single underscore `_name`: protected (convention).\N\N• Double underscore `__name`: 'private' (name mangling).\N\N• Properties using `@property` for controlled access.
+Dialogue: 0,0:26:12.88,0:28:13.87,Heading,,0,0,0,,Basic Example: Protected Attribute Convention
+Dialogue: 0,0:26:12.88,0:28:13.87,Subheading,,0,0,0,,Using Single Underscore for Internal Use
+Dialogue: 0,0:26:12.88,0:28:13.87,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}class{\c&HFFFFFF&} BankAccount:\N    {\c&H0088FF&}def{\c&HFFFF33&}__init__{\c&HFFFFFF&}({\c&HFFFF33&}self{\c&HFFFFFF&}, initial_balance):\N        {\c&HFFFF33&}self{\c&HFFFFFF&}._balance = initial_balance  {\c&H888888&}# Protected attribute{\c&HFFFFFF&}\N    {\c&H0088FF&}def{\c&HFFFFFF&} get_balance({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}return{\c&HFFFF33&}self{\c&HFFFFFF&}._balance\N    {\c&H0088FF&}def{\c&HFFFFFF&} deposit({\c&HFFFF33&}self{\c&HFFFFFF&}, amount):\N        {\c&H0088FF&}if{\c&HFFFFFF&} amount > {\c&HFF88FF&}0{\c&HFFFFFF&}: {\c&HFFFF33&}self{\c&HFFFFFF&}._balance += amount
+Dialogue: 0,0:28:13.87,0:30:08.27,Heading,,0,0,0,,Interacting with the BankAccount
+Dialogue: 0,0:28:13.87,0:30:08.27,Subheading,,0,0,0,,Accessing via Methods (Recommended) vs. Direct (Discouraged)
+Dialogue: 0,0:28:13.87,0:30:08.27,CodeBlock,,0,0,0,,{\c&HFFFFFF&}account = BankAccount({\c&HFF88FF&}1000{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'Initial balance: {account.get_balance()}'{\c&HFFFFFF&})\Naccount.deposit({\c&HFF88FF&}500{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'Balance after deposit: {account.get_balance()}'{\c&HFFFFFF&})\Naccount._balance = -{\c&HFF88FF&}200{\c&H888888&}# Discouraged direct access!{\c&HFFFFFF&}\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'Balance after direct modification: {account.get_balance()}'{\c&HFFFFFF&})
+Dialogue: 0,0:30:08.27,0:32:01.31,Heading,,0,0,0,,Advanced Encapsulation: Using Properties
+Dialogue: 0,0:30:08.27,0:32:01.31,Subheading,,0,0,0,,Pythonic Getters, Setters, and Deleters
+Dialogue: 0,0:30:08.27,0:32:01.31,Bullet,,0,0,0,,• The `@property` decorator for read-only access.\N\N• The `@attribute.setter` decorator for controlled writing.\N\N• Makes attribute access look like direct access.\N\N• Provides control and validation at the attribute level.
+Dialogue: 0,0:32:01.31,0:34:17.80,Heading,,0,0,0,,Advanced Example: Temperature Property
+Dialogue: 0,0:32:01.31,0:34:17.80,Subheading,,0,0,0,,Controlled Attribute Access with `@property`
+Dialogue: 0,0:32:01.31,0:34:17.80,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}class{\c&HFFFFFF&} Temperature:\N    {\c&H0088FF&}def{\c&HFFFF33&}__init__{\c&HFFFFFF&}({\c&HFFFF33&}self{\c&HFFFFFF&}, celsius):\N        {\c&HFFFF33&}self{\c&HFFFFFF&}._celsius = celsius\N    @property\N    {\c&H0088FF&}def{\c&HFFFFFF&} celsius({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}return{\c&HFFFF33&}self{\c&HFFFFFF&}._celsius\N    @celsius.setter\N    {\c&H0088FF&}def{\c&HFFFFFF&} celsius({\c&HFFFF33&}self{\c&HFFFFFF&}, value):\N        {\c&H0088FF&}if{\c&HFFFFFF&} value < -{\c&HFF88FF&}273{\c&HFFFFFF&}.{\c&HFF88FF&}15{\c&HFFFFFF&}:\N            raise ValueError({\c&H55FF55&}'Temperature cannot be below absolute zero.'{\c&HFFFFFF&})\N        {\c&HFFFF33&}self{\c&HFFFFFF&}._celsius = value
+Dialogue: 0,0:34:17.80,0:36:21.98,Heading,,0,0,0,,Using the Temperature Property
+Dialogue: 0,0:34:17.80,0:36:21.98,Subheading,,0,0,0,,Observing Validation in Action
+Dialogue: 0,0:34:17.80,0:36:21.98,CodeBlock,,0,0,0,,{\c&HFFFFFF&}temp = Temperature({\c&HFF88FF&}25{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'Current temperature: {temp.celsius}°C'{\c&HFFFFFF&})\Ntemp.celsius = {\c&HFF88FF&}30{\c&HFFFFFF&}\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'New temperature: {temp.celsius}°C'{\c&HFFFFFF&})\N{\c&H0088FF&}try{\c&HFFFFFF&}:\N    temp.celsius = -{\c&HFF88FF&}300{\c&H888888&}# This will raise a ValueError{\c&HFFFFFF&}\N{\c&H0088FF&}except{\c&HFFFFFF&} ValueError {\c&H0088FF&}as{\c&HFFFFFF&} e:\N    {\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'Error: {e}'{\c&HFFFFFF&})
+Dialogue: 0,0:36:21.98,0:38:09.26,Heading,,0,0,0,,Inheritance: Building on Existing Code
+Dialogue: 0,0:36:21.98,0:38:09.26,Subheading,,0,0,0,,Establishing 'Is-A' Relationships
+Dialogue: 0,0:36:21.98,0:38:09.26,CodeBlock,,0,0,0,,{\c&HFFFFFF&}New classes acquiring properties {\c&H0088FF&}and{\c&HFFFFFF&} behaviors {\c&H0088FF&}from{\c&HFFFFFF&} existing ones.\NParent/Base {\c&H0088FF&}class{\c&H0088FF&}and{\c&HFFFFFF&} Child/Derived {\c&H0088FF&}class{\c&HFFFFFF&}.\NThe {\c&H55FF55&}'is-a'{\c&HFFFFFF&} relationship (e.g., a Dog IS A Mammal).\NPromotes code reuse {\c&H0088FF&}and{\c&HFFFFFF&} reduces redundancy.
+Dialogue: 0,0:38:09.26,0:40:08.32,Heading,,0,0,0,,Types of Inheritance in Python
+Dialogue: 0,0:38:09.26,0:40:08.32,Subheading,,0,0,0,,Single, Multiple, Multi-level, Hierarchical
+Dialogue: 0,0:38:09.26,0:40:08.32,Bullet,,0,0,0,,• Single Inheritance: One parent, one child.\N\N• Multiple Inheritance: Multiple parents, one child.\N\N• Multi-level Inheritance: Chain of inheritance (A -> B -> C).\N\N• Hierarchical Inheritance: One parent, multiple children.\N\N• Mixin classes: A special type for adding capabilities.
+Dialogue: 0,0:40:08.32,0:42:13.79,Heading,,0,0,0,,Basic Example: Single Inheritance
+Dialogue: 0,0:40:08.32,0:42:13.79,Subheading,,0,0,0,,Creating a `Dog` from an `Animal`
+Dialogue: 0,0:40:08.32,0:42:13.79,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}class{\c&HFFFFFF&} Animal:\N    {\c&H0088FF&}def{\c&HFFFF33&}__init__{\c&HFFFFFF&}({\c&HFFFF33&}self{\c&HFFFFFF&}, name):\N        {\c&HFFFF33&}self{\c&HFFFFFF&}.name = name\N    {\c&H0088FF&}def{\c&HFFFFFF&} speak({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}pass{\c&H888888&}# Abstract method (will be overridden){\c&HFFFFFF&}\N{\c&H0088FF&}class{\c&HFFFFFF&} Dog(Animal):  {\c&H888888&}# Dog inherits {\c&H0088FF&}from{\c&HFFFFFF&} Animal{\c&HFFFFFF&}\N    {\c&H0088FF&}def{\c&HFFFFFF&} speak({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}return{\c&HFFFFFF&} f{\c&H55FF55&}'{self.name} says Woof!'{\c&HFFFFFF&}
+Dialogue: 0,0:42:13.79,0:44:10.22,Heading,,0,0,0,,Using Inherited and Overridden Methods
+Dialogue: 0,0:42:13.79,0:44:10.22,Subheading,,0,0,0,,Demonstrating `Animal` and `Dog` Interaction
+Dialogue: 0,0:42:13.79,0:44:10.22,CodeBlock,,0,0,0,,{\c&HFFFFFF&}animal = Animal({\c&H55FF55&}'Generic Animal'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(animal.name)\N{\c&HFFFF33&}print{\c&HFFFFFF&}(animal.speak())\Ndog = Dog({\c&H55FF55&}'Buddy'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(dog.name)\N{\c&HFFFF33&}print{\c&HFFFFFF&}(dog.speak())\Ncat = Animal({\c&H55FF55&}'Whiskers'{\c&HFFFFFF&}) {\c&H888888&}# Can still create Animal directly{\c&HFFFFFF&}\Ncat.name = {\c&H55FF55&}'Paws'{\c&H888888&}# Can modify inherited attribute{\c&HFFFFFF&}
+Dialogue: 0,0:44:10.22,0:46:15.02,Heading,,0,0,0,,Advanced Inheritance: Using `super()`
+Dialogue: 0,0:44:10.22,0:46:15.02,Subheading,,0,0,0,,Calling Parent Class Methods and Constructors
+Dialogue: 0,0:44:10.22,0:46:15.02,Bullet,,0,0,0,,• `super()` grants access to parent class methods.\N\N• Essential for calling `__init__` of the parent class.\N\N• Allows extending parent methods instead of just overriding.\N\N• Handles method resolution order (MRO) in complex hierarchies.
+Dialogue: 0,0:46:15.02,0:48:25.55,Heading,,0,0,0,,Advanced Example: Vehicle with `super()`
+Dialogue: 0,0:46:15.02,0:48:25.55,Subheading,,0,0,0,,Extending Parent `__init__` and Methods
+Dialogue: 0,0:46:15.02,0:48:25.55,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}class{\c&HFFFFFF&} Vehicle:\N    {\c&H0088FF&}def{\c&HFFFF33&}__init__{\c&HFFFFFF&}({\c&HFFFF33&}self{\c&HFFFFFF&}, brand):\N        {\c&HFFFF33&}self{\c&HFFFFFF&}.brand = brand\N    {\c&H0088FF&}def{\c&HFFFFFF&} drive({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}return{\c&HFFFFFF&} f{\c&H55FF55&}'{self.brand} is driving.'{\c&HFFFFFF&}\N{\c&H0088FF&}class{\c&HFFFFFF&} Car(Vehicle):\N    {\c&H0088FF&}def{\c&HFFFF33&}__init__{\c&HFFFFFF&}({\c&HFFFF33&}self{\c&HFFFFFF&}, brand, model):\N        super().{\c&HFFFF33&}__init__{\c&HFFFFFF&}(brand)\N        {\c&HFFFF33&}self{\c&HFFFFFF&}.model = model\N    {\c&H0088FF&}def{\c&HFFFFFF&} drive({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}return{\c&HFFFFFF&} f{\c&H55FF55&}'{super().drive()} This {self.model} is on the road!'{\c&HFFFFFF&}
+Dialogue: 0,0:48:25.55,0:50:42.91,Heading,,0,0,0,,Putting `super()` into Practice
+Dialogue: 0,0:48:25.55,0:50:42.91,Subheading,,0,0,0,,Demonstrating Extended Functionality
+Dialogue: 0,0:48:25.55,0:50:42.91,CodeBlock,,0,0,0,,{\c&HFFFFFF&}my_vehicle = Vehicle({\c&H55FF55&}'Generic Brand'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(my_vehicle.drive())\Nmy_car = Car({\c&H55FF55&}'Toyota'{\c&HFFFFFF&}, {\c&H55FF55&}'Camry'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(my_car.brand)\N{\c&HFFFF33&}print{\c&HFFFFFF&}(my_car.model)\N{\c&HFFFF33&}print{\c&HFFFFFF&}(my_car.drive())
+Dialogue: 0,0:50:42.91,0:52:25.79,Heading,,0,0,0,,Polymorphism: Many Forms
+Dialogue: 0,0:50:42.91,0:52:25.79,Subheading,,0,0,0,,One Interface, Multiple Implementations
+Dialogue: 0,0:50:42.91,0:52:25.79,Bullet,,0,0,0,,• The ability of an object to take on many forms.\N\N• Same method name, different behaviors in different classes.\N\N• Achieved through method overriding and duck typing.\N\N• Enables flexible and extensible code.
+Dialogue: 0,0:52:25.79,0:54:06.55,Heading,,0,0,0,,Polymorphism in Python: Duck Typing
+Dialogue: 0,0:52:25.79,0:54:06.55,Subheading,,0,0,0,,If it Walks Like a Duck and Quacks Like a Duck...
+Dialogue: 0,0:52:25.79,0:54:06.55,Bullet,,0,0,0,,• Python's unique approach to polymorphism.\N\N• Focuses on 'what an object can do' rather than 'what it is'.\N\N• No explicit interfaces or type declarations needed.\N\N• If methods match, objects can be treated similarly.\N\N• Highly flexible, but requires careful documentation.
+Dialogue: 0,0:54:06.55,0:55:56.61,Heading,,0,0,0,,Basic Example: Duck Typing Polymorphism
+Dialogue: 0,0:54:06.55,0:55:56.61,Subheading,,0,0,0,,A Function Accepting Different 'Speaking' Objects
+Dialogue: 0,0:54:06.55,0:55:56.61,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}class{\c&HFFFFFF&} Dog:\N    {\c&H0088FF&}def{\c&HFFFFFF&} speak({\c&HFFFF33&}self{\c&HFFFFFF&}): {\c&H0088FF&}return{\c&H55FF55&}'Woof!'{\c&HFFFFFF&}\N{\c&H0088FF&}class{\c&HFFFFFF&} Cat:\N    {\c&H0088FF&}def{\c&HFFFFFF&} speak({\c&HFFFF33&}self{\c&HFFFFFF&}): {\c&H0088FF&}return{\c&H55FF55&}'Meow!'{\c&HFFFFFF&}\N{\c&H0088FF&}class{\c&HFFFFFF&} Duck:\N    {\c&H0088FF&}def{\c&HFFFFFF&} speak({\c&HFFFF33&}self{\c&HFFFFFF&}): {\c&H0088FF&}return{\c&H55FF55&}'Quack!'{\c&HFFFFFF&}\N{\c&H0088FF&}def{\c&HFFFFFF&} make_it_speak(animal):\N    {\c&H0088FF&}return{\c&HFFFFFF&} animal.speak()
+Dialogue: 0,0:55:56.61,0:58:02.87,Heading,,0,0,0,,Executing Duck Typing Example
+Dialogue: 0,0:55:56.61,0:58:02.87,Subheading,,0,0,0,,Same Function, Different Outcomes
+Dialogue: 0,0:55:56.61,0:58:02.87,CodeBlock,,0,0,0,,{\c&HFFFFFF&}dog = Dog()\Ncat = Cat()\Nduck = Duck()\N{\c&HFFFF33&}print{\c&HFFFFFF&}(make_it_speak(dog))\N{\c&HFFFF33&}print{\c&HFFFFFF&}(make_it_speak(cat))\N{\c&HFFFF33&}print{\c&HFFFFFF&}(make_it_speak(duck))
+Dialogue: 0,0:58:02.87,0:59:49.51,Heading,,0,0,0,,Advanced Polymorphism: Abstract Base Classes (ABCs)
+Dialogue: 0,0:58:02.87,0:59:49.51,Subheading,,0,0,0,,Enforcing an Interface for Duck Types
+Dialogue: 0,0:58:02.87,0:59:49.51,Bullet,,0,0,0,,• Using `abc` module to define abstract classes/methods.\N\N• Provides a formal way to enforce 'interfaces'.\N\N• Subclasses MUST implement abstract methods.\N\N• Combines duck typing flexibility with structural guarantees.
+Dialogue: 0,0:59:49.51,1:01:52.72,Heading,,0,0,0,,Advanced Example: PaymentProcessor ABC
+Dialogue: 0,0:59:49.51,1:01:52.72,Subheading,,0,0,0,,Enforcing Payment Method Contract
+Dialogue: 0,0:59:49.51,1:01:52.72,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}from{\c&HFFFFFF&} abc {\c&H0088FF&}import{\c&HFFFFFF&} ABC, abstractmethod\N{\c&H0088FF&}class{\c&HFFFFFF&} PaymentProcessor(ABC):\N    @abstractmethod\N    {\c&H0088FF&}def{\c&HFFFFFF&} process_payment({\c&HFFFF33&}self{\c&HFFFFFF&}, amount):\N        {\c&H0088FF&}pass{\c&HFFFFFF&}\N    @abstractmethod\N    {\c&H0088FF&}def{\c&HFFFFFF&} refund_payment({\c&HFFFF33&}self{\c&HFFFFFF&}, transaction_id):\N        {\c&H0088FF&}pass{\c&HFFFFFF&}
+Dialogue: 0,1:01:52.72,1:03:55.10,Heading,,0,0,0,,Implementing Concrete Payment Processors
+Dialogue: 0,1:01:52.72,1:03:55.10,Subheading,,0,0,0,,Adhering to the `PaymentProcessor` Contract
+Dialogue: 0,1:01:52.72,1:03:55.10,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}class{\c&HFFFFFF&} CreditCardProcessor(PaymentProcessor):\N    {\c&H0088FF&}def{\c&HFFFFFF&} process_payment({\c&HFFFF33&}self{\c&HFFFFFF&}, amount):\N        {\c&H0088FF&}return{\c&HFFFFFF&} f{\c&H55FF55&}'Processing ${amount} via Credit Card.'{\c&HFFFFFF&}\N    {\c&H0088FF&}def{\c&HFFFFFF&} refund_payment({\c&HFFFF33&}self{\c&HFFFFFF&}, transaction_id):\N        {\c&H0088FF&}return{\c&HFFFFFF&} f{\c&H55FF55&}'Refunding transaction {transaction_id} from Credit Card.'{\c&HFFFFFF&}\N{\c&H0088FF&}class{\c&HFFFFFF&} PayPalProcessor(PaymentProcessor):\N    {\c&H0088FF&}def{\c&HFFFFFF&} process_payment({\c&HFFFF33&}self{\c&HFFFFFF&}, amount):\N        {\c&H0088FF&}return{\c&HFFFFFF&} f{\c&H55FF55&}'Processing ${amount} via PayPal.'{\c&HFFFFFF&}\N    {\c&H0088FF&}def{\c&HFFFFFF&} refund_payment({\c&HFFFF33&}self{\c&HFFFFFF&}, transaction_id):\N        {\c&H0088FF&}return{\c&HFFFFFF&} f{\c&H55FF55&}'Refunding transaction {transaction_id} from PayPal.'{\c&HFFFFFF&}
+Dialogue: 0,1:03:55.10,1:06:15.62,Heading,,0,0,0,,Using Polymorphic Payment Processors
+Dialogue: 0,1:03:55.10,1:06:15.62,Subheading,,0,0,0,,One Function, Multiple Payment Gateways
+Dialogue: 0,1:03:55.10,1:06:15.62,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}def{\c&HFFFFFF&} handle_payment(processor, amount, txn_id=None):\N    {\c&HFFFF33&}print{\c&HFFFFFF&}(processor.process_payment(amount))\N    {\c&H0088FF&}if{\c&HFFFFFF&} txn_id: {\c&HFFFF33&}print{\c&HFFFFFF&}(processor.refund_payment(txn_id))\Ncc_processor = CreditCardProcessor()\Npp_processor = PayPalProcessor()\Nhandle_payment(cc_processor, {\c&HFF88FF&}150{\c&HFFFFFF&}.{\c&HFF88FF&}75{\c&HFFFFFF&})\Nhandle_payment(pp_processor, {\c&HFF88FF&}200{\c&HFFFFFF&}, {\c&H55FF55&}'PAYPAL_TXN_123'{\c&HFFFFFF&})
+Dialogue: 0,1:06:15.62,1:08:05.37,Heading,,0,0,0,,Abstraction: Hiding Complexity
+Dialogue: 0,1:06:15.62,1:08:05.37,Subheading,,0,0,0,,Focusing on Essential Details
+Dialogue: 0,1:06:15.62,1:08:05.37,Bullet,,0,0,0,,• Showing only essential features, hiding implementation details.\N\N• Simplifying complex systems for users.\N\N• Allows for changes in implementation without affecting users.\N\N• Achieved through abstract classes and methods.
+Dialogue: 0,1:08:05.37,1:10:05.49,Heading,,0,0,0,,Abstraction vs. Encapsulation
+Dialogue: 0,1:08:05.37,1:10:05.49,Subheading,,0,0,0,,Related Concepts, Different Focus
+Dialogue: 0,1:08:05.37,1:10:05.49,Bullet,,0,0,0,,• Encapsulation: Bundling data/methods & *controlling access*.\N\N• Abstraction: Showing *relevant details* & hiding irrelevant ones.\N\N• Encapsulation is the 'how', Abstraction is the 'what'.\N\N• Often work together, like two sides of the same coin.
+Dialogue: 0,1:10:05.49,1:12:11.15,Heading,,0,0,0,,Basic Example: Abstract Shape Class
+Dialogue: 0,1:10:05.49,1:12:11.15,Subheading,,0,0,0,,Defining Common Behaviors for Geometric Shapes
+Dialogue: 0,1:10:05.49,1:12:11.15,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}from{\c&HFFFFFF&} abc {\c&H0088FF&}import{\c&HFFFFFF&} ABC, abstractmethod\N{\c&H0088FF&}class{\c&HFFFFFF&} Shape(ABC):\N    @abstractmethod\N    {\c&H0088FF&}def{\c&HFFFFFF&} area({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}pass{\c&HFFFFFF&}\N    @abstractmethod\N    {\c&H0088FF&}def{\c&HFFFFFF&} perimeter({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}pass{\c&HFFFFFF&}
+Dialogue: 0,1:12:11.15,1:14:18.50,Heading,,0,0,0,,Implementing Concrete Shapes
+Dialogue: 0,1:12:11.15,1:14:18.50,Subheading,,0,0,0,,Providing Specific Implementations for Abstract Methods
+Dialogue: 0,1:12:11.15,1:14:18.50,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}import{\c&HFFFFFF&} math\N{\c&H0088FF&}class{\c&HFFFFFF&} Circle(Shape):\N    {\c&H0088FF&}def{\c&HFFFF33&}__init__{\c&HFFFFFF&}({\c&HFFFF33&}self{\c&HFFFFFF&}, radius):\N        {\c&HFFFF33&}self{\c&HFFFFFF&}.radius = radius\N    {\c&H0088FF&}def{\c&HFFFFFF&} area({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}return{\c&HFFFFFF&} math.pi * {\c&HFFFF33&}self{\c&HFFFFFF&}.radius**{\c&HFF88FF&}2{\c&HFFFFFF&}\N    {\c&H0088FF&}def{\c&HFFFFFF&} perimeter({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}return{\c&HFF88FF&}2{\c&HFFFFFF&} * math.pi * {\c&HFFFF33&}self{\c&HFFFFFF&}.radius
+Dialogue: 0,1:14:18.50,1:16:30.98,Heading,,0,0,0,,Advanced Abstraction: Using the `Shape` Interface
+Dialogue: 0,1:14:18.50,1:16:30.98,Subheading,,0,0,0,,A Function Operating on Any Concrete Shape
+Dialogue: 0,1:14:18.50,1:16:30.98,CodeBlock,,0,0,0,,{\c&HFFFFFF&}{\c&H0088FF&}class{\c&HFFFFFF&} Rectangle(Shape):\N    {\c&H0088FF&}def{\c&HFFFF33&}__init__{\c&HFFFFFF&}({\c&HFFFF33&}self{\c&HFFFFFF&}, width, height):\N        {\c&HFFFF33&}self{\c&HFFFFFF&}.width = width\N        {\c&HFFFF33&}self{\c&HFFFFFF&}.height = height\N    {\c&H0088FF&}def{\c&HFFFFFF&} area({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}return{\c&HFFFF33&}self{\c&HFFFFFF&}.width * {\c&HFFFF33&}self{\c&HFFFFFF&}.height\N    {\c&H0088FF&}def{\c&HFFFFFF&} perimeter({\c&HFFFF33&}self{\c&HFFFFFF&}):\N        {\c&H0088FF&}return{\c&HFF88FF&}2{\c&HFFFFFF&} * ({\c&HFFFF33&}self{\c&HFFFFFF&}.width + {\c&HFFFF33&}self{\c&HFFFFFF&}.height)\N{\c&H0088FF&}def{\c&HFFFFFF&} get_shape_info(shape):\N    {\c&H0088FF&}return{\c&HFFFFFF&} f{\c&H55FF55&}'Area: {shape.area()}, Perimeter: {shape.perimeter()}'{\c&HFFFFFF&}
+Dialogue: 0,1:16:30.98,1:18:51.23,Heading,,0,0,0,,Executing Advanced Abstraction Example
+Dialogue: 0,1:16:30.98,1:18:51.23,Subheading,,0,0,0,,Generic Function, Specific Results
+Dialogue: 0,1:16:30.98,1:18:51.23,CodeBlock,,0,0,0,,{\c&HFFFFFF&}circle = Circle({\c&HFF88FF&}5{\c&HFFFFFF&})\Nrectangle = Rectangle({\c&HFF88FF&}4{\c&HFFFFFF&}, {\c&HFF88FF&}6{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'Circle info: {get_shape_info(circle)}'{\c&HFFFFFF&})\N{\c&HFFFF33&}print{\c&HFFFFFF&}(f{\c&H55FF55&}'Rectangle info: {get_shape_info(rectangle)}'{\c&HFFFFFF&})\N{\c&H888888&}# Uncommenting the next line would cause a TypeError:{\c&HFFFFFF&}\N{\c&H888888&}# abstract_shape = Shape() {\c&HFFFFFF&}
+Dialogue: 0,1:18:51.23,1:21:00.84,Heading,,0,0,0,,Summary of OOPS Pillars
+Dialogue: 0,1:18:51.23,1:21:00.84,Subheading,,0,0,0,,Recap of Classes, Encapsulation, Inheritance, Polymorphism, Abstraction
+Dialogue: 0,1:18:51.23,1:21:00.84,Bullet,,0,0,0,,• Classes & Objects: Blueprints and instances.\N\N• Encapsulation: Bundling data/methods, controlling access.\N\N• Inheritance: Building new classes from existing ones.\N\N• Polymorphism: One interface, many forms (duck typing, ABCs).\N\N• Abstraction: Hiding complexity, showing essentials.
+Dialogue: 0,1:21:00.84,1:23:03.19,Heading,,0,0,0,,Benefits of Using OOPS in Python
+Dialogue: 0,1:21:00.84,1:23:03.19,Subheading,,0,0,0,,Why OOP is a Game Changer for Your Projects
+Dialogue: 0,1:21:00.84,1:23:03.19,Bullet,,0,0,0,,• Increased Modularity and Reusability\N\N• Easier Maintainability and Debugging\N\N• Improved Scalability and Extensibility\N\N• Better Code Organization and Readability\N\N• More Effective Problem Modeling
+Dialogue: 0,1:23:03.19,1:25:04.10,Heading,,0,0,0,,When to Use OOPS?
+Dialogue: 0,1:23:03.19,1:25:04.10,Subheading,,0,0,0,,Identifying Suitable Scenarios for an Object-Oriented Approach
+Dialogue: 0,1:23:03.19,1:25:04.10,Bullet,,0,0,0,,• When modeling real-world entities with distinct data and behaviors.\N\N• For large, complex applications requiring structure.\N\N• When building libraries, frameworks, or reusable components.\N\N• In situations demanding extensibility and maintainability.
+Dialogue: 0,1:25:04.10,1:26:53.15,Heading,,0,0,0,,Common OOPS Design Patterns (Brief Mention)
+Dialogue: 0,1:25:04.10,1:26:53.15,Subheading,,0,0,0,,Beyond the Basics: Advanced Structural Solutions
+Dialogue: 0,1:25:04.10,1:26:53.15,Bullet,,0,0,0,,• Factory Pattern: Creating objects without specifying concrete class.\N\N• Singleton Pattern: Ensuring only one instance of a class.\N\N• Observer Pattern: Notifying multiple objects of state changes.\N\N• These offer standardized solutions to common problems.
+Dialogue: 0,1:26:53.15,1:29:13.31,Heading,,0,0,0,,Debugging OOPS Code in Python
+Dialogue: 0,1:26:53.15,1:29:13.31,Subheading,,0,0,0,,Strategies for Troubleshooting Your Classes and Objects
+Dialogue: 0,1:26:53.15,1:29:13.31,CodeBlock,,0,0,0,,{\c&HFFFFFF&}Use `{\c&HFFFF33&}print{\c&HFFFFFF&}()` statements strategically.\NLeverage Python's built-{\c&H0088FF&}in{\c&HFFFFFF&} debugger (`pdb`).\NUtilize IDE debuggers (VS Code, PyCharm).\NUnderstand `{\c&HFFFF33&}__str__{\c&HFFFFFF&}` {\c&H0088FF&}and{\c&HFFFFFF&} `__repr__` {\c&H0088FF&}for{\c&HFFFFFF&} object representation.\NInspect `{\c&HFFFF33&}self{\c&HFFFFFF&}` {\c&H0088FF&}and{\c&HFFFFFF&} object attributes at breakpoints.
+Dialogue: 0,1:29:13.31,1:31:24.69,Heading,,0,0,0,,Common OOPS Mistakes for Beginners
+Dialogue: 0,1:29:13.31,1:31:24.69,Subheading,,0,0,0,,Pitfalls to Avoid on Your OOP Journey
+Dialogue: 0,1:29:13.31,1:31:24.69,Bullet,,0,0,0,,• Not understanding `self`.\N\N• Confusing instance vs. class attributes.\N\N• Overusing inheritance (favor composition).\N\N• Overriding methods incorrectly or forgetting `super()`.\N\N• Trying to replicate strict private/public from other languages.
+Dialogue: 0,1:31:24.69,1:33:25.03,Heading,,0,0,0,,Object-Oriented Design Principles
+Dialogue: 0,1:31:24.69,1:33:25.03,Subheading,,0,0,0,,SOLID Principles (A Glimpse)
+Dialogue: 0,1:31:24.69,1:33:25.03,Bullet,,0,0,0,,• S: Single Responsibility Principle\N\N• O: Open/Closed Principle\N\N• L: Liskov Substitution Principle\N\N• I: Interface Segregation Principle\N\N• D: Dependency Inversion Principle\N\N• These guide the creation of robust, maintainable systems.
+Dialogue: 0,1:33:25.03,1:35:24.93,Heading,,0,0,0,,OOPS in Interview Questions
+Dialogue: 0,1:33:25.03,1:35:24.93,Subheading,,0,0,0,,What Recruiters Look For
+Dialogue: 0,1:33:25.03,1:35:24.93,Bullet,,0,0,0,,• Define and explain the 4/5 pillars with examples.\N\N• Discuss real-world scenarios for each concept.\N\N• Explain Python's unique take on encapsulation/polymorphism.\N\N• Be ready to implement simple classes/inheritance on a whiteboard.\N\N• Understand differences between class vs. instance attributes/methods.
+Dialogue: 0,1:35:24.93,1:37:09.59,Heading,,0,0,0,,Next Steps in Your OOP Journey
+Dialogue: 0,1:35:24.93,1:37:09.59,Subheading,,0,0,0,,Further Exploration and Practice
+Dialogue: 0,1:35:24.93,1:37:09.59,Bullet,,0,0,0,,• Practice building your own classes and hierarchies.\N\N• Read open-source Python projects (e.g., Django, Flask).\N\N• Explore design patterns (Gang of Four book).\N\N• Learn about composition vs. inheritance.\N\N• Continue coding! Repetition is key.
+Dialogue: 0,1:37:09.59,1:38:43.89,Heading,,0,0,0,,Thank You!
+Dialogue: 0,1:37:09.59,1:38:43.89,Subheading,,0,0,0,,Keep Coding, Keep Learning!
+Dialogue: 0,1:37:09.59,1:38:43.89,Bullet,,0,0,0,,• Recap of Python OOPS journey.\N\N• Encouragement for continued learning.\N\N• Final thoughts and Q&A (implied).\N\N• You are now ready to build better Python applications!

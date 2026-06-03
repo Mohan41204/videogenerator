@@ -1,0 +1,169 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 1
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,90,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,3,4,0,5,100,100,50,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:03.52,Default,,0,0,0,,Python Introduction Teaching Script for Beginners
+Dialogue: 0,0:00:03.52,0:00:06.74,Default,,0,0,0,,Introduction to Python Hello students!
+Dialogue: 0,0:00:06.74,0:00:09.07,Default,,0,0,0,,Welcome to Python Programming.
+Dialogue: 0,0:00:09.07,0:00:12.93,Default,,0,0,0,,Today we are going to learn Python from the very beginning.
+Dialogue: 0,0:00:12.93,0:00:15.96,Default,,0,0,0,,Even if you have never written code before,
+Dialogue: 0,0:00:15.96,0:00:17.16,Default,,0,0,0,,don’t worry.
+Dialogue: 0,0:00:17.16,0:00:21.43,Default,,0,0,0,,Python is one of the easiest programming languages to learn.
+Dialogue: 0,0:00:21.43,0:00:23.66,Default,,0,0,0,,By the end of this lesson,
+Dialogue: 0,0:00:23.66,0:00:26.80,Default,,0,0,0,,you will understand: What Python is
+Dialogue: 0,0:00:26.80,0:00:30.21,Default,,0,0,0,,How Python works Variables Data Types
+Dialogue: 0,0:00:30.21,0:00:32.54,Default,,0,0,0,,Operators Input and Output
+Dialogue: 0,0:00:32.54,0:00:34.87,Default,,0,0,0,,Conditional Statements Loops
+Dialogue: 0,0:00:34.87,0:00:38.20,Default,,0,0,0,,Let us start our Python journey. 1.
+Dialogue: 0,0:00:38.20,0:00:41.64,Default,,0,0,0,,What is Python? Python is a high-level,
+Dialogue: 0,0:00:41.64,0:00:44.35,Default,,0,0,0,,easy-to-read programming language.
+Dialogue: 0,0:00:44.35,0:00:47.44,Default,,0,0,0,,It was created by Guido van Rossum.
+Dialogue: 0,0:00:47.44,0:00:50.71,Default,,0,0,0,,Python is used for: Web Development
+Dialogue: 0,0:00:50.71,0:00:53.64,Default,,0,0,0,,Artificial Intelligence Data Science
+Dialogue: 0,0:00:53.64,0:00:56.83,Default,,0,0,0,,Automation Game Development Mobile Apps
+Dialogue: 0,0:00:56.83,0:01:00.19,Default,,0,0,0,,Why Python is Popular? Easy syntax
+Dialogue: 0,0:01:00.19,0:01:01.63,Default,,0,0,0,,Beginner friendly
+Dialogue: 0,0:01:01.63,0:01:03.72,Default,,0,0,0,,Simple English-like code
+Dialogue: 0,0:01:03.72,0:01:07.08,Default,,0,0,0,,Powerful libraries Used by big companies
+Dialogue: 0,0:01:07.08,0:01:10.72,Default,,0,0,0,,Companies using Python: Google Netflix
+Dialogue: 0,0:01:10.72,0:01:13.87,Default,,0,0,0,,Instagram 2. Installing Python
+Dialogue: 0,0:01:13.87,0:01:17.49,Default,,0,0,0,,To run Python programs: Install Python
+Dialogue: 0,0:01:17.49,0:01:20.28,Default,,0,0,0,,Install an editor like VS Code
+Dialogue: 0,0:01:20.28,0:01:21.93,Default,,0,0,0,,Official website:
+Dialogue: 0,0:01:21.93,0:01:24.28,Default,,0,0,0,,Python Official Website 3.
+Dialogue: 0,0:01:24.28,0:01:26.28,Default,,0,0,0,,First Python Program
+Dialogue: 0,0:01:26.28,0:01:28.82,Default,,0,0,0,,Let us write our first program.
+Dialogue: 0,0:01:28.82,0:01:31.87,Default,,0,0,0,,print("Hello World") Explanation
+Dialogue: 0,0:01:31.87,0:01:34.87,Default,,0,0,0,,print() is used to display output.
+Dialogue: 0,0:01:34.87,0:01:38.68,Default,,0,0,0,,"Hello World" is the message displayed on the screen.
+Dialogue: 0,0:01:38.68,0:01:40.68,Default,,0,0,0,,Output Hello World 4.
+Dialogue: 0,0:01:40.68,0:01:42.86,Default,,0,0,0,,Python Syntax Basics
+Dialogue: 0,0:01:42.86,0:01:46.58,Default,,0,0,0,,Python uses indentation instead of braces {}.
+Dialogue: 0,0:01:46.58,0:01:49.84,Default,,0,0,0,,Example: if 5 > 2:
+Dialogue: 0,0:01:49.84,0:01:53.76,Default,,0,0,0,,print("Five is greater") Important Rules
+Dialogue: 0,0:01:53.76,0:01:55.84,Default,,0,0,0,,Indentation is important
+Dialogue: 0,0:01:55.84,0:01:58.82,Default,,0,0,0,,Use colon : after conditions
+Dialogue: 0,0:01:58.82,0:02:01.56,Default,,0,0,0,,Python is case-sensitive Correct:
+Dialogue: 0,0:02:01.56,0:02:06.45,Default,,0,0,0,,name = "Muthu" Wrong: Name = "Muthu"
+Dialogue: 0,0:02:06.45,0:02:08.92,Default,,0,0,0,,Both are different. 5.
+Dialogue: 0,0:02:08.92,0:02:10.87,Default,,0,0,0,,Variables in Python
+Dialogue: 0,0:02:10.87,0:02:13.68,Default,,0,0,0,,Variables are used to store data.
+Dialogue: 0,0:02:13.68,0:02:19.58,Default,,0,0,0,,Example: name = "Muthu" age = 21 Here:
+Dialogue: 0,0:02:19.58,0:02:22.65,Default,,0,0,0,,name stores text age stores numbers
+Dialogue: 0,0:02:22.65,0:02:26.08,Default,,0,0,0,,Printing Variables name = "Muthu"
+Dialogue: 0,0:02:26.08,0:02:29.71,Default,,0,0,0,,print(name) Output: Muthu 6.
+Dialogue: 0,0:02:29.71,0:02:32.42,Default,,0,0,0,,Rules for Variable Names Allowed
+Dialogue: 0,0:02:32.42,0:02:36.57,Default,,0,0,0,,student_name age1 totalMarks Not Allowed
+Dialogue: 0,0:02:36.57,0:02:39.47,Default,,0,0,0,,1name student-name class 7.
+Dialogue: 0,0:02:39.47,0:02:41.49,Default,,0,0,0,,Data Types in Python
+Dialogue: 0,0:02:41.49,0:02:44.61,Default,,0,0,0,,Python supports different types of data.
+Dialogue: 0,0:02:44.61,0:02:48.95,Default,,0,0,0,,Integer Whole numbers. age = 21 Float
+Dialogue: 0,0:02:48.95,0:02:54.02,Default,,0,0,0,,Decimal numbers. price = 99. 5 String
+Dialogue: 0,0:02:54.02,0:02:58.55,Default,,0,0,0,,Text values. name = "Python" Boolean
+Dialogue: 0,0:02:58.55,0:03:03.31,Default,,0,0,0,,True or False values. is_active = True
+Dialogue: 0,0:03:03.31,0:03:05.35,Default,,0,0,0,,8. Type Checking
+Dialogue: 0,0:03:05.35,0:03:08.39,Default,,0,0,0,,We can check the data type using type().
+Dialogue: 0,0:03:08.39,0:03:13.15,Default,,0,0,0,,age = 21 print(type(age)) Output:
+Dialogue: 0,0:03:13.15,0:03:18.69,Default,,0,0,0,,<class 'int'> 9. Taking Input from User
+Dialogue: 0,0:03:18.69,0:03:21.86,Default,,0,0,0,,input() is used to get user input.
+Dialogue: 0,0:03:21.86,0:03:23.06,Default,,0,0,0,,Example:
+Dialogue: 0,0:03:23.06,0:03:26.25,Default,,0,0,0,,name = input("Enter your name: ")
+Dialogue: 0,0:03:26.25,0:03:28.72,Default,,0,0,0,,print(name) Output
+Dialogue: 0,0:03:28.72,0:03:31.75,Default,,0,0,0,,Enter your name: Muthu Muthu 10.
+Dialogue: 0,0:03:31.75,0:03:33.23,Default,,0,0,0,,Type Conversion
+Dialogue: 0,0:03:33.23,0:03:36.86,Default,,0,0,0,,Input values are stored as strings by default.
+Dialogue: 0,0:03:36.86,0:03:41.66,Default,,0,0,0,,Example: age = int(input("Enter age: "))
+Dialogue: 0,0:03:41.66,0:03:45.40,Default,,0,0,0,,print(age) Common Type Conversion int()
+Dialogue: 0,0:03:45.40,0:03:50.13,Default,,0,0,0,,float() str() 11. Operators in Python
+Dialogue: 0,0:03:50.13,0:03:53.51,Default,,0,0,0,,Operators are used to perform operations.
+Dialogue: 0,0:03:53.51,0:03:56.59,Default,,0,0,0,,Arithmetic Operators Operator	Meaning
+Dialogue: 0,0:03:56.59,0:03:59.11,Default,,0,0,0,,+	Addition -	Subtraction
+Dialogue: 0,0:03:59.11,0:04:03.55,Default,,0,0,0,,*	Multiplication /	Division %	Modulus
+Dialogue: 0,0:04:03.55,0:04:09.50,Default,,0,0,0,,Example: a = 10 b = 5 print(a + b)
+Dialogue: 0,0:04:09.50,0:04:14.56,Default,,0,0,0,,print(a - b) 12. Comparison Operators
+Dialogue: 0,0:04:14.56,0:04:18.14,Default,,0,0,0,,Used to compare values. Operator	Meaning
+Dialogue: 0,0:04:18.14,0:04:22.46,Default,,0,0,0,,==	Equal =	Not Equal >	Greater Than
+Dialogue: 0,0:04:22.46,0:04:27.69,Default,,0,0,0,,<	Less Than Example: a = 10 b = 5
+Dialogue: 0,0:04:27.69,0:04:32.23,Default,,0,0,0,,print(a > b) Output: True 13.
+Dialogue: 0,0:04:32.23,0:04:35.06,Default,,0,0,0,,Logical Operators Operator	Meaning
+Dialogue: 0,0:04:35.06,0:04:37.05,Default,,0,0,0,,and	Both conditions true
+Dialogue: 0,0:04:37.05,0:04:39.26,Default,,0,0,0,,or	Any one condition true
+Dialogue: 0,0:04:39.26,0:04:43.48,Default,,0,0,0,,not	Reverse result Example: age = 20
+Dialogue: 0,0:04:43.48,0:04:49.03,Default,,0,0,0,,print(age > 18 and age < 30) 14.
+Dialogue: 0,0:04:49.03,0:04:50.97,Default,,0,0,0,,Conditional Statements
+Dialogue: 0,0:04:50.97,0:04:54.36,Default,,0,0,0,,Conditional statements help make decisions.
+Dialogue: 0,0:04:54.36,0:04:59.61,Default,,0,0,0,,if Statement age = 20 if age >= 18:
+Dialogue: 0,0:04:59.61,0:05:02.06,Default,,0,0,0,,print("Eligible to vote")
+Dialogue: 0,0:05:02.06,0:05:08.04,Default,,0,0,0,,if else Statement age = 15 if age >= 18:
+Dialogue: 0,0:05:08.04,0:05:11.92,Default,,0,0,0,,print("Adult") else: print("Minor")
+Dialogue: 0,0:05:11.92,0:05:15.88,Default,,0,0,0,,if elif else Statement marks = 75
+Dialogue: 0,0:05:15.88,0:05:20.42,Default,,0,0,0,,if marks >= 90: print("Grade A")
+Dialogue: 0,0:05:20.42,0:05:26.25,Default,,0,0,0,,elif marks >= 70: print("Grade B") else:
+Dialogue: 0,0:05:26.25,0:05:30.24,Default,,0,0,0,,print("Grade C") 15. Nested if
+Dialogue: 0,0:05:30.24,0:05:33.67,Default,,0,0,0,,An if inside another if. Example:
+Dialogue: 0,0:05:33.67,0:05:39.84,Default,,0,0,0,,age = 20 citizen = True if age >= 18:
+Dialogue: 0,0:05:39.84,0:05:43.80,Default,,0,0,0,,if citizen: print("Can vote") 16.
+Dialogue: 0,0:05:43.80,0:05:45.40,Default,,0,0,0,,Loops in Python
+Dialogue: 0,0:05:45.40,0:05:47.92,Default,,0,0,0,,Loops are used to repeat code.
+Dialogue: 0,0:05:47.92,0:05:51.62,Default,,0,0,0,,Two main loops: for loop while loop 17.
+Dialogue: 0,0:05:51.62,0:05:52.63,Default,,0,0,0,,for Loop
+Dialogue: 0,0:05:52.63,0:05:56.18,Default,,0,0,0,,Used to repeat code a fixed number of times.
+Dialogue: 0,0:05:56.18,0:06:01.60,Default,,0,0,0,,Example: for i in range(5): print(i)
+Dialogue: 0,0:06:01.60,0:06:08.68,Default,,0,0,0,,Output 0 1 2 3 4 18. range() Function
+Dialogue: 0,0:06:08.68,0:06:12.55,Default,,0,0,0,,range() generates numbers. Examples:
+Dialogue: 0,0:06:12.55,0:06:21.14,Default,,0,0,0,,range(5) range(1, 5) range(1, 10, 2) 19.
+Dialogue: 0,0:06:21.14,0:06:22.22,Default,,0,0,0,,while Loop
+Dialogue: 0,0:06:22.22,0:06:25.31,Default,,0,0,0,,Runs until condition becomes false.
+Dialogue: 0,0:06:25.31,0:06:30.31,Default,,0,0,0,,Example: count = 1 while count <= 5:
+Dialogue: 0,0:06:30.31,0:06:34.36,Default,,0,0,0,,print(count) count += 1 20.
+Dialogue: 0,0:06:34.36,0:06:35.68,Default,,0,0,0,,Infinite Loop
+Dialogue: 0,0:06:35.68,0:06:38.59,Default,,0,0,0,,If condition never becomes false,
+Dialogue: 0,0:06:38.59,0:06:42.40,Default,,0,0,0,,loop runs forever. Example: while True:
+Dialogue: 0,0:06:42.40,0:06:43.91,Default,,0,0,0,,print("Hello")
+Dialogue: 0,0:06:43.91,0:06:47.68,Default,,0,0,0,,Be careful with infinite loops. 21.
+Dialogue: 0,0:06:47.68,0:06:50.63,Default,,0,0,0,,break Statement Used to stop the loop.
+Dialogue: 0,0:06:50.63,0:06:56.78,Default,,0,0,0,,Example: for i in range(10): if i == 5:
+Dialogue: 0,0:06:56.78,0:07:01.48,Default,,0,0,0,,break print(i) 22. continue Statement
+Dialogue: 0,0:07:01.48,0:07:04.70,Default,,0,0,0,,Skips current iteration. Example:
+Dialogue: 0,0:07:04.70,0:07:10.65,Default,,0,0,0,,for i in range(5): if i == 2: continue
+Dialogue: 0,0:07:10.65,0:07:14.71,Default,,0,0,0,,print(i) 23. pass Statement
+Dialogue: 0,0:07:14.71,0:07:17.73,Default,,0,0,0,,Used as a placeholder. Example:
+Dialogue: 0,0:07:17.73,0:07:21.71,Default,,0,0,0,,for i in range(5): pass 24.
+Dialogue: 0,0:07:21.71,0:07:23.73,Default,,0,0,0,,Simple Mini Programs
+Dialogue: 0,0:07:23.73,0:07:26.35,Default,,0,0,0,,Program 1 – Add Two Numbers
+Dialogue: 0,0:07:26.35,0:07:30.23,Default,,0,0,0,,a = int(input("Enter first number: "))
+Dialogue: 0,0:07:30.23,0:07:34.36,Default,,0,0,0,,b = int(input("Enter second number: "))
+Dialogue: 0,0:07:34.36,0:07:37.72,Default,,0,0,0,,print("Sum =", a + b)
+Dialogue: 0,0:07:37.72,0:07:40.15,Default,,0,0,0,,Program 2 – Even or Odd
+Dialogue: 0,0:07:40.15,0:07:43.82,Default,,0,0,0,,num = int(input("Enter number: "))
+Dialogue: 0,0:07:43.82,0:07:49.67,Default,,0,0,0,,if num % 2 == 0: print("Even") else:
+Dialogue: 0,0:07:49.67,0:07:51.21,Default,,0,0,0,,print("Odd")
+Dialogue: 0,0:07:51.21,0:07:53.95,Default,,0,0,0,,Program 3 – Multiplication Table
+Dialogue: 0,0:07:53.95,0:07:57.62,Default,,0,0,0,,num = int(input("Enter number: "))
+Dialogue: 0,0:07:57.62,0:08:03.52,Default,,0,0,0,,for i in range(1, 11): print(num, "x",
+Dialogue: 0,0:08:03.52,0:08:07.51,Default,,0,0,0,,i, "=", num * i) 25.
+Dialogue: 0,0:08:07.51,0:08:09.55,Default,,0,0,0,,Common Beginner Mistakes
+Dialogue: 0,0:08:09.55,0:08:12.59,Default,,0,0,0,,Indentation Error Wrong: if True:
+Dialogue: 0,0:08:12.59,0:08:15.88,Default,,0,0,0,,print("Hello") Correct: if True:
+Dialogue: 0,0:08:15.88,0:08:19.00,Default,,0,0,0,,print("Hello") Missing Colon Wrong:
+Dialogue: 0,0:08:19.00,0:08:25.24,Default,,0,0,0,,if age > 18 Correct: if age > 18: 26.
+Dialogue: 0,0:08:25.24,0:08:28.72,Default,,0,0,0,,Summary Today we learned: Python basics
+Dialogue: 0,0:08:28.72,0:08:31.99,Default,,0,0,0,,Variables Data types Input and output
+Dialogue: 0,0:08:31.99,0:08:35.03,Default,,0,0,0,,Operators Conditional statements Loops
+Dialogue: 0,0:08:35.03,0:08:39.04,Default,,0,0,0,,These are the foundation concepts of Python programming.
+Dialogue: 0,0:08:39.04,0:08:42.55,Default,,0,0,0,,Practice daily to become confident in coding.
+Dialogue: 0,0:08:42.55,0:08:45.57,Default,,0,0,0,,27. Final Motivation
+Dialogue: 0,0:08:45.57,0:08:48.35,Default,,0,0,0,,Programming is learned by practice,
+Dialogue: 0,0:08:48.35,0:08:50.20,Default,,0,0,0,,not by reading alone.
+Dialogue: 0,0:08:50.20,0:08:52.91,Default,,0,0,0,,Write small programs every day.
+Dialogue: 0,0:08:52.91,0:08:56.20,Default,,0,0,0,,Start simple. Improve step by step.
+Dialogue: 0,0:08:56.20,0:09:00.23,Default,,0,0,0,,You can become a Python developer with regular practice.
+Dialogue: 0,0:09:00.23,0:09:04.12,Default,,0,0,0,,Thank you students! Happy Coding! 🚀
