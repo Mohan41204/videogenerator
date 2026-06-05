@@ -6,16 +6,18 @@ import VideoPlayer from './components/VideoPlayer';
 
 function App() {
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState(null);
+  const [generatedScript, setGeneratedScript] = useState(null);
 
-  const handleVideoGenerated = (url) => {
+  const handleVideoGenerated = (url, script) => {
     setGeneratedVideoUrl(url);
+    if (script) setGeneratedScript(script);
   };
 
   return (
     <Layout>
       <Toaster position="top-right" />
       <div className="max-w-6xl mx-auto px-4 py-12 flex flex-col items-center">
-        
+
         {/* Header Section */}
         <div className="text-center mb-16 animate-fade-in">
           <h1 className="text-5xl md:text-6xl font-extrabold mb-6 tracking-tight">
@@ -28,7 +30,7 @@ function App() {
 
         {/* Main Content Area */}
         <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-          
+
           {/* Left Column: Form */}
           <div className="w-full">
             <VideoGeneratorForm onVideoGenerated={handleVideoGenerated} />
@@ -36,7 +38,7 @@ function App() {
 
           {/* Right Column: Player / Result */}
           <div className="w-full flex flex-col justify-center sticky top-8">
-            <VideoPlayer videoUrl={generatedVideoUrl} />
+            <VideoPlayer videoUrl={generatedVideoUrl} script={generatedScript} />
           </div>
 
         </div>

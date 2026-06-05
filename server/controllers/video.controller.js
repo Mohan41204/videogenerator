@@ -9,7 +9,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // Robust JSON extraction and cleaning utility
 const cleanJsonString = (str) => {
   if (!str) return '';
-  
+
   // Try to find JSON array block [ ... ]
   const arrayMatch = str.match(/\[\s*\{[\s\S]*\}\s*\]/);
   if (arrayMatch) {
@@ -55,7 +55,7 @@ const generateVideo = async (req, res) => {
       const cleaned = cleanJsonString(text);
       slides = JSON.parse(cleaned);
       if (!Array.isArray(slides)) throw new Error('Expected an array of slides');
-      
+
       // Auto-fix any structure issues (e.g., model using 'code' instead of 'bullets')
       slides = slides.map(slide => {
         if (slide.code && (!slide.bullets || !slide.bullets.length)) {
@@ -63,7 +63,7 @@ const generateVideo = async (req, res) => {
         }
         if (slide.isCode === undefined) {
           const isCodeSlide = /code|program|example|syntax/i.test(slide.heading || slide.subheading || '') ||
-                              (slide.bullets && slide.bullets.length === 1 && (slide.bullets[0].includes('\\N') || slide.bullets[0].includes('\n')));
+            (slide.bullets && slide.bullets.length === 1 && (slide.bullets[0].includes('\\N') || slide.bullets[0].includes('\n')));
           slide.isCode = isCodeSlide;
         }
         return slide;
@@ -157,22 +157,25 @@ Requirements for the teaching style:
       - Provide at least one slide with a **Basic Example Program** showing the fundamental implementation.
       - Provide at least one slide with an **Advanced Example Program** showing real-world / production-grade implementation.
       - Make sure the example programs are complete, realistic, and directly show the concepts in action.
-    - For slides displaying code examples, the \`bullets\` array should contain exactly one string representing the full, formatted, and indented code block. Use \\N (the literal string '\\N') to represent newlines inside the code block so that lines and spacing are perfectly preserved on the screen. Do NOT include markdown code fences (\`\`\`) inside the bullets array. Write real, complete, professional code snippets (e.g., \`"class Dog:\\\\N    def __init__(self, name):\\\\N        self.name = name"\`).
-    - CRITICAL CODE LIMITATION: Keep code examples short, concise, and highly focused. Each code block MUST NOT exceed 6 to 10 lines of code total. Avoid writing long boilerplate code, multiple classes, or large mock datasets. The code snippet should be short enough to occupy no more than 40% of the slide height, so it has plenty of breathing room on the screen.
+    - For slides displaying code examples, the \`bullets\` array should contain exactly one string representing the full, formatted, and indented code block. You MUST also include the expected EXECUTED OUTPUT of the code directly below the program inside the same string.
+    - Separate the code and the output using \`\\\\N\\\\N==== OUTPUT ====\\\\N\` followed by the output.
+    - Use \\N (the literal string '\\N') to represent newlines inside the code block and output so that lines and spacing are perfectly preserved on the screen. Do NOT include markdown code fences (\`\`\`) inside the bullets array. Write real, complete, professional code snippets (e.g., \`"print('Hello World')\\\\N\\\\N==== OUTPUT ====\\\\NHello World"\`).
+    - CRITICAL CODE LIMITATION: Keep code examples short, concise, and highly focused. Each code block MUST NOT exceed 6 to 10 lines of code total. Avoid writing long boilerplate code, multiple classes, or large mock datasets. The code snippet and output should be short enough to occupy no more than 60% of the slide height, so it has plenty of breathing room on the screen.
     - The slide object MUST have "isCode": true.
   - **If the topic/subtopic is NOT related to programming/coding**:
     - Do NOT include any programming code blocks or example programs.
     - Instead, generate detailed explanation slides, and if possible, include concrete real-world examples, analogies, practical case studies, and scenarios related to the topic and subtopic.
     - The slide object MUST have "isCode": false.
-- Explain every concept and example in a very simple, easy-to-understand classroom teaching style.
-- Use friendly teacher-to-student communication.
-- Include real-world examples, analogies, practical explanations, and small exercises where appropriate.
-- Cover definitions, theory, syntax, examples, use cases, common mistakes, and interview-oriented understanding.
-- The explanation should feel like a real classroom session where a teacher explains concepts slowly and clearly.
+- Explain every concept and example in a very simple, easy-to-understand classroom teaching style, but with extreme depth.
+- Use friendly teacher-to-student communication with encouraging transition phrases.
+- Include numerous real-world examples, analogies, practical explanations, short stories, case studies, and small interactive exercises/discussions where appropriate to naturally increase engagement and duration.
+- Cover definitions, theory, syntax, examples, use cases, common mistakes, troubleshooting, industry standards, and interview-oriented understanding comprehensively.
+- The explanation should feel like a real classroom session where a teacher explains concepts slowly and clearly, taking time to reflect on important details.
 - Keep the flow natural and engaging so students can easily follow along in a video lesson.
-- The generated content must be long and detailed enough for at least a 30-minute MP4 educational video narration.
+- CRITICAL DURATION TARGET: The generated script must be extremely long, exhaustive, and detailed enough to comfortably produce a 45 to 60-minute MP4 educational video narration. 
+- To achieve this, generate a very high number of slides (e.g., 20-30 slides) and ensure the narration for each slide is highly detailed (minimum 150-250 words per narration).
 - Maintain continuity between topics and subtopics.
-- Avoid short summaries; provide deep explanations with beginner-friendly teaching.
+- Avoid short summaries; provide deep, lengthy explanations with beginner-friendly teaching.
 
 OUTPUT FORMAT:
 You MUST output ONLY a valid JSON array of "Slide" objects. Do not include markdown formatting, headings symbols, or code block formatting outside the JSON. Do not include phrases like "fade in", "pause", "screen shows". Just raw JSON array.

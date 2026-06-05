@@ -44,30 +44,30 @@ const generateSilence = (duration, outputPath) => {
 };
 
 const getPauseDuration = (punctuation) => {
-  if (!punctuation) return 0.1;
+  if (!punctuation) return 0.2;
   if (/[.!?]/.test(punctuation)) {
-    return 0.65; // Natural pause between sentences
+    return 1.25; // Slower, more deliberate teaching pause between sentences
   }
   if (/,|;|:/.test(punctuation)) {
-    return 0.35; // Natural pause at commas / clauses
+    return 0.75; // Slower pause at commas / clauses for better pacing
   }
-  return 0.2;
+  return 0.4;
 };
 
 const generateAudio = async (text, outputPath) => {
   try {
     const uniqueId = path.basename(outputPath, '.mp3');
     const outputDir = path.dirname(outputPath);
-    
+
     // Split the text into speech segments and punctuation, keeping sentence/clause structures
     // using a lookahead to only split on punctuation followed by space or end of string.
     const parts = text.split(/([.,!?;]+(?=\s|$))/);
     const segments = [];
-    
+
     for (let i = 0; i < parts.length; i += 2) {
       const speechText = parts[i] ? parts[i].trim() : '';
       const punctuation = parts[i + 1] ? parts[i + 1].trim() : '';
-      
+
       if (speechText) {
         segments.push({
           text: speechText,
@@ -77,20 +77,20 @@ const generateAudio = async (text, outputPath) => {
         segments[segments.length - 1].punctuation += punctuation;
       }
     }
-    
+
     if (segments.length === 0) {
       return await generateSingleAudio(' ', outputPath);
     }
-    
+
     const tempFiles = [];
     try {
       for (let i = 0; i < segments.length; i++) {
         const seg = segments[i];
         const speechPath = path.join(outputDir, `${uniqueId}_sub_${i}_speech.mp3`);
-        
+
         await generateSingleAudio(seg.text, speechPath);
         tempFiles.push(speechPath);
-        
+
         const pauseDur = getPauseDuration(seg.punctuation);
         if (pauseDur > 0) {
           const silencePath = path.join(outputDir, `${uniqueId}_sub_${i}_silence.mp3`);
@@ -98,7 +98,7 @@ const generateAudio = async (text, outputPath) => {
           tempFiles.push(silencePath);
         }
       }
-      
+
       // Concatenate speech and silence chunks using the fast copy method
       await mergeAudioFiles(tempFiles, outputPath);
     } catch (err) {
@@ -107,10 +107,10 @@ const generateAudio = async (text, outputPath) => {
     } finally {
       // Clean up temporary segment files
       tempFiles.forEach(p => {
-        fs.unlink(p, () => {});
+        fs.unlink(p, () => { });
       });
     }
-    
+
     return outputPath;
   } catch (error) {
     console.error('generateAudio main error:', error);
@@ -142,11 +142,11 @@ const mergeAudioFiles = (inputPaths, outputPath) => {
       .outputOptions(['-c copy'])
       .on('error', err => {
         console.error('Error merging audio:', err);
-        fs.unlink(listPath, () => {});
+        fs.unlink(listPath, () => { });
         reject(err);
       })
       .on('end', () => {
-        fs.unlink(listPath, () => {});
+        fs.unlink(listPath, () => { });
         resolve(outputPath);
       })
       .save(outputPath);

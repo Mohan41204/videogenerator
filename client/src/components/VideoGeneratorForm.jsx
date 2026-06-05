@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { UploadCloud, Wand2, MonitorPlay, Smartphone } from 'lucide-react';
+import { UploadCloud, Wand2, MonitorPlay, Smartphone, Download } from 'lucide-react';
 
 const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [topic, setTopic] = useState('');
@@ -12,11 +12,29 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [background, setBackground] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0); // Mock progress
+  const [scriptProgress, setScriptProgress] = useState(0);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setBackground(e.target.files[0]);
     }
+  };
+
+  const downloadScriptAsWord = () => {
+    if (!text.trim()) {
+      toast.error('No script to download');
+      return;
+    }
+    const blob = new Blob([text], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const fileName = topic ? `${topic.replace(/\s+/g, '_')}_Script` : 'AI_Script';
+    link.download = `${fileName}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const generateAIScript = async () => {
@@ -25,11 +43,24 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
       return;
     }
     setIsGeneratingScript(true);
+    setScriptProgress(0);
+
+    const scriptProgressInterval = setInterval(() => {
+      setScriptProgress(prev => {
+        if (prev >= 95) return prev;
+        return prev + 1;
+      });
+    }, 600);
+
     try {
       const response = await axios.post('http://localhost:5000/api/videos/generate-script', {
         topic,
         subTopic: subtopic
       });
+
+      clearInterval(scriptProgressInterval);
+      setScriptProgress(100);
+
       if (response.data.success) {
         let formattedText = response.data.text;
         try {
@@ -47,7 +78,11 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
       console.error(error);
       toast.error(error.response?.data?.message || 'An error occurred while generating script.');
     } finally {
-      setIsGeneratingScript(false);
+      clearInterval(scriptProgressInterval);
+      setTimeout(() => {
+        setIsGeneratingScript(false);
+        setScriptProgress(0);
+      }, 500);
     }
   };
 
@@ -87,7 +122,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
 
       if (response.data.success) {
         toast.success('Video generated successfully!');
-        onVideoGenerated(`http://localhost:5000${response.data.data.videoUrl}`);
+        onVideoGenerated(`http://localhost:5000${response.data.data.videoUrl}`, text);
       } else {
         toast.error(response.data.message || 'Failed to generate video.');
       }
@@ -106,7 +141,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
       <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-all duration-700"></div>
 
       <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
-        
+
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -132,7 +167,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
               />
             </div>
           </div>
-          
+
           <button
             type="button"
             onClick={generateAIScript}
@@ -140,21 +175,39 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
             className="w-full flex items-center justify-center gap-2 bg-slate-800 border border-purple-500/30 hover:border-purple-500 text-purple-400 font-medium py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isGeneratingScript ? (
-              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Generating Script ({scriptProgress}%)</span>
+              </>
             ) : (
-              <Wand2 size={18} />
+              <>
+                <Wand2 size={18} />
+                <span>Generate Script with AI</span>
+              </>
             )}
-            <span>Generate Script with AI</span>
           </button>
         </div>
 
         {/* Text Input */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-300">Script Content</label>
-          <textarea 
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-medium text-slate-300">Script Content</label>
+            {text.trim() && (
+              <button
+                type="button"
+                onClick={downloadScriptAsWord}
+                className="text-xs flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-purple-400 rounded-lg border border-purple-500/30 hover:border-purple-500 transition-all font-medium"
+                title="Download as Word.doc file"
+              >
+                <Download size={14} />
+                Download Script
+              </button>
+            )}
+          </div>
+          <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             className="w-full h-32 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none"
@@ -171,11 +224,10 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
               type="button"
               onClick={() => setFormat('16:9')}
               disabled={isGenerating}
-              className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
-                format === '16:9' 
-                  ? 'bg-purple-500/20 border-purple-500 text-purple-300' 
-                  : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
-              }`}
+              className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${format === '16:9'
+                ? 'bg-purple-500/20 border-purple-500 text-purple-300'
+                : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
+                }`}
             >
               <MonitorPlay size={18} />
               <span>Landscape (16:9)</span>
@@ -184,11 +236,10 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
               type="button"
               onClick={() => setFormat('9:16')}
               disabled={isGenerating}
-              className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
-                format === '9:16' 
-                  ? 'bg-purple-500/20 border-purple-500 text-purple-300' 
-                  : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
-              }`}
+              className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${format === '9:16'
+                ? 'bg-purple-500/20 border-purple-500 text-purple-300'
+                : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
+                }`}
             >
               <Smartphone size={18} />
               <span>Shorts (9:16)</span>
@@ -200,16 +251,15 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-300">Background Media</label>
           <div className="relative">
-            <input 
-              type="file" 
-              accept="image/*,video/mp4,video/quicktime" 
+            <input
+              type="file"
+              accept="image/*,video/mp4,video/quicktime"
               onChange={handleFileChange}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
               disabled={isGenerating}
             />
-            <div className={`w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all ${
-              background ? 'border-purple-500 bg-purple-500/5' : 'border-slate-600 bg-slate-800/30 hover:bg-slate-800/50'
-            }`}>
+            <div className={`w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all ${background ? 'border-purple-500 bg-purple-500/5' : 'border-slate-600 bg-slate-800/30 hover:bg-slate-800/50'
+              }`}>
               <UploadCloud className={`w-8 h-8 mb-2 ${background ? 'text-purple-400' : 'text-slate-400'}`} />
               <p className="text-sm font-medium text-slate-300">
                 {background ? background.name : 'Click or drag media here (Optional)'}
@@ -220,8 +270,8 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
         </div>
 
         {/* Submit Button */}
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={isGenerating}
           className="w-full relative group overflow-hidden bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all disabled:opacity-70 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0"
         >
@@ -247,7 +297,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
         {/* Progress Bar (Visible only when generating) */}
         {isGenerating && (
           <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-300 ease-out"
               style={{ width: `${progress}%` }}
             ></div>
