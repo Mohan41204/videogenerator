@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Online Class Screen Share</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #0d1117;
+      font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
+      user-select: none;
+    }
+
+    #desktop {
+      width: 1920px;
+      height: 1032px;
+      position: relative;
+      background: radial-gradient(ellipse at 30% 40%, #1a2035 0%, #0d1117 60%, #0a0d17 100%);
+    }
+
+    .window {
+      position: absolute;
+      top: 30px;
+      left: 80px;
+      width: 1760px;
+      height: 960px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.07);
+      display: flex;
+      flex-direction: column;
+    }
+    .window.hidden { display: none; }
+
+    .win-controls { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+    .win-btn { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .win-btn.close    { background: #ff5f56; box-shadow: 0 0 0 1px #e0443e; }
+    .win-btn.minimize { background: #ffbd2e; box-shadow: 0 0 0 1px #dea123; }
+    .win-btn.maximize { background: #27c93f; box-shadow: 0 0 0 1px #1aab29; }
+
+    @keyframes cursorBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ---- NOTEPAD ---- */
+    #notepad-window { background: #ffffff; }
+
+    .notepad-titlebar {
+      background: #f0f0f0; height: 34px; display: flex; align-items: center;
+      padding: 0 14px; border-bottom: 1px solid #d4d4d4; flex-shrink: 0; gap: 10px;
+    }
+    .notepad-title-text {
+      font-size: 13px; color: #1a1a1a; flex: 1; text-align: center; font-weight: 400;
+    }
+    .notepad-menubar {
+      background: #fafafa; height: 28px; display: flex; align-items: center;
+      padding: 0 6px; border-bottom: 1px solid #e4e4e4; flex-shrink: 0;
+    }
+    .notepad-menubar span {
+      padding: 3px 12px; font-size: 13px; color: #2a2a2a; cursor: pointer; border-radius: 3px;
+    }
+    .notepad-menubar span:hover { background: #e2e2e2; }
+
+    #notepad-content-area {
+      flex: 1; padding: 24px 40px; overflow: hidden;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 17px; line-height: 2; color: #1a1a1a;
+      background: #ffffff; white-space: pre-wrap; word-wrap: break-word;
+    }
+    #notepad-cursor {
+      display: inline-block; width: 2px; height: 1.15em; background: #1a1a1a;
+      vertical-align: text-bottom; animation: cursorBlink 1.1s step-end infinite; margin-left: 1px;
+    }
+    .notepad-statusbar {
+      background: #0078d4; height: 24px; display: flex; align-items: center;
+      padding: 0 14px; gap: 28px; flex-shrink: 0;
+    }
+    .notepad-statusbar span { font-size: 12px; color: #ffffff; }
+
+    /* ---- VS CODE ---- */
+    #vscode-window { background: #1e1e1e; }
+
+    .vscode-titlebar {
+      background: #3c3c3c; height: 34px; display: flex; align-items: center;
+      padding: 0 14px; flex-shrink: 0; position: relative;
+    }
+    .vscode-title-text {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      font-size: 13px; color: #cccccc; white-space: nowrap;
+    }
+    .vscode-menubar {
+      background: #3c3c3c; height: 28px; display: flex; align-items: center;
+      padding: 0 6px; gap: 2px; border-bottom: 1px solid #1e1e1e; flex-shrink: 0;
+    }
+    .vscode-menubar span {
+      padding: 2px 10px; font-size: 13px; color: #cccccc; cursor: pointer; border-radius: 3px;
+    }
+    .vscode-menubar span:hover { background: rgba(255,255,255,0.1); }
+
+    .vscode-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+    .vscode-activitybar {
+      width: 50px; background: #333333; display: flex; flex-direction: column;
+      align-items: center; padding: 10px 0; gap: 2px; flex-shrink: 0;
+      border-right: 1px solid #252526;
+    }
+    .act-icon {
+      width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+      border-radius: 5px; cursor: pointer; font-size: 20px; color: #858585; position: relative;
+    }
+    .act-icon.active { color: #d4d4d4; }
+    .act-icon.active::before {
+      content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+      width: 2px; background: #0078d4; border-radius: 0 1px 1px 0;
+    }
+
+    .vscode-sidebar {
+      width: 240px; background: #252526; flex-shrink: 0;
+      border-right: 1px solid #1e1e1e; display: flex; flex-direction: column;
+    }
+    .sidebar-header {
+      height: 34px; display: flex; align-items: center; padding: 0 12px;
+      font-size: 11px; letter-spacing: 0.12em; color: #bbbbbb; font-weight: 600;
+      text-transform: uppercase; flex-shrink: 0;
+    }
+    .file-item {
+      display: flex; align-items: center; height: 26px; padding: 0 12px;
+      font-size: 13px; color: #cccccc; cursor: pointer; gap: 6px;
+    }
+    .file-item.selected { background: #094771; }
+
+    .vscode-editor-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .vscode-tabs {
+      height: 36px; background: #252526; display: flex;
+      align-items: flex-end; border-bottom: 1px solid #1e1e1e; flex-shrink: 0;
+    }
+    .vs-tab {
+      min-width: 140px; height: 36px; display: flex; align-items: center;
+      padding: 0 14px; font-size: 13px; color: #969696;
+      background: #2d2d2d; border-right: 1px solid #1e1e1e; gap: 6px; cursor: pointer;
+    }
+    .vs-tab.active { background: #1e1e1e; color: #ffffff; border-top: 1px solid #0078d4; }
+    .vs-tab-close { margin-left: auto; color: #969696; font-size: 16px; cursor: pointer; }
+
+    .vscode-editor { flex: 1; display: flex; overflow: hidden; background: #1e1e1e; min-height: 0; }
+
+    #vscode-gutter {
+      min-width: 54px; background: #1e1e1e; color: #5a5a5a;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 14px;
+      line-height: 22px; padding: 14px 12px 14px 0; text-align: right; flex-shrink: 0;
+      border-right: 1px solid #2d2d2d; white-space: pre; user-select: none;
+    }
+    #vscode-code-pane {
+      flex: 1; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px;
+      line-height: 22px; color: #d4d4d4; padding: 14px 20px;
+      white-space: pre; overflow: hidden; background: #1e1e1e; tab-size: 4;
+    }
+    #code-cursor {
+      display: inline-block; width: 2px; height: 18px; background: #c0c0c0;
+      vertical-align: text-bottom; animation: cursorBlink 1.1s step-end infinite; margin-left: 1px;
+    }
+
+    .vscode-terminal-panel {
+      height: 220px; background: #1e1e1e; border-top: 1px solid #474747;
+      display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .terminal-topbar {
+      height: 36px; background: #252526; display: flex; align-items: center;
+      padding: 0 14px; gap: 20px; border-bottom: 1px solid #1e1e1e; flex-shrink: 0;
+    }
+    .terminal-tab { font-size: 12px; color: #8d8d8d; cursor: pointer; padding: 6px 0; }
+    .terminal-tab.active { color: #cccccc; border-bottom: 1px solid #cccccc; }
+    .terminal-toolbar { margin-left: auto; display: flex; gap: 12px; color: #8d8d8d; font-size: 14px; }
+
+    #terminal-body {
+      flex: 1; padding: 8px 16px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px;
+      color: #d4d4d4; white-space: pre-wrap; line-height: 1.55; overflow: hidden;
+    }
+    .term-prompt { color: #4fc3f7; }
+    .term-output { color: #d4d4d4; }
+    #terminal-cursor { display: inline-block; font-size: 14px; color: #d4d4d4; animation: cursorBlink 1.1s step-end infinite; }
+
+    .vscode-statusbar {
+      height: 24px; background: #0078d4; display: flex; align-items: center;
+      padding: 0 14px; gap: 20px; flex-shrink: 0;
+    }
+    .status-item { font-size: 12px; color: #ffffff; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+
+    /* ---- TASKBAR ---- */
+    #taskbar {
+      position: fixed; bottom: 0; left: 0; width: 1920px; height: 48px;
+      background: rgba(16,16,26,0.97); border-top: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: center; padding: 0 18px; z-index: 9999;
+    }
+    .tb-left { display: flex; align-items: center; gap: 6px; }
+    .tb-start {
+      width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+      font-size: 22px; border-radius: 6px; cursor: pointer; color: #d4d4d4;
+    }
+    .tb-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; }
+    .tb-app {
+      width: 44px; height: 44px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; border-radius: 8px; cursor: pointer;
+      position: relative; font-size: 22px; transition: background 0.15s; color: #d4d4d4;
+    }
+    .tb-app:hover { background: rgba(255,255,255,0.1); }
+    .tb-app.running::after {
+      content: ''; position: absolute; bottom: 3px; width: 18px; height: 3px;
+      border-radius: 2px; background: rgba(255,255,255,0.35);
+    }
+    .tb-app.active::after { background: #60a5fa; width: 26px; }
+    .tb-app.active { background: rgba(96,165,250,0.12); }
+    .tb-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+    .tb-systray { display: flex; align-items: center; gap: 8px; font-size: 15px; color: #d4d4d4; }
+    #tb-clock { text-align: right; font-size: 12px; color: #d4d4d4; line-height: 1.5; padding: 4px 8px; border-radius: 4px; }
+
+    /* ---- SYNTAX COLORS ---- */
+    .kw   { color: #569cd6; }
+    .fn   { color: #dcdcaa; }
+    .str  { color: #ce9178; }
+    .num  { color: #b5cea8; }
+    .cmt  { color: #6a9955; }
+    .cls  { color: #4ec9b0; }
+    .deco { color: #dcdcaa; }
+  </style>
+</head>
+<body>
+
+<div id="desktop">
+
+  <!-- NOTEPAD WINDOW -->
+  <div id="notepad-window" class="window">
+    <div class="notepad-titlebar">
+      <div class="win-controls">
+        <span class="win-btn close"></span>
+        <span class="win-btn minimize"></span>
+        <span class="win-btn maximize"></span>
+      </div>
+      <span class="notepad-title-text" id="notepad-title-label">notes.txt &mdash; Notepad</span>
+      <div style="width:60px"></div>
+    </div>
+    <div class="notepad-menubar">
+      <span>File</span><span>Edit</span><span>Format</span><span>View</span><span>Help</span>
+    </div>
+    <div id="notepad-content-area">
+      <span id="notepad-text-span"></span><span id="notepad-cursor">&#8203;</span>
+    </div>
+    <div class="notepad-statusbar">
+      <span id="np-ln-col">Ln 1, Col 1</span>
+      <span id="np-chars">0 characters</span>
+      <span>Plain text</span><span>100%</span><span>Windows (CRLF)</span><span>UTF-8</span>
+    </div>
+  </div>
+
+  <!-- VS CODE WINDOW -->
+  <div id="vscode-window" class="window hidden">
+    <div class="vscode-titlebar">
+      <div class="win-controls">
+        <span class="win-btn close"></span>
+        <span class="win-btn minimize"></span>
+        <span class="win-btn maximize"></span>
+      </div>
+      <span class="vscode-title-text" id="vs-title-label">main.py &mdash; class_project &mdash; Visual Studio Code</span>
+    </div>
+    <div class="vscode-menubar">
+      <span>File</span><span>Edit</span><span>Selection</span><span>View</span>
+      <span>Go</span><span>Run</span><span>Terminal</span><span>Help</span>
+    </div>
+    <div class="vscode-body">
+      <div class="vscode-activitybar">
+        <div class="act-icon active">&#128193;</div>
+        <div class="act-icon">&#128269;</div>
+        <div class="act-icon">&#9139;</div>
+        <div class="act-icon">&#9654;</div>
+        <div class="act-icon">&#11035;</div>
+      </div>
+      <div class="vscode-sidebar">
+        <div class="sidebar-header">EXPLORER</div>
+        <div class="file-item">
+          <span style="font-size:12px;font-weight:700;color:#ccc;text-transform:uppercase;letter-spacing:0.05em">&#9660; CLASS_PROJECT</span>
+        </div>
+        <div class="file-item selected" style="padding-left:28px">
+          <span>&#128013;</span>
+          <span id="vs-sidebar-file">main.py</span>
+        </div>
+      </div>
+      <div class="vscode-editor-area">
+        <div class="vscode-tabs">
+          <div class="vs-tab active">
+            <span>&#128013;</span>
+            <span id="vs-tab-filename">main.py</span>
+            <span class="vs-tab-close">&#215;</span>
+          </div>
+        </div>
+        <div class="vscode-editor">
+          <div id="vscode-gutter">1</div>
+          <div id="vscode-code-pane">
+            <span id="vs-code-span"></span><span id="code-cursor">&#8203;</span>
+          </div>
+        </div>
+        <div class="vscode-terminal-panel">
+          <div class="terminal-topbar">
+            <span class="terminal-tab">OUTPUT</span>
+            <span class="terminal-tab">DEBUG CONSOLE</span>
+            <span class="terminal-tab active">TERMINAL</span>
+            <span class="terminal-tab">PORTS</span>
+            <span class="terminal-tab">PROBLEMS</span>
+            <div class="terminal-toolbar">
+              <span>&#65291;</span><span>&#8862;</span><span>&#10005;</span>
+            </div>
+          </div>
+          <div id="terminal-body">
+            <span id="term-text"></span><span id="terminal-cursor">&#9612;</span>
+          </div>
+        </div>
+        <div class="vscode-statusbar">
+          <div class="status-item">&#9139; main</div>
+          <div class="status-item">&#9888; 0 &nbsp; &#10005; 0</div>
+          <div class="status-item" style="margin-left:auto">&#128013; Python 3.11</div>
+          <div class="status-item">UTF-8</div>
+          <div class="status-item">Spaces: 4</div>
+          <div class="status-item" id="vs-ln-col">Ln 1, Col 1</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /desktop -->
+
+<!-- WINDOWS 11 TASKBAR -->
+<div id="taskbar">
+  <div class="tb-left">
+    <div class="tb-start">&#10063;</div>
+  </div>
+  <div class="tb-center">
+    <div class="tb-app running" id="tb-notepad" title="Notepad">&#128221;</div>
+    <div class="tb-app running" id="tb-vscode" title="Visual Studio Code">
+      <svg width="26" height="26" viewBox="0 0 24 24"><path d="M17.5 1.5L6.5 11.5L2 8l-1 1 5 4.5-5 4.5 1 1 4.5-3.5 11 10 1.5-1V2.5L17.5 1.5zm0 3.5v14L7.5 12l10-7z" fill="#007ACC"/></svg>
+    </div>
+  </div>
+  <div class="tb-right">
+    <div class="tb-systray">
+      <span>&#128276;</span><span>&#128266;</span><span>&#128267;</span>
+    </div>
+    <div id="tb-clock">12:00<br>22-07-2026</div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  FRAME-DRIVEN ANIMATION ENGINE
+// ============================================================
+var _slide = null;
+var _prevIsCode = null;
+
+function _updateClock() {
+  var now = new Date();
+  var h = String(now.getHours()).padStart(2,'0');
+  var m = String(now.getMinutes()).padStart(2,'0');
+  var d = String(now.getDate()).padStart(2,'0');
+  var mo = String(now.getMonth()+1).padStart(2,'0');
+  document.getElementById('tb-clock').innerHTML = h+':'+m+'<br>'+d+'-'+mo+'-'+now.getFullYear();
+}
+
+function _showNotepad() {
+  document.getElementById('notepad-window').classList.remove('hidden');
+  document.getElementById('vscode-window').classList.add('hidden');
+  document.getElementById('tb-notepad').classList.add('active');
+  document.getElementById('tb-vscode').classList.remove('active');
+}
+function _showVSCode() {
+  document.getElementById('vscode-window').classList.remove('hidden');
+  document.getElementById('notepad-window').classList.add('hidden');
+  document.getElementById('tb-vscode').classList.add('active');
+  document.getElementById('tb-notepad').classList.remove('active');
+}
+
+function _highlight(code) {
+  var h = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  var strs = [];
+  h = h.replace(/("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, function(m) {
+    strs.push('<span class="str">'+m+'</span>');
+    return '\x00S'+(strs.length-1)+'\x00';
+  });
+  h = h.replace(/(#[^\n]*)/g,'<span class="cmt">$1</span>');
+  h = h.replace(/(@[a-zA-Z_][a-zA-Z0-9_.]*)/g,'<span class="deco">$1</span>');
+  h = h.replace(/\b(def|class|import|from|return|if|elif|else|for|while|in|and|or|not|is|try|except|finally|pass|with|as|lambda|yield|global|nonlocal|raise|del|assert|True|False|None|break|continue|async|await)\b/g,'<span class="kw">$1</span>');
+  h = h.replace(/\b(print|input|range|len|int|str|float|list|dict|set|tuple|bool|type|isinstance|super|enumerate|zip|map|filter|sorted|sum|min|max|abs|round|open|format|append|join|split|strip|lower|upper|get|items|keys|values)\b(?=\s*\()/g,'<span class="fn">$1</span>');
+  h = h.replace(/\b(class)\s+([A-Z][a-zA-Z0-9_]*)/g,'<span class="kw">$1</span> <span class="cls">$2</span>');
+  h = h.replace(/\b(\d+\.?\d*)\b/g,'<span class="num">$1</span>');
+  strs.forEach(function(s,i){ h = h.replace('\x00S'+i+'\x00', s); });
+  return h;
+}
+
+function _setGutter(count) {
+  var el = document.getElementById('vscode-gutter');
+  var t = '';
+  for (var i=1; i<=Math.max(count,1); i++) t += i + '\n';
+  el.textContent = t;
+}
+
+function _setNotepadText(text) {
+  document.getElementById('notepad-text-span').textContent = text;
+  var lines = text.split('\n');
+  var ln = lines.length, col = lines[ln-1].length+1;
+  document.getElementById('np-ln-col').textContent = 'Ln '+ln+', Col '+col;
+  document.getElementById('np-chars').textContent = text.length+' characters';
+}
+
+function _setCodeText(raw) {
+  document.getElementById('vs-code-span').innerHTML = _highlight(raw);
+  var lines = raw.split('\n');
+  _setGutter(lines.length);
+  var ln = lines.length, col = lines[ln-1].length+1;
+  document.getElementById('vs-ln-col').textContent = 'Ln '+ln+', Col '+col;
+}
+
+function _setTerminal(command, output) {
+  var el = document.getElementById('term-text');
+  var tc = document.getElementById('terminal-cursor');
+  var cwd = 'D:\\class_project';
+  if (!command) {
+    el.innerHTML = '<span class="term-prompt">PS '+cwd+'&gt;</span> ';
+    tc.style.display = 'inline';
+  } else if (!output && output !== '') {
+    el.innerHTML = '<span class="term-prompt">PS '+cwd+'&gt;</span> <span style="color:#d4d4d4">'+command+'</span>';
+    tc.style.display = 'inline';
+  } else {
+    var safeOut = output.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    el.innerHTML = '<span class="term-prompt">PS '+cwd+'&gt;</span> <span style="color:#d4d4d4">'+command+'</span>\n<span class="term-output">'+safeOut+'</span>';
+    tc.style.display = 'none';
+  }
+}
+
+function _parseCode(txt) {
+  var cleaned = txt.replace(/\\\\N/g,'\n').replace(/\\N/g,'\n');
+  var SEP = '==== OUTPUT ====';
+  var idx = cleaned.indexOf(SEP);
+  if (idx === -1) return { code: cleaned.trim(), output: '' };
+  return { code: cleaned.substring(0,idx).trim(), output: cleaned.substring(idx+SEP.length).trim() };
+}
+
+function _buildNotepadText(slide) {
+  var t = '';
+  if (slide.heading) t += slide.heading + '\n';
+  if (slide.subheading) t += slide.subheading + '\n';
+  t += '\n';
+  if (slide.bullets && slide.bullets.length > 0) {
+    slide.bullets.forEach(function(b) {
+      var clean = b.replace(/\\\\N/g,'\n').replace(/\\N/g,'\n');
+      t += '\u2022 ' + clean + '\n\n';
+    });
+  }
+  return t;
+}
+
+// ---- PUBLIC API ----
+window.loadSlide = function(slide) {
+  _prevIsCode = _slide ? !!_slide.isCode : null;
+  _slide = slide;
+  document.getElementById('notepad-text-span').textContent = '';
+  document.getElementById('vs-code-span').innerHTML = '';
+  _setGutter(1);
+  _setTerminal(null, null);
+  var isCode = !!slide.isCode;
+  if (isCode) {
+    var fileName = slide.fileName || 'main.py';
+    var icon = '📄';
+    if (fileName.endsWith('.py')) icon = '🐍';
+    else if (fileName.endsWith('.java')) icon = '☕';
+    else if (fileName.endsWith('.js') || fileName.endsWith('.ts')) icon = '📜';
+    else if (fileName.endsWith('.cpp') || fileName.endsWith('.c')) icon = '⚙️';
+    else if (fileName.endsWith('.cs')) icon = '#️⃣';
+    else if (fileName.endsWith('.html')) icon = '🌐';
+    
+    document.getElementById('vs-title-label').textContent = fileName + ' \u2014 class_project \u2014 Visual Studio Code';
+    document.getElementById('vs-tab-filename').textContent = fileName;
+    document.getElementById('vs-sidebar-file').textContent = fileName;
+    
+    var sidebarIconEl = document.getElementById('vs-sidebar-file').previousElementSibling;
+    var tabIconEl = document.getElementById('vs-tab-filename').previousElementSibling;
+    if (sidebarIconEl) sidebarIconEl.textContent = icon;
+    if (tabIconEl) tabIconEl.textContent = icon;
+  } else {
+    var slug = (slide.heading||'notes').replace(/[^a-zA-Z0-9 ]/g,'').trim().replace(/\s+/g,'_').toLowerCase()||'notes';
+    document.getElementById('notepad-title-label').textContent = slug + '.txt \u2014 Notepad';
+  }
+};
+
+window.renderFrame = function(elapsedSecs, totalDuration) {
+  if (!_slide) return;
+  _updateClock();
+  var isCode = !!_slide.isCode;
+  var progress = Math.min(1, elapsedSecs / totalDuration);
+  var SWITCH_DUR = 0.5;
+  var isNewType = _prevIsCode !== null && _prevIsCode !== isCode;
+  if (isNewType && elapsedSecs < SWITCH_DUR) {
+    if (elapsedSecs < SWITCH_DUR * 0.5) { _prevIsCode ? _showVSCode() : _showNotepad(); }
+    else { isCode ? _showVSCode() : _showNotepad(); }
+    return;
+  }
+  if (isCode) {
+    _showVSCode();
+    var bullets = _slide.bullets || [];
+    if (bullets.length === 0) return;
+    var parsed = _parseCode(bullets[0]);
+    var code = parsed.code, output = parsed.output;
+    var cmd = _slide.runCommand || 'python main.py';
+    if (progress <= 0.62) {
+      var p = progress / 0.62;
+      _setCodeText(code.substring(0, Math.floor(p * code.length)));
+      _setTerminal(null, null);
+    } else {
+      _setCodeText(code);
+      var tp = (progress - 0.62) / 0.38;
+      if (tp < 0.12) {
+        _setTerminal(null, null);
+      } else if (tp < 0.30) {
+        var cp = (tp-0.12)/0.18;
+        _setTerminal(cmd.substring(0, Math.floor(cp*cmd.length)), null);
+      } else {
+        _setTerminal(cmd, output);
+      }
+    }
+  } else {
+    _showNotepad();
+    var fullText = _buildNotepadText(_slide);
+    var typingP = Math.min(1, progress / 0.88);
+    _setNotepadText(fullText.substring(0, Math.floor(typingP * fullText.length)));
+  }
+};
+
+_updateClock();
+_showNotepad();
+</script>
+</body>
+</html>

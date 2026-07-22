@@ -19,9 +19,9 @@ const generateVideo = (audioPath, backgroundPath, assFilePath, outputPath, forma
     let command = ffmpeg();
 
     if (!backgroundPath) {
-      // Generate white background using lavfi color filter
+      // Generate modern VS Code dark background canvas (#1e1e2e)
       command = command
-        .input(`color=c=white:s=${resolution}:r=1`)
+        .input(`color=c=0x1e1e2e:s=${resolution}:r=1`)
         .inputFormat('lavfi');
     } else {
       const isVideo = backgroundPath.toLowerCase().endsWith('.mp4') || backgroundPath.toLowerCase().endsWith('.mov');
@@ -65,5 +65,43 @@ const generateVideo = (audioPath, backgroundPath, assFilePath, outputPath, forma
 };
 
 module.exports = {
-  generateVideo
+  generateVideo,
+  mergeVideoAndAudio
 };
+
+/**
+ * Merge a silent screen-recording video with a narration audio track.
+ * Used by the Puppeteer screen-share pipeline.
+ * 
+ * @param {string} videoPath  - Path to the silent screen-recording .mp4
+ * @param {string} audioPath  - Path to the merged narration .mp3
+ * @param {string} outputPath - Path for the final output .mp4
+ */
+function mergeVideoAndAudio(videoPath, audioPath, outputPath) {
+  return new Promise((resolve, reject) => {
+    ffmpeg()
+      .input(videoPath)
+      .input(audioPath)
+      .outputOptions([
+        '-c:v copy',      // copy video stream as-is (no re-encode)
+        '-c:a aac',
+        '-b:a 192k',
+        '-shortest',      // end when the shortest stream ends
+        '-movflags +faststart'
+      ])
+      .on('progress', (progress) => {
+        if (progress.percent) {
+          console.log(`[FFmpeg Merge] ${Math.round(progress.percent)}% done`);
+        }
+      })
+      .on('end', () => {
+        console.log('[FFmpeg Merge] Video + Audio merged successfully.');
+        resolve(outputPath);
+      })
+      .on('error', (err) => {
+        console.error('[FFmpeg Merge] Error:', err.message);
+        reject(err);
+      })
+      .save(outputPath);
+  });
+}

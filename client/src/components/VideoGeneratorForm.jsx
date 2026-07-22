@@ -6,6 +6,7 @@ import { UploadCloud, Wand2, MonitorPlay, Smartphone, Download } from 'lucide-re
 const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [topic, setTopic] = useState('');
   const [subtopic, setSubtopic] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState(5);
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [text, setText] = useState('');
   const [format, setFormat] = useState('16:9');
@@ -55,7 +56,8 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
     try {
       const response = await axios.post('http://localhost:5000/api/videos/generate-script', {
         topic,
-        subTopic: subtopic
+        subTopic: subtopic,
+        durationMinutes
       });
 
       clearInterval(scriptProgressInterval);
@@ -143,7 +145,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
       <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300">Topic</label>
               <input
@@ -165,6 +167,20 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
                 className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
                 disabled={isGeneratingScript || isGenerating}
               />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300">Target Duration</label>
+              <select
+                value={durationMinutes}
+                onChange={(e) => setDurationMinutes(Number(e.target.value))}
+                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                disabled={isGeneratingScript || isGenerating}
+              >
+                <option value={5} className="bg-slate-800 text-white">5 Mins (Quick Class)</option>
+                <option value={15} className="bg-slate-800 text-white">15 Mins (Standard)</option>
+                <option value={30} className="bg-slate-800 text-white">30 Mins (Detailed)</option>
+                <option value={40} className="bg-slate-800 text-white">40 Mins (Full Masterclass)</option>
+              </select>
             </div>
           </div>
 

@@ -38,11 +38,21 @@ const highlightCode = (codeText) => {
   // Convert any literal double backslashes \\N into single \N first
   let cleanText = codeText.replace(/\\\\N/g, '\\N');
   
-  // Split by \N, highlight each line, and join back with \N
+  // Split by \N, highlight each line with line numbers, and format Terminal Output sections!
   const lines = cleanText.split('\\N');
-  const highlightedLines = lines.map(line => highlightLine(line));
+  let lineNum = 1;
   
-  return `{\\c&HFFFFFF&}` + highlightedLines.join('\\N');
+  const formattedLines = lines.map(line => {
+    if (line.includes('==== OUTPUT ====')) {
+      return `{\\c&H00FFFF&}\\N💻 TERMINAL OUTPUT:{\\c&HFFFFFF&}`;
+    }
+    // Add VS Code line numbers
+    const numPrefix = `{\\c&H666666&}${lineNum.toString().padStart(2, ' ')} | {\\c&HFFFFFF&}`;
+    lineNum++;
+    return numPrefix + highlightLine(line);
+  });
+  
+  return `{\\c&HFFFFFF&}` + formattedLines.join('\\N');
 };
 
 // Format seconds into H:MM:SS.cs
@@ -62,10 +72,10 @@ const generateAssFile = (slides, durations, outputPath, format = '16:9') => {
       const playResX = isShorts ? 1080 : 1920;
       const playResY = isShorts ? 1920 : 1080;
       
-      const headingFontSize = isShorts ? 90 : 100;
-      const subFontSize = isShorts ? 60 : 70;
-      const bulletFontSize = isShorts ? 50 : 60;
-      const codeFontSize = isShorts ? 32 : 38;
+      const headingFontSize = isShorts ? 65 : 75;
+      const subFontSize = isShorts ? 45 : 50;
+      const bulletFontSize = isShorts ? 40 : 45;
+      const codeFontSize = isShorts ? 28 : 34;
       
       let assContent = `[Script Info]
 ScriptType: v4.00+
@@ -75,10 +85,11 @@ WrapStyle: 1
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Heading,Arial,${headingFontSize},&H0033CCFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,2,8,100,100,${isShorts ? 300 : 150},1
-Style: Subheading,Arial,${subFontSize},&H00000000,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,0,1,8,100,100,${isShorts ? 450 : 300},1
-Style: Bullet,Arial,${bulletFontSize},&H00000000,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,0,1,7,${isShorts ? 100 : 200},100,${isShorts ? 600 : 450},1
-Style: CodeBlock,Courier New,${codeFontSize},&H00FFFFFF,&H000000FF,&H00000000,&H00111111,0,0,0,0,100,100,0,0,3,15,0,7,${isShorts ? 80 : 150},${isShorts ? 80 : 150},${isShorts ? 600 : 450},1
+Style: WindowHeader,Arial,${isShorts ? 36 : 42},&H0000FFFF,&H000000FF,&H00000000,&H00241E1E,-1,0,0,0,100,100,0,0,1,2,0,8,${isShorts ? 60 : 120},${isShorts ? 60 : 120},${isShorts ? 120 : 80},1
+Style: Heading,Segoe UI,${headingFontSize},&H0033CCFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,2,1,8,${isShorts ? 80 : 150},${isShorts ? 80 : 150},${isShorts ? 220 : 150},1
+Style: Subheading,Segoe UI,${subFontSize},&H00CCCCCC,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,0,1,8,${isShorts ? 80 : 150},${isShorts ? 80 : 150},${isShorts ? 320 : 250},1
+Style: Bullet,Segoe UI,${bulletFontSize},&H00FFFFFF,&H000000FF,&H00000000,&H001E1E1E,0,0,0,0,100,100,0,0,3,15,0,7,${isShorts ? 80 : 180},${isShorts ? 80 : 180},${isShorts ? 450 : 340},1
+Style: CodeBlock,Consolas,${codeFontSize},&H00FFFFFF,&H000000FF,&H00000000,&H001E1E1E,0,0,0,0,100,100,0,0,3,15,0,7,${isShorts ? 60 : 150},${isShorts ? 60 : 150},${isShorts ? 420 : 320},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -95,6 +106,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         const heading = (slide.heading || '').replace(/(\r\n|\n|\r)/gm, ' ');
         const subheading = (slide.subheading || '').replace(/(\r\n|\n|\r)/gm, ' ');
         
+        const isCodeSlide = slide.isCode === true ||
+                            slide.isCode === 'true' ||
+                            /code|program|example|syntax/i.test(heading || subheading || '') ||
+                            (slide.bullets && slide.bullets.length === 1 && (slide.bullets[0].includes('\\N') || slide.bullets[0].includes('\n')));
+
+        // Render Screen Share Window Bar Header
+        const fileName = slide.fileName || 'main.py';
+        const windowTitle = isCodeSlide ? `🔴 🟡 🟢   📄 ${fileName} — Visual Studio Code (Live Class)` : "🔴 🟡 🟢   📝 notes.txt — Spoken Classroom Study Notes";
+        assContent += `Dialogue: 0,${startTimeStr},${endTimeStr},WindowHeader,,0,0,0,,${windowTitle}\n`;
+
         if (heading) {
            assContent += `Dialogue: 0,${startTimeStr},${endTimeStr},Heading,,0,0,0,,${heading}\n`;
         }
@@ -103,12 +124,6 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         }
         
         if (slide.bullets && Array.isArray(slide.bullets)) {
-          // Check if this slide is presenting code examples/programs
-          const isCodeSlide = slide.isCode === true ||
-                              slide.isCode === 'true' ||
-                              /code|program|example|syntax/i.test(heading || subheading || '') ||
-                              (slide.bullets.length === 1 && (slide.bullets[0].includes('\\N') || slide.bullets[0].includes('\n')));
-          
           if (isCodeSlide) {
             // Join bullets with \N, replace actual newlines with \N, and highlight the code text!
             const joinedText = slide.bullets.join('\\N');
@@ -116,7 +131,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             const highlightedText = highlightCode(cleanNewlines);
             assContent += `Dialogue: 0,${startTimeStr},${endTimeStr},CodeBlock,,0,0,0,,${highlightedText}\n`;
           } else {
-            // Join bullets with \N (ASS newline) with bullet dots
+            // Join bullets with \N (ASS newline) with bullet dots inside Notepad window
             const bulletsText = slide.bullets.map(b => {
               const cleanText = b.replace(/(\r\n|\n|\r)/gm, ' ');
               return '• ' + cleanText;
