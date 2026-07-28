@@ -17,20 +17,18 @@
 
     #desktop {
       width: 1920px;
-      height: 1032px;
+      height: 1080px;
       position: relative;
-      background: radial-gradient(ellipse at 30% 40%, #1a2035 0%, #0d1117 60%, #0a0d17 100%);
     }
 
     .window {
       position: absolute;
-      top: 30px;
-      left: 80px;
-      width: 1760px;
-      height: 960px;
-      border-radius: 10px;
+      top: 0;
+      left: 0;
+      width: 1920px;
+      height: 1080px;
+      border-radius: 0;
       overflow: hidden;
-      box-shadow: 0 32px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.07);
       display: flex;
       flex-direction: column;
     }
@@ -147,16 +145,35 @@
 
     .vscode-editor { flex: 1; display: flex; overflow: hidden; background: #1e1e1e; min-height: 0; }
 
+    pre {
+      white-space: pre;
+      overflow-x: auto;
+      overflow-y: auto;
+      tab-size: 4;
+      -moz-tab-size: 4;
+      font-family:
+        "Cascadia Code",
+        "JetBrains Mono",
+        "Fira Code",
+        Consolas,
+        monospace;
+    }
+
+    code {
+      white-space: inherit;
+    }
+
     #vscode-gutter {
-      min-width: 54px; background: #1e1e1e; color: #5a5a5a;
-      font-family: 'Consolas', 'Courier New', monospace; font-size: 14px;
+      width: 54px; min-width: 54px; background: #1e1e1e; color: #858585;
+      font-family: "Cascadia Code", "JetBrains Mono", "Fira Code", Consolas, monospace; font-size: 14px;
       line-height: 22px; padding: 14px 12px 14px 0; text-align: right; flex-shrink: 0;
       border-right: 1px solid #2d2d2d; white-space: pre; user-select: none;
     }
     #vscode-code-pane {
-      flex: 1; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px;
-      line-height: 22px; color: #d4d4d4; padding: 14px 20px;
-      white-space: pre; overflow: hidden; background: #1e1e1e; tab-size: 4;
+      flex: 1; background: #1e1e1e; overflow: hidden; min-width: 0; display: flex;
+    }
+    #vscode-code-pane pre {
+      margin: 0; padding: 14px 20px; font-size: 14px; line-height: 22px; color: #d4d4d4; flex: 1;
     }
     #code-cursor {
       display: inline-block; width: 2px; height: 18px; background: #c0c0c0;
@@ -190,34 +207,6 @@
     }
     .status-item { font-size: 12px; color: #ffffff; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 
-    /* ---- TASKBAR ---- */
-    #taskbar {
-      position: fixed; bottom: 0; left: 0; width: 1920px; height: 48px;
-      background: rgba(16,16,26,0.97); border-top: 1px solid rgba(255,255,255,0.07);
-      display: flex; align-items: center; padding: 0 18px; z-index: 9999;
-    }
-    .tb-left { display: flex; align-items: center; gap: 6px; }
-    .tb-start {
-      width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
-      font-size: 22px; border-radius: 6px; cursor: pointer; color: #d4d4d4;
-    }
-    .tb-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; }
-    .tb-app {
-      width: 44px; height: 44px; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; border-radius: 8px; cursor: pointer;
-      position: relative; font-size: 22px; transition: background 0.15s; color: #d4d4d4;
-    }
-    .tb-app:hover { background: rgba(255,255,255,0.1); }
-    .tb-app.running::after {
-      content: ''; position: absolute; bottom: 3px; width: 18px; height: 3px;
-      border-radius: 2px; background: rgba(255,255,255,0.35);
-    }
-    .tb-app.active::after { background: #60a5fa; width: 26px; }
-    .tb-app.active { background: rgba(96,165,250,0.12); }
-    .tb-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
-    .tb-systray { display: flex; align-items: center; gap: 8px; font-size: 15px; color: #d4d4d4; }
-    #tb-clock { text-align: right; font-size: 12px; color: #d4d4d4; line-height: 1.5; padding: 4px 8px; border-radius: 4px; }
-
     /* ---- SYNTAX COLORS ---- */
     .kw   { color: #569cd6; }
     .fn   { color: #dcdcaa; }
@@ -226,6 +215,52 @@
     .cmt  { color: #6a9955; }
     .cls  { color: #4ec9b0; }
     .deco { color: #dcdcaa; }
+
+    /* ---- DIAGRAM OVERLAY ---- */
+    /* Covers the entire 1920x1080 canvas and displays a pre-rendered diagram PNG.
+       Hidden by default; shown via window.showDiagram(dataUri). */
+    #diagram-window {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1920px;
+      height: 1080px;
+      background: #FFFFFF;
+      display: none;   /* toggled by showDiagram / hideDiagram */
+      align-items: center;
+      justify-content: center;
+      z-index: 100;    /* always on top */
+    }
+    #diagram-window.visible {
+      display: flex;
+    }
+    /* Top accent bar matching the diagram.service.js style */
+    #diagram-window::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 8px;
+      background: linear-gradient(to right, #2563EB, #7C3AED);
+    }
+    #diagram-window img {
+      width:  1920px;
+      height: 1080px;
+      object-fit: contain;
+      display: block;
+    }
+    /* SVG inside the diagram panel — scale to fill whiteboard area */
+    #diagram-svg-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width:  1760px;   /* 1920 - 80px side padding ×2 */
+      height: 960px;    /* 1080 - 60px top/bottom padding */
+    }
+    #diagram-svg-container svg {
+      max-width:  1760px;
+      max-height: 960px;
+      width:  auto;
+      height: auto;
+    }
   </style>
 </head>
 <body>
@@ -299,7 +334,7 @@
         <div class="vscode-editor">
           <div id="vscode-gutter">1</div>
           <div id="vscode-code-pane">
-            <span id="vs-code-span"></span><span id="code-cursor">&#8203;</span>
+            <pre><code id="vs-code-span"></code><span id="code-cursor">&#8203;</span></pre>
           </div>
         </div>
         <div class="vscode-terminal-panel">
@@ -329,26 +364,12 @@
     </div>
   </div>
 
-</div><!-- /desktop -->
+  <!-- DIAGRAM OVERLAY — shown during diagram slides -->
+  <div id="diagram-window">
+    <div id="diagram-svg-container"></div>
+  </div>
 
-<!-- WINDOWS 11 TASKBAR -->
-<div id="taskbar">
-  <div class="tb-left">
-    <div class="tb-start">&#10063;</div>
-  </div>
-  <div class="tb-center">
-    <div class="tb-app running" id="tb-notepad" title="Notepad">&#128221;</div>
-    <div class="tb-app running" id="tb-vscode" title="Visual Studio Code">
-      <svg width="26" height="26" viewBox="0 0 24 24"><path d="M17.5 1.5L6.5 11.5L2 8l-1 1 5 4.5-5 4.5 1 1 4.5-3.5 11 10 1.5-1V2.5L17.5 1.5zm0 3.5v14L7.5 12l10-7z" fill="#007ACC"/></svg>
-    </div>
-  </div>
-  <div class="tb-right">
-    <div class="tb-systray">
-      <span>&#128276;</span><span>&#128266;</span><span>&#128267;</span>
-    </div>
-    <div id="tb-clock">12:00<br>22-07-2026</div>
-  </div>
-</div>
+</div><!-- /desktop -->
 
 <script>
 // ============================================================
@@ -357,50 +378,61 @@
 var _slide = null;
 var _prevIsCode = null;
 
-function _updateClock() {
-  var now = new Date();
-  var h = String(now.getHours()).padStart(2,'0');
-  var m = String(now.getMinutes()).padStart(2,'0');
-  var d = String(now.getDate()).padStart(2,'0');
-  var mo = String(now.getMonth()+1).padStart(2,'0');
-  document.getElementById('tb-clock').innerHTML = h+':'+m+'<br>'+d+'-'+mo+'-'+now.getFullYear();
-}
-
 function _showNotepad() {
   document.getElementById('notepad-window').classList.remove('hidden');
   document.getElementById('vscode-window').classList.add('hidden');
-  document.getElementById('tb-notepad').classList.add('active');
-  document.getElementById('tb-vscode').classList.remove('active');
 }
 function _showVSCode() {
   document.getElementById('vscode-window').classList.remove('hidden');
   document.getElementById('notepad-window').classList.add('hidden');
-  document.getElementById('tb-vscode').classList.add('active');
-  document.getElementById('tb-notepad').classList.remove('active');
 }
 
-function _highlight(code) {
-  var h = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  var strs = [];
-  h = h.replace(/("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, function(m) {
-    strs.push('<span class="str">'+m+'</span>');
-    return '\x00S'+(strs.length-1)+'\x00';
+function _escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function _highlight(codeStr) {
+  var h = _escapeHtml(codeStr);
+  var placeholders = [];
+
+  // 1. Strings (triple quotes, double quotes, single quotes, backticks)
+  h = h.replace(/("""[\s\S]*?"""|'''[\s\S]*?'''|`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, function(m) {
+    placeholders.push('<span class="str">' + m + '</span>');
+    return '\x00S' + (placeholders.length - 1) + '\x00';
   });
-  h = h.replace(/(#[^\n]*)/g,'<span class="cmt">$1</span>');
-  h = h.replace(/(@[a-zA-Z_][a-zA-Z0-9_.]*)/g,'<span class="deco">$1</span>');
-  h = h.replace(/\b(def|class|import|from|return|if|elif|else|for|while|in|and|or|not|is|try|except|finally|pass|with|as|lambda|yield|global|nonlocal|raise|del|assert|True|False|None|break|continue|async|await)\b/g,'<span class="kw">$1</span>');
-  h = h.replace(/\b(print|input|range|len|int|str|float|list|dict|set|tuple|bool|type|isinstance|super|enumerate|zip|map|filter|sorted|sum|min|max|abs|round|open|format|append|join|split|strip|lower|upper|get|items|keys|values)\b(?=\s*\()/g,'<span class="fn">$1</span>');
-  h = h.replace(/\b(class)\s+([A-Z][a-zA-Z0-9_]*)/g,'<span class="kw">$1</span> <span class="cls">$2</span>');
-  h = h.replace(/\b(\d+\.?\d*)\b/g,'<span class="num">$1</span>');
-  strs.forEach(function(s,i){ h = h.replace('\x00S'+i+'\x00', s); });
+
+  // 2. Comments (//, #, /* */, <!-- -->)
+  h = h.replace(/(\/\/[^\n]*|#[^\n]*|\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->)/g, function(m) {
+    placeholders.push('<span class="cmt">' + m + '</span>');
+    return '\x00S' + (placeholders.length - 1) + '\x00';
+  });
+
+  // 3. Generic Keywords (word boundaries only; touches ZERO whitespace)
+  var kwRegex = /\b(def|function|class|struct|enum|interface|type|import|from|export|return|if|else|elif|for|while|do|switch|case|break|continue|default|try|catch|finally|throw|raise|except|const|let|var|val|pub|public|private|protected|static|final|async|await|yield|new|this|self|super|null|nil|true|false|True|False|None|void|int|float|double|string|bool|boolean|char|auto|fn|impl|trait|use|package|namespace|using|include|select|from|where|insert|update|delete|create|table|drop|alter)\b/g;
+  h = h.replace(kwRegex, '<span class="kw">$1</span>');
+
+  // 4. Numbers
+  h = h.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="num">$1</span>');
+
+  // 5. Restore Strings & Comments
+  for (var i = 0; i < placeholders.length; i++) {
+    h = h.replace('\x00S' + i + '\x00', placeholders[i]);
+  }
+
   return h;
 }
 
-function _setGutter(count) {
+function _setGutter(lineCount) {
   var el = document.getElementById('vscode-gutter');
-  var t = '';
-  for (var i=1; i<=Math.max(count,1); i++) t += i + '\n';
-  el.textContent = t;
+  var numbers = [];
+  var count = Math.max(1, lineCount);
+  for (var i = 1; i <= count; i++) {
+    numbers.push(String(i));
+  }
+  el.textContent = numbers.join('\n');
 }
 
 function _setNotepadText(text) {
@@ -411,12 +443,13 @@ function _setNotepadText(text) {
   document.getElementById('np-chars').textContent = text.length+' characters';
 }
 
-function _setCodeText(raw) {
-  document.getElementById('vs-code-span').innerHTML = _highlight(raw);
-  var lines = raw.split('\n');
-  _setGutter(lines.length);
-  var ln = lines.length, col = lines[ln-1].length+1;
-  document.getElementById('vs-ln-col').textContent = 'Ln '+ln+', Col '+col;
+function _setCodeText(codeSegment, totalLines) {
+  document.getElementById('vs-code-span').innerHTML = _highlight(codeSegment);
+  _setGutter(totalLines || codeSegment.split('\n').length);
+  var lines = codeSegment.split('\n');
+  var ln = lines.length;
+  var col = (lines[ln - 1] || '').length + 1;
+  document.getElementById('vs-ln-col').textContent = 'Ln ' + ln + ', Col ' + col;
 }
 
 function _setTerminal(command, output) {
@@ -427,21 +460,34 @@ function _setTerminal(command, output) {
     el.innerHTML = '<span class="term-prompt">PS '+cwd+'&gt;</span> ';
     tc.style.display = 'inline';
   } else if (!output && output !== '') {
-    el.innerHTML = '<span class="term-prompt">PS '+cwd+'&gt;</span> <span style="color:#d4d4d4">'+command+'</span>';
+    el.innerHTML = '<span class="term-prompt">PS '+cwd+'&gt;</span> <span style="color:#d4d4d4">'+_escapeHtml(command)+'</span>';
     tc.style.display = 'inline';
   } else {
-    var safeOut = output.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    el.innerHTML = '<span class="term-prompt">PS '+cwd+'&gt;</span> <span style="color:#d4d4d4">'+command+'</span>\n<span class="term-output">'+safeOut+'</span>';
+    var safeOut = _escapeHtml(output);
+    el.innerHTML = '<span class="term-prompt">PS '+cwd+'&gt;</span> <span style="color:#d4d4d4">'+_escapeHtml(command)+'</span>\n<span class="term-output">'+safeOut+'</span>';
     tc.style.display = 'none';
   }
 }
 
 function _parseCode(txt) {
-  var cleaned = txt.replace(/\\\\N/g,'\n').replace(/\\N/g,'\n');
+  var cleaned = String(txt || '').replace(/\\\\N/g, '\n').replace(/\\N/g, '\n');
   var SEP = '==== OUTPUT ====';
   var idx = cleaned.indexOf(SEP);
-  if (idx === -1) return { code: cleaned.trim(), output: '' };
-  return { code: cleaned.substring(0,idx).trim(), output: cleaned.substring(idx+SEP.length).trim() };
+  if (idx === -1) return { code: cleaned, output: '' };
+
+  var codePart = cleaned.substring(0, idx);
+  if (codePart.endsWith('\n')) {
+    codePart = codePart.substring(0, codePart.length - 1);
+    if (codePart.endsWith('\r')) {
+      codePart = codePart.substring(0, codePart.length - 1);
+    }
+  }
+
+  var outPart = cleaned.substring(idx + SEP.length);
+  if (outPart.startsWith('\n')) {
+    outPart = outPart.substring(1);
+  }
+  return { code: codePart, output: outPart };
 }
 
 function _buildNotepadText(slide) {
@@ -493,7 +539,6 @@ window.loadSlide = function(slide) {
 
 window.renderFrame = function(elapsedSecs, totalDuration) {
   if (!_slide) return;
-  _updateClock();
   var isCode = !!_slide.isCode;
   var progress = Math.min(1, elapsedSecs / totalDuration);
   var SWITCH_DUR = 0.5;
@@ -510,12 +555,14 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
     var parsed = _parseCode(bullets[0]);
     var code = parsed.code, output = parsed.output;
     var cmd = _slide.runCommand || 'python main.py';
+    var totalLines = code.split('\n').length;
     if (progress <= 0.62) {
       var p = progress / 0.62;
-      _setCodeText(code.substring(0, Math.floor(p * code.length)));
+      var charCount = Math.floor(p * code.length);
+      _setCodeText(code.substring(0, charCount), totalLines);
       _setTerminal(null, null);
     } else {
-      _setCodeText(code);
+      _setCodeText(code, totalLines);
       var tp = (progress - 0.62) / 0.38;
       if (tp < 0.12) {
         _setTerminal(null, null);
@@ -534,8 +581,32 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
   }
 };
 
-_updateClock();
 _showNotepad();
+
+// ---- DIAGRAM API ----
+// Called by puppeteer.service.js (via diagramService.renderMermaidInPage)
+// when rendering a diagram slide.
+
+/**
+ * Display the diagram overlay with an already-rendered SVG string.
+ * Hides both Notepad and VSCode panels behind the overlay.
+ * @param {string} svgHtml - The raw SVG markup produced by mermaid.render()
+ */
+window.showDiagramSvg = function(svgHtml) {
+  document.getElementById('diagram-svg-container').innerHTML = svgHtml;
+  document.getElementById('diagram-window').classList.add('visible');
+  document.getElementById('notepad-window').classList.add('hidden');
+  document.getElementById('vscode-window').classList.add('hidden');
+};
+
+/**
+ * Hide the diagram overlay and restore the normal Notepad view.
+ */
+window.hideDiagram = function() {
+  document.getElementById('diagram-window').classList.remove('visible');
+  document.getElementById('diagram-svg-container').innerHTML = '';
+  _showNotepad();
+};
 </script>
 </body>
 </html>

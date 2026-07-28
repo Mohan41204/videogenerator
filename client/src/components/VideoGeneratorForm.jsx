@@ -14,6 +14,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0); // Mock progress
   const [scriptProgress, setScriptProgress] = useState(0);
+  const [tutorialType, setTutorialType] = useState('programming');
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -54,7 +55,11 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
     }, 600);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/videos/generate-script', {
+      const endpoint = tutorialType === 'aws' 
+        ? 'http://localhost:5000/api/videos/generate-aws-script'
+        : 'http://localhost:5000/api/videos/generate-script';
+        
+      const response = await axios.post(endpoint, {
         topic,
         subTopic: subtopic,
         durationMinutes
@@ -145,17 +150,68 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
       <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
 
         <div className="space-y-4">
+          <div className="flex bg-slate-800/50 p-1 rounded-xl border border-slate-700 w-fit">
+            <button
+              type="button"
+              onClick={() => { setTutorialType('programming'); setTopic(''); setText(''); }}
+              className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${tutorialType === 'programming' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+              disabled={isGeneratingScript || isGenerating}
+            >
+              Programming
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTutorialType('aws'); setTopic(''); setText(''); }}
+              className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${tutorialType === 'aws' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+              disabled={isGeneratingScript || isGenerating}
+            >
+              AWS Console
+            </button>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Topic</label>
-              <input
-                type="text"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="e.g., Python"
-                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                disabled={isGeneratingScript || isGenerating}
-              />
+              <label className="text-sm font-medium text-slate-300">
+                {tutorialType === 'aws' ? 'AWS Service' : 'Topic'}
+              </label>
+              {tutorialType === 'aws' ? (
+                <select
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                  disabled={isGeneratingScript || isGenerating}
+                >
+                  <option value="" disabled>Select a service</option>
+                  <option value="IAM">IAM</option>
+                  <option value="EC2">EC2</option>
+                  <option value="S3">S3</option>
+                  <option value="Lambda">Lambda</option>
+                  <option value="SNS">SNS</option>
+                  <option value="SQS">SQS</option>
+                  <option value="RDS">RDS</option>
+                  <option value="DynamoDB">DynamoDB</option>
+                  <option value="CloudWatch">CloudWatch</option>
+                  <option value="VPC">VPC</option>
+                  <option value="Route53">Route53</option>
+                  <option value="API Gateway">API Gateway</option>
+                  <option value="ECR">ECR</option>
+                  <option value="ECS">ECS</option>
+                  <option value="CloudFormation">CloudFormation</option>
+                  <option value="Secrets Manager">Secrets Manager</option>
+                  <option value="ACM">ACM</option>
+                  <option value="Cognito">Cognito</option>
+                  <option value="Amplify">Amplify</option>
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="e.g., Python"
+                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  disabled={isGeneratingScript || isGenerating}
+                />
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300">Subtopic (Optional)</label>
@@ -233,57 +289,61 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
         </div>
 
         {/* Format Selection */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-300">Aspect Ratio</label>
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              type="button"
-              onClick={() => setFormat('16:9')}
-              disabled={isGenerating}
-              className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${format === '16:9'
-                ? 'bg-purple-500/20 border-purple-500 text-purple-300'
-                : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
-                }`}
-            >
-              <MonitorPlay size={18} />
-              <span>Landscape (16:9)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setFormat('9:16')}
-              disabled={isGenerating}
-              className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${format === '9:16'
-                ? 'bg-purple-500/20 border-purple-500 text-purple-300'
-                : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
-                }`}
-            >
-              <Smartphone size={18} />
-              <span>Shorts (9:16)</span>
-            </button>
-          </div>
-        </div>
-
-        {/* File Upload */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-300">Background Media</label>
-          <div className="relative">
-            <input
-              type="file"
-              accept="image/*,video/mp4,video/quicktime"
-              onChange={handleFileChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
-              disabled={isGenerating}
-            />
-            <div className={`w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all ${background ? 'border-purple-500 bg-purple-500/5' : 'border-slate-600 bg-slate-800/30 hover:bg-slate-800/50'
-              }`}>
-              <UploadCloud className={`w-8 h-8 mb-2 ${background ? 'text-purple-400' : 'text-slate-400'}`} />
-              <p className="text-sm font-medium text-slate-300">
-                {background ? background.name : 'Click or drag media here (Optional)'}
-              </p>
-              <p className="text-xs text-slate-500 mt-1">Leave empty for default white background</p>
+        {tutorialType !== 'aws' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">Aspect Ratio</label>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setFormat('16:9')}
+                disabled={isGenerating}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${format === '16:9'
+                  ? 'bg-purple-500/20 border-purple-500 text-purple-300'
+                  : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
+                  }`}
+              >
+                <MonitorPlay size={18} />
+                <span>Landscape (16:9)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormat('9:16')}
+                disabled={isGenerating}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-all ${format === '9:16'
+                  ? 'bg-purple-500/20 border-purple-500 text-purple-300'
+                  : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700/50'
+                  }`}
+              >
+                <Smartphone size={18} />
+                <span>Shorts (9:16)</span>
+              </button>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* File Upload */}
+        {tutorialType !== 'aws' && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">Background Media</label>
+            <div className="relative">
+              <input
+                type="file"
+                accept="image/*,video/mp4,video/quicktime"
+                onChange={handleFileChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
+                disabled={isGenerating}
+              />
+              <div className={`w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all ${background ? 'border-purple-500 bg-purple-500/5' : 'border-slate-600 bg-slate-800/30 hover:bg-slate-800/50'
+                }`}>
+                <UploadCloud className={`w-8 h-8 mb-2 ${background ? 'text-purple-400' : 'text-slate-400'}`} />
+                <p className="text-sm font-medium text-slate-300">
+                  {background ? background.name : 'Click or drag media here (Optional)'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Leave empty for default white background</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Submit Button */}
         <button

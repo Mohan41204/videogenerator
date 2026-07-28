@@ -1,17 +1,20 @@
 /**
  * puppeteer.service.js
- * 
+ *
  * Renders an animated "Online Class Screen-Share" video by:
  * 1. Loading screen_share.html in headless Chromium (via Puppeteer)
  * 2. For each slide: injecting slide data and calling window.renderFrame() per frame
+ *    - For normal slides  → animated Notepad / VS Code template
+ *    - For diagram slides → Mermaid rendered INSIDE this same page (no new browser)
  * 3. Piping JPEG screenshots directly to FFmpeg stdin to build raw screen video
- * 
+ *
  * The result is a silent .mp4 screen-recording that must then be merged with audio.
  */
 
 const path = require('path');
 const { spawn } = require('child_process');
 const ffmpegPath = require('ffmpeg-static');
+const diagramService = require('./diagram.service');
 
 // FPS for the rendered video. 5fps is ideal for screen-share/typing content —
 // smooth enough visually, fast enough to render quickly.
@@ -61,6 +64,9 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
   // Make sure the animation API is ready
   await page.waitForFunction(() => typeof window.loadSlide === 'function' && typeof window.renderFrame === 'function');
   console.log('[Puppeteer] Template loaded, animation engine ready.');
+
+  // Reset diagram injection flag for this new session
+  diagramService.reset();
 
   // --- Start FFmpeg process receiving JPEG frames via stdin ---
   const totalDurationSecs = durations.reduce((a, b) => a + b, 0);
@@ -117,6 +123,43 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
 
       console.log(`\n[Puppeteer] Slide ${slideIdx + 1}/${slides.length}: "${slide.heading}" (${duration.toFixed(1)}s, ${slideTotalFrames} frames)`);
 
+      // ── DIAGRAM SLIDE ─────────────────────────────────────────────────────
+      // When the LLM marks a slide as isDiagram:true and provides mermaid code,
+      // Mermaid is injected into THIS same page (no new browser, no FFmpeg conflict).
+      if (slide.isDiagram && slide.mermaid) {
+        console.log(`[Puppeteer]   → Rendering Mermaid diagram for slide ${slideIdx + 1}...`);
+
+        // Render Mermaid SVG inside the already-open page and display it.
+        // This uses page.addScriptTag (CDN, loaded once) — no second browser spawned.
+        await diagramService.renderMermaidInPage(page, slide.mermaid);
+
+        // Hold the diagram frame for the full slide duration
+        for (let f = 0; f < slideTotalFrames; f++) {
+          const frameBuffer = await page.screenshot({
+            type: 'jpeg',
+            quality: 82,
+            clip: { x: 0, y: 0, width: 1920, height: 1080 }
+          });
+
+          const written = ffmpegProc.stdin.write(frameBuffer);
+          if (!written) {
+            await new Promise((resolve) => ffmpegProc.stdin.once('drain', resolve));
+          }
+
+          if (f % 25 === 0) {
+            const totalRendered = slides.slice(0, slideIdx).reduce((a, _, i) => a + Math.ceil(durations[i] * FPS), 0) + f;
+            const pct = Math.round((totalRendered / totalFrames) * 100);
+            process.stdout.write(`\r[Puppeteer] Rendering... ${pct}% (slide ${slideIdx + 1}/${slides.length}, frame ${f}/${slideTotalFrames})`);
+          }
+        }
+
+        // Restore normal slide view before next slide
+        await page.evaluate(() => window.hideDiagram());
+        prevIsCode = false;
+        continue; // Skip to next slide
+      }
+
+      // ── NORMAL SLIDE (Notepad / VS Code) ──────────────────────────────────
       // Load the slide into the browser
       await page.evaluate((slideData, prevType) => {
         window._prevIsCode = prevType;

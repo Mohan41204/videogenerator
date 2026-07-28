@@ -79,7 +79,7 @@ const generateAudio = async (text, outputPath) => {
     }
 
     if (segments.length === 0) {
-      return await generateSingleAudio(' ', outputPath);
+      return await generateSilence(1, outputPath);
     }
 
     const tempFiles = [];

@@ -9,4 +9,7 @@ router.post('/generate', upload.single('background'), videoController.generateVi
 // Generate script endpoint
 router.post('/generate-script', videoController.generateScript);
 
+// Generate AWS script endpoint
+router.post('/generate-aws-script', videoController.generateAwsScript);
+
 module.exports = router;
