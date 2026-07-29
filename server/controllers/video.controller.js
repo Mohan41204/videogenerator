@@ -203,24 +203,33 @@ Requirements for the teaching style:
     - Do NOT include any programming code blocks or example programs.
     - Instead, generate detailed explanation slides, concrete real-world examples, analogies, practical case studies, and scenarios related to the topic and subtopic.
     - The slide object MUST have "isCode": false.
+    - CRITICAL CONTENT GENERATION RULES FOR NOTEPAD SLIDES:
+      - The \`bullets\` array MUST contain 2 to 4 plain text paragraphs (strings) containing natural explanations, written like a real instructor typing notes live.
+      - NEVER generate bullet points or use bullet symbols (like •, -, *).
+      - NEVER generate numbered lists, tables, markdown formatting, or code fences (\`\`\`).
+      - Use natural, conversational English. Keep sentences short and clear. Explain concepts progressively.
+      - Avoid headings unless absolutely necessary.
 - Explain every concept and example in a very simple, easy-to-understand classroom teaching style.
 - Use friendly teacher-to-student communication with encouraging transition phrases.
 - Cover definitions, theory, syntax, examples, use cases, common mistakes, and practical understanding.
 - CRITICAL DURATION TARGET: You MUST generate exactly ${slideCount} slides, and the total narration across all slides combined MUST be approximately ${targetWords} words total (~${Math.round(targetWords / slideCount)} words per slide narration) so that spoken audio duration is exactly around ${targetMins} minutes.
-
+ 
 DIAGRAM SLIDES (IMPORTANT):
 - For any concept that has a clear visual flow, structure, or relationship (e.g., how a for-loop works, a class hierarchy, a sequence of API calls, a data pipeline), you SHOULD include a dedicated diagram slide.
 - A diagram slide must have "isDiagram": true and a valid "mermaid" string containing raw Mermaid.js code.
 - The Mermaid code must be simple, maximum 10 nodes, use LR or TD layout, short labels (under 25 chars), no HTML, no markdown wrappers.
 - Set "isCode": false and "isDiagram": true for diagram slides. Leave "bullets" as an empty array [].
 - For non-diagram slides, "isDiagram" must be false and "mermaid" must be an empty string "".
-
+ 
 OUTPUT FORMAT:
 You MUST output ONLY a valid JSON array of "Slide" objects. Do not include markdown formatting, headings symbols, or code block formatting outside the JSON. Just raw JSON array.
 Each Slide object must have:
 - "heading": (String) A short, professional title for the slide.
 - "subheading": (String) An optional subtitle or secondary thought. Can be empty string.
-- "bullets": (Array of Strings) 2 to 4 bullet points summarizing the visual content. Keep these brief! (Except for programming code slides where the array should contain exactly one string representing the code block, and diagram slides where it should be an empty array []).
+- "bullets": (Array of Strings) Content to display on the slide.
+  - For programming code slides (\`isCode\`: true), the array MUST contain exactly one string representing the code block (with the output formatted via \\\\N\\\\N==== OUTPUT ====\\\\N).
+  - For diagram slides (\`isDiagram\`: true), the array MUST be an empty array [].
+  - For explanation/Notepad slides (\`isCode\`: false and \`isDiagram\`: false), the array MUST contain 2 to 4 strings, where each string is a complete, natural paragraph of notes typed live. Do NOT use bullet symbols (like •, -, *), numbered lists, tables, code blocks, or markdown.
 - "narration": (String) The spoken teaching script for this slide (~${Math.round(targetWords / slideCount)} words). Output plain narration text only for this field.
 - "isCode": (Boolean) Set to true if this slide is a code example or contains code, and false otherwise.
 - "isDiagram": (Boolean) Set to true if this slide is a diagram slide, and false otherwise.

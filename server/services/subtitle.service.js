@@ -131,10 +131,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             const highlightedText = highlightCode(cleanNewlines);
             assContent += `Dialogue: 0,${startTimeStr},${endTimeStr},CodeBlock,,0,0,0,,${highlightedText}\n`;
           } else {
-            // Join bullets with \N (ASS newline) with bullet dots inside Notepad window
+            // Join bullets with \N (ASS newline) representing empty line between paragraphs inside Notepad window
             const bulletsText = slide.bullets.map(b => {
-              const cleanText = b.replace(/(\r\n|\n|\r)/gm, ' ');
-              return '• ' + cleanText;
+              return b.replace(/(\r\n|\n|\r)/gm, ' ');
             }).join('\\N\\N');
             
             if (bulletsText) {

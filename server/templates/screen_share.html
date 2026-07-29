@@ -62,7 +62,7 @@
     .notepad-menubar span:hover { background: #e2e2e2; }
 
     #notepad-content-area {
-      flex: 1; padding: 24px 40px; overflow: hidden;
+      flex: 1; padding: 24px 40px; overflow-y: auto; overflow-x: hidden;
       font-family: 'Consolas', 'Courier New', monospace;
       font-size: 17px; line-height: 2; color: #1a1a1a;
       background: #ffffff; white-space: pre-wrap; word-wrap: break-word;
@@ -70,6 +70,10 @@
     #notepad-cursor {
       display: inline-block; width: 2px; height: 1.15em; background: #1a1a1a;
       vertical-align: text-bottom; animation: cursorBlink 1.1s step-end infinite; margin-left: 1px;
+    }
+    #notepad-cursor.typing {
+      animation: none !important;
+      opacity: 1 !important;
     }
     .notepad-statusbar {
       background: #0078d4; height: 24px; display: flex; align-items: center;
@@ -492,22 +496,229 @@ function _parseCode(txt) {
 
 function _buildNotepadText(slide) {
   var t = '';
-  if (slide.heading) t += slide.heading + '\n';
-  if (slide.subheading) t += slide.subheading + '\n';
-  t += '\n';
+  if (slide.heading) t += slide.heading + '\n\n';
   if (slide.bullets && slide.bullets.length > 0) {
-    slide.bullets.forEach(function(b) {
-      var clean = b.replace(/\\\\N/g,'\n').replace(/\\N/g,'\n');
-      t += '\u2022 ' + clean + '\n\n';
+    var paragraphs = slide.bullets.map(function(b) {
+      return b.replace(/\\\\N/g,'\n').replace(/\\N/g,'\n');
     });
+    t += paragraphs.join('\n\n');
   }
   return t;
+}
+
+// ============================================================
+//  HUMAN TYPING ENGINE IMPLEMENTATION
+// ============================================================
+var keyboardNeighbors = {
+  'a': 'qwsz', 'b': 'vghn', 'c': 'xdfv', 'd': 'serfcx', 'e': 'wsdr',
+  'f': 'rtgvcd', 'g': 'tyhbvf', 'h': 'yujnbg', 'i': 'ujko', 'j': 'uikmnh',
+  'k': 'ijlm', 'l': 'okp', 'm': 'njk', 'n': 'bhjm', 'o': 'iklp',
+  'p': 'ol', 'q': 'wa', 'r': 'edft', 's': 'wedxza', 't': 'rfgy',
+  'u': 'yhji', 'v': 'cfgb', 'w': 'qase', 'x': 'zsdc', 'y': 'tghu',
+  'z': 'asx',
+  'A': 'QWSZ', 'B': 'VGHN', 'C': 'XDFV', 'D': 'SERFCX', 'E': 'WSDR',
+  'F': 'RTGVCD', 'G': 'TYHBVF', 'H': 'YUJNBG', 'I': 'UJKO', 'J': 'UIKMNH',
+  'K': 'IJLM', 'L': 'OKP', 'M': 'NJK', 'N': 'BHJM', 'O': 'IKLP',
+  'P': 'OL', 'Q': 'WA', 'R': 'EDFT', 'S': 'WEDXZA', 'T': 'RFGY',
+  'U': 'YHJI', 'V': 'CFGB', 'W': 'QASE', 'X': 'ZSDC', 'Y': 'TGHU',
+  'Z': 'ASX'
+};
+
+var commonWords = {
+  'the':1, 'and':1, 'is':1, 'a':1, 'of':1, 'to':1, 'in':1, 'it':1, 'that':1, 'you':1,
+  'he':1, 'was':1, 'for':1, 'on':1, 'are':1, 'as':1, 'with':1, 'his':1, 'they':1, 'i':1,
+  'this':1, 'have':1, 'from':1, 'or':1, 'one':1, 'had':1, 'by':1, 'word':1, 'but':1, 'not':1,
+  'what':1, 'all':1, 'were':1, 'we':1, 'when':1, 'your':1, 'can':1, 'said':1, 'there':1, 'use':1,
+  'an':1, 'each':1, 'which':1, 'she':1, 'do':1, 'how':1, 'their':1, 'if':1, 'will':1, 'up':1,
+  'other':1, 'about':1, 'out':1, 'many':1, 'then':1, 'them':1, 'these':1, 'so':1, 'some':1,
+  'her':1, 'would':1, 'make':1, 'like':1, 'him':1, 'into':1, 'time':1, 'has':1, 'look':1,
+  'two':1, 'more':1, 'write':1, 'go':1, 'see':1, 'number':1, 'no':1, 'way':1, 'could':1,
+  'people':1, 'my':1, 'than':1, 'first':1, 'water':1, 'been':1, 'call':1, 'who':1, 'oil':1,
+  'its':1, 'now':1, 'find':1
+};
+
+function getLastWord(text) {
+  var match = text.match(/([a-zA-Z]+)$/);
+  return match ? match[1] : '';
+}
+
+function getActionWeight(action, textSoFar) {
+  if (action.type === 'pause') {
+    return action.weight;
+  }
+  if (action.type === 'backspace') {
+    return 0.8;
+  }
+  if (action.type === 'type') {
+    var char = action.char;
+    var weight = 1.0;
+    var lastWord = getLastWord(textSoFar + char);
+    if (commonWords[lastWord.toLowerCase()]) {
+      weight = 0.6; // Type common words faster
+    } else if (lastWord.length > 7) {
+      weight = 1.3; // Type long words slower
+    }
+    // Keystroke-level variation
+    weight += (Math.random() * 0.4 - 0.2) * weight;
+    return Math.max(0.25, weight);
+  }
+  return 1.0;
+}
+
+function generateTypingTimeline(fullText, totalDuration) {
+  var actions = [];
+  var i = 0;
+  
+  while (i < fullText.length) {
+    var char = fullText[i];
+    var isStartOfWord = (i === 0 || /\s/.test(fullText[i-1]));
+    
+    if (isStartOfWord && /\S/.test(char)) {
+      // Find current word
+      var wordEnd = i;
+      while (wordEnd < fullText.length && /\S/.test(fullText[wordEnd])) {
+        wordEnd++;
+      }
+      var word = fullText.substring(i, wordEnd);
+      
+      // Simulate typos with 3-5% probability (approx 4%) on words >= 3 characters
+      var shouldTypo = word.length >= 3 && Math.random() < 0.04;
+      if (shouldTypo) {
+        var typoPos = Math.min(word.length - 1, 1 + Math.floor(Math.random() * 2));
+        
+        // Type correct characters up to typoPos
+        for (var j = 0; j < typoPos; j++) {
+          actions.push({ type: 'type', char: word[j] });
+        }
+        
+        // Type wrong character
+        var correctChar = word[typoPos];
+        var neighbors = keyboardNeighbors[correctChar] || keyboardNeighbors[correctChar.toLowerCase()] || 'qwerty';
+        var wrongChar = neighbors[Math.floor(Math.random() * neighbors.length)];
+        actions.push({ type: 'type', char: wrongChar });
+        
+        // Momentum: type next character with 70% probability
+        var hasMomentum = Math.random() < 0.7 && typoPos + 1 < word.length;
+        if (hasMomentum) {
+          actions.push({ type: 'type', char: word[typoPos + 1] });
+        }
+        
+        // Pause to realize mistake
+        actions.push({ type: 'pause', weight: 5.5 });
+        
+        // Backspaces
+        var backspaceCount = hasMomentum ? 2 : 1;
+        for (var b = 0; b < backspaceCount; b++) {
+          actions.push({ type: 'backspace' });
+        }
+        
+        // Pause before correcting
+        actions.push({ type: 'pause', weight: 3.0 });
+        
+        // Continue typing correct characters from mistake position
+        for (var j = typoPos; j < word.length; j++) {
+          actions.push({ type: 'type', char: word[j] });
+        }
+        
+        i = wordEnd;
+        continue;
+      }
+    }
+    
+    // Normal character typing
+    actions.push({ type: 'type', char: char });
+    
+    // Pauses after punctuation
+    if (char === ',' || char === ';' || char === ':') {
+      actions.push({ type: 'pause', weight: 3.5 });
+    } else if (char === '.' || char === '?' || char === '!') {
+      actions.push({ type: 'pause', weight: 7.5 });
+    } else if (char === '\n') {
+      if (i + 1 < fullText.length && fullText[i+1] === '\n') {
+        actions.push({ type: 'pause', weight: 15.0 });
+        actions.push({ type: 'type', char: '\n' });
+        i++; // skip next newline
+      } else {
+        actions.push({ type: 'pause', weight: 7.5 });
+      }
+    } else if (char === ' ' && Math.random() < 0.10) {
+      // Small random thinking pause at space
+      actions.push({ type: 'pause', weight: 4.5 });
+    }
+    
+    i++;
+  }
+  
+  // Finish typing between 92% and 96% of the narration audio duration
+  var targetTypingEnd = totalDuration * (0.92 + Math.random() * 0.04);
+  
+  var currentText = '';
+  var relativeTimes = [];
+  var totalRelativeTime = 0;
+  
+  actions.forEach(function(action) {
+    var w = getActionWeight(action, currentText);
+    if (action.type === 'type') {
+      currentText += action.char;
+    } else if (action.type === 'backspace') {
+      currentText = currentText.substring(0, currentText.length - 1);
+    }
+    relativeTimes.push(w);
+    totalRelativeTime += w;
+  });
+  
+  var scale = totalRelativeTime > 0 ? targetTypingEnd / totalRelativeTime : 0;
+  
+  var accumulatedTime = 0;
+  currentText = '';
+  var events = [{ time: 0, text: '' }];
+  
+  for (var k = 0; k < actions.length; k++) {
+    var action = actions[k];
+    var relTime = relativeTimes[k];
+    accumulatedTime += relTime * scale;
+    
+    if (action.type === 'type') {
+      currentText += action.char;
+    } else if (action.type === 'backspace') {
+      currentText = currentText.substring(0, currentText.length - 1);
+    }
+    
+    events.push({
+      time: accumulatedTime,
+      text: currentText
+    });
+  }
+  
+  return events;
+}
+
+function getTimelineState(timeline, elapsedSecs) {
+  var low = 0;
+  var high = timeline.length - 1;
+  var ans = timeline[0];
+  
+  while (low <= high) {
+    var mid = Math.floor((low + high) / 2);
+    if (timeline[mid].time <= elapsedSecs) {
+      ans = timeline[mid];
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return ans;
 }
 
 // ---- PUBLIC API ----
 window.loadSlide = function(slide) {
   _prevIsCode = _slide ? !!_slide.isCode : null;
   _slide = slide;
+  
+  // Initialize scroll states for this slide
+  _slide.lastElapsedSecs = 0;
+  _slide.currentScrollTop = 0;
+  
   document.getElementById('notepad-text-span').textContent = '';
   document.getElementById('vs-code-span').innerHTML = '';
   _setGutter(1);
@@ -575,9 +786,65 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
     }
   } else {
     _showNotepad();
-    var fullText = _buildNotepadText(_slide);
-    var typingP = Math.min(1, progress / 0.88);
-    _setNotepadText(fullText.substring(0, Math.floor(typingP * fullText.length)));
+    
+    // Generate typing timeline if not present or duration changed
+    if (!_slide.typingTimeline || _slide.timelineDuration !== totalDuration) {
+      var fullText = _buildNotepadText(_slide);
+      _slide.typingTimeline = generateTypingTimeline(fullText, totalDuration);
+      _slide.timelineDuration = totalDuration;
+    }
+    
+    // Binary search for the current event state
+    var currentState = getTimelineState(_slide.typingTimeline, elapsedSecs);
+    _setNotepadText(currentState.text);
+    
+    // Active typing detection for caret solid state (within 0.3 seconds)
+    var isTyping = false;
+    if (elapsedSecs >= 0.3) {
+      var statePrev = getTimelineState(_slide.typingTimeline, elapsedSecs - 0.3);
+      isTyping = (currentState.text !== statePrev.text);
+    } else {
+      isTyping = (currentState.text !== '');
+    }
+    
+    var cursorEl = document.getElementById('notepad-cursor');
+    if (cursorEl) {
+      if (isTyping) {
+        cursorEl.classList.add('typing');
+      } else {
+        cursorEl.classList.remove('typing');
+      }
+    }
+    
+    // Smooth LERP scrolling to keep cursor visible
+    var container = document.getElementById('notepad-content-area');
+    if (cursorEl && container) {
+      var cursorRect = cursorEl.getBoundingClientRect();
+      var containerRect = container.getBoundingClientRect();
+      var cursorY = cursorRect.top - containerRect.top + container.scrollTop;
+      
+      // Target is to keep cursor visible at least 100px from the bottom
+      var targetScrollTop = Math.max(0, cursorY - container.clientHeight + 100);
+      
+      if (_slide.currentScrollTop === undefined) {
+        _slide.currentScrollTop = 0;
+        _slide.lastElapsedSecs = elapsedSecs;
+      }
+      
+      var dt = elapsedSecs - _slide.lastElapsedSecs;
+      if (dt < 0) dt = 0;
+      
+      if (dt > 0) {
+        var t = 0.25; // scroll speed time constant
+        var lerpFactor = 1 - Math.exp(-dt / t);
+        _slide.currentScrollTop = _slide.currentScrollTop + (targetScrollTop - _slide.currentScrollTop) * lerpFactor;
+      } else {
+        _slide.currentScrollTop = targetScrollTop;
+      }
+      
+      container.scrollTop = _slide.currentScrollTop;
+      _slide.lastElapsedSecs = elapsedSecs;
+    }
   }
 };
 
