@@ -81,6 +81,25 @@
     }
     .notepad-statusbar span { font-size: 12px; color: #ffffff; }
 
+    /* ---- HIGHLIGHT & UNDERLINE STYLES FOR NOTEPAD ---- */
+    .highlight-yellow {
+      background-color: #ffee58;
+      color: #000000;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      display: inline;
+      box-shadow: 0 0 0 1px rgba(210, 180, 0, 0.4);
+    }
+    .underline-red {
+      text-decoration: underline;
+      text-decoration-color: #e53935;
+      text-decoration-thickness: 2.5px;
+      text-underline-offset: 3px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
     /* ---- VS CODE ---- */
     #vscode-window { background: #1e1e1e; }
 
@@ -429,6 +448,13 @@ function _highlight(codeStr) {
   return h;
 }
 
+function _setCodeText(code, totalLines) {
+  var el = document.getElementById('vs-code-span');
+  if (!el) return;
+  if (totalLines > 0) _setGutter(totalLines);
+  el.innerHTML = _highlight(code);
+}
+
 function _setGutter(lineCount) {
   var el = document.getElementById('vscode-gutter');
   var numbers = [];
@@ -439,71 +465,159 @@ function _setGutter(lineCount) {
   el.textContent = numbers.join('\n');
 }
 
-function _setNotepadText(text) {
-  document.getElementById('notepad-text-span').textContent = text;
-  var lines = text.split('\n');
-  var ln = lines.length, col = lines[ln-1].length+1;
-  document.getElementById('np-ln-col').textContent = 'Ln '+ln+', Col '+col;
-  document.getElementById('np-chars').textContent = text.length+' characters';
-}
-
-function _setCodeText(codeSegment, totalLines) {
-  document.getElementById('vs-code-span').innerHTML = _highlight(codeSegment);
-  _setGutter(totalLines || codeSegment.split('\n').length);
-  var lines = codeSegment.split('\n');
-  var ln = lines.length;
-  var col = (lines[ln - 1] || '').length + 1;
-  document.getElementById('vs-ln-col').textContent = 'Ln ' + ln + ', Col ' + col;
-}
-
-function _setTerminal(command, output) {
-  var el = document.getElementById('term-text');
-  var tc = document.getElementById('terminal-cursor');
-  var cwd = 'D:\\class_project';
-  if (!command) {
-    el.innerHTML = '<span class="term-prompt">PS '+cwd+'&gt;</span> ';
-    tc.style.display = 'inline';
-  } else if (!output && output !== '') {
-    el.innerHTML = '<span class="term-prompt">PS '+cwd+'&gt;</span> <span style="color:#d4d4d4">'+_escapeHtml(command)+'</span>';
-    tc.style.display = 'inline';
-  } else {
-    var safeOut = _escapeHtml(output);
-    el.innerHTML = '<span class="term-prompt">PS '+cwd+'&gt;</span> <span style="color:#d4d4d4">'+_escapeHtml(command)+'</span>\n<span class="term-output">'+safeOut+'</span>';
-    tc.style.display = 'none';
+function _parseCode(rawText) {
+  if (!rawText) return { code: '', output: '' };
+  var text = String(rawText).replace(/\\\\N/g, '\n').replace(/\\N/g, '\n');
+  var delimiter = '\n\n==== OUTPUT ====\n';
+  var parts = text.split(delimiter);
+  if (parts.length > 1) {
+    return { code: parts[0], output: parts.slice(1).join(delimiter) };
   }
+  // Try fallback delimiter if just \n instead of \n\n
+  delimiter = '\n==== OUTPUT ====\n';
+  parts = text.split(delimiter);
+  if (parts.length > 1) {
+    return { code: parts[0], output: parts.slice(1).join(delimiter) };
+  }
+  return { code: text, output: '' };
 }
 
-function _parseCode(txt) {
-  var cleaned = String(txt || '').replace(/\\\\N/g, '\n').replace(/\\N/g, '\n');
-  var SEP = '==== OUTPUT ====';
-  var idx = cleaned.indexOf(SEP);
-  if (idx === -1) return { code: cleaned, output: '' };
+function _setTerminal(cmd, output) {
+  var el = document.getElementById('term-text');
+  if (!el) return;
+  var prompt = '<span style="color:#85c46c">PS C:\\Project&gt;</span> ';
+  if (cmd === null && output === null) {
+    el.innerHTML = prompt;
+    return;
+  }
+  var html = prompt;
+  if (cmd) {
+    // Basic escape
+    html += String(cmd).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  if (output !== null) {
+    var escapedOut = String(output).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    html += '\n<span style="color:#cccccc">' + escapedOut + '</span>\n' + prompt;
+  }
+  el.innerHTML = html;
+}
 
-  var codePart = cleaned.substring(0, idx);
-  if (codePart.endsWith('\n')) {
-    codePart = codePart.substring(0, codePart.length - 1);
-    if (codePart.endsWith('\r')) {
-      codePart = codePart.substring(0, codePart.length - 1);
+function _parseFormattedTextToTokens(rawText) {
+  var tokens = [];
+  if (!rawText) return tokens;
+
+  var text = String(rawText).replace(/\\\\N/g, '\n').replace(/\\N/g, '\n');
+
+  // Match formatting tags:
+  // Yellow highlight: [yellow]...[/yellow], [topic]...[/topic], [subtopic]...[/subtopic], <mark>...</mark>, <yellow>...</yellow>, ==...==
+  // Red underline: [red]...[/red], [u]...[/u], [important]...[/important], [underline]...[/underline], <u>...</u>, <red>...</red>
+  var tagRegex = /(\[(?:yellow|topic|subtopic|mark)\]|<(?:yellow|topic|subtopic|mark)>|==)([\s\S]*?)(\[\/(?:yellow|topic|subtopic|mark)\]|<\/(?:yellow|topic|subtopic|mark)>|==)|(\[(?:red|u|important|underline)\]|<(?:red|u|important|underline)>|<u>)([\s\S]*?)(\[\/(?:red|u|important|underline)\]|<\/(?:red|u|important|underline)>|<\/u>)/gi;
+
+  var lastIndex = 0;
+  var match;
+
+  while ((match = tagRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      var normalSub = text.substring(lastIndex, match.index);
+      tokens.push({ text: normalSub, style: 'normal' });
+    }
+
+    if (match[1] !== undefined) {
+      if (match[2]) {
+        tokens.push({ text: match[2], style: 'yellow' });
+      }
+    } else if (match[4] !== undefined) {
+      if (match[5]) {
+        tokens.push({ text: match[5], style: 'red' });
+      }
+    }
+
+    lastIndex = tagRegex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    tokens.push({ text: text.substring(lastIndex), style: 'normal' });
+  }
+
+  return tokens;
+}
+
+function _buildNotepadTokens(slide) {
+  var tokens = [];
+
+  if (slide.heading) {
+    var headingTokens = _parseFormattedTextToTokens(slide.heading);
+    if (headingTokens.length === 1 && headingTokens[0].style === 'normal') {
+      headingTokens[0].style = 'yellow';
+    }
+    tokens = tokens.concat(headingTokens);
+    tokens.push({ text: '\n\n', style: 'normal' });
+  }
+
+  if (slide.subheading) {
+    var subTokens = _parseFormattedTextToTokens(slide.subheading);
+    if (subTokens.length === 1 && subTokens[0].style === 'normal') {
+      subTokens[0].style = 'yellow';
+    }
+    tokens = tokens.concat(subTokens);
+    tokens.push({ text: '\n\n', style: 'normal' });
+  }
+
+  if (slide.bullets && slide.bullets.length > 0) {
+    for (var i = 0; i < slide.bullets.length; i++) {
+      var rawBullet = slide.bullets[i];
+      var bulletTokens = _parseFormattedTextToTokens(rawBullet);
+      tokens = tokens.concat(bulletTokens);
+      if (i < slide.bullets.length - 1) {
+        tokens.push({ text: '\n\n', style: 'normal' });
+      }
     }
   }
 
-  var outPart = cleaned.substring(idx + SEP.length);
-  if (outPart.startsWith('\n')) {
-    outPart = outPart.substring(1);
+  return tokens;
+}
+
+function _renderNotepadHtml(tokens, typedCharCount) {
+  var html = '';
+  var remaining = typedCharCount;
+
+  for (var i = 0; i < tokens.length; i++) {
+    if (remaining <= 0) break;
+
+    var tok = tokens[i];
+    var takeLen = Math.min(tok.text.length, remaining);
+    var chunk = tok.text.substring(0, takeLen);
+    remaining -= takeLen;
+
+    var escapedChunk = _escapeHtml(chunk);
+
+    if (tok.style === 'yellow') {
+      html += '<span class="highlight-yellow">' + escapedChunk + '</span>';
+    } else if (tok.style === 'red') {
+      html += '<span class="underline-red">' + escapedChunk + '</span>';
+    } else {
+      html += escapedChunk;
+    }
   }
-  return { code: codePart, output: outPart };
+
+  return html;
+}
+
+function _setNotepadTextHtml(tokens, typedCharCount) {
+  var html = _renderNotepadHtml(tokens, typedCharCount);
+  document.getElementById('notepad-text-span').innerHTML = html;
+
+  var fullTypedText = tokens.map(function(t) { return t.text; }).join('').substring(0, typedCharCount);
+  var lines = fullTypedText.split('\n');
+  var ln = lines.length;
+  var col = (lines[ln - 1] || '').length + 1;
+  document.getElementById('np-ln-col').textContent = 'Ln ' + ln + ', Col ' + col;
+  document.getElementById('np-chars').textContent = typedCharCount + ' characters';
 }
 
 function _buildNotepadText(slide) {
-  var t = '';
-  if (slide.heading) t += slide.heading + '\n\n';
-  if (slide.bullets && slide.bullets.length > 0) {
-    var paragraphs = slide.bullets.map(function(b) {
-      return b.replace(/\\\\N/g,'\n').replace(/\\N/g,'\n');
-    });
-    t += paragraphs.join('\n\n');
-  }
-  return t;
+  var tokens = _buildNotepadTokens(slide);
+  return tokens.map(function(t) { return t.text; }).join('');
 }
 
 // ============================================================
@@ -787,16 +901,21 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
   } else {
     _showNotepad();
     
+    if (!_slide.notepadTokens) {
+      _slide.notepadTokens = _buildNotepadTokens(_slide);
+      _slide.fullPlainText = _slide.notepadTokens.map(function(t) { return t.text; }).join('');
+    }
+    
     // Generate typing timeline if not present or duration changed
     if (!_slide.typingTimeline || _slide.timelineDuration !== totalDuration) {
-      var fullText = _buildNotepadText(_slide);
-      _slide.typingTimeline = generateTypingTimeline(fullText, totalDuration);
+      _slide.typingTimeline = generateTypingTimeline(_slide.fullPlainText, totalDuration);
       _slide.timelineDuration = totalDuration;
     }
     
     // Binary search for the current event state
     var currentState = getTimelineState(_slide.typingTimeline, elapsedSecs);
-    _setNotepadText(currentState.text);
+    var typedCharCount = currentState.text.length;
+    _setNotepadTextHtml(_slide.notepadTokens, typedCharCount);
     
     // Active typing detection for caret solid state (within 0.3 seconds)
     var isTyping = false;

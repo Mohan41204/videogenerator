@@ -203,12 +203,16 @@ Requirements for the teaching style:
     - Do NOT include any programming code blocks or example programs.
     - Instead, generate detailed explanation slides, concrete real-world examples, analogies, practical case studies, and scenarios related to the topic and subtopic.
     - The slide object MUST have "isCode": false.
-    - CRITICAL CONTENT GENERATION RULES FOR NOTEPAD SLIDES:
-      - The \`bullets\` array MUST contain 2 to 4 plain text paragraphs (strings) containing natural explanations, written like a real instructor typing notes live.
-      - NEVER generate bullet points or use bullet symbols (like •, -, *).
-      - NEVER generate numbered lists, tables, markdown formatting, or code fences (\`\`\`).
-      - Use natural, conversational English. Keep sentences short and clear. Explain concepts progressively.
-      - Avoid headings unless absolutely necessary.
+    - CRITICAL VISUAL FORMATTING & HIGHLIGHTING RULES FOR NOTEPAD SLIDES:
+      - The \`bullets\` array MUST contain 2 to 4 structured sections or paragraphs written like an instructor typing notes live.
+      - HIGHLIGHT TOPICS AND SUBTOPICS IN YELLOW: Wrap topic titles, subtopic titles, major section headings, and sub-headings in \`[yellow]Topic Name[/yellow]\` (e.g. \`[yellow]Network Analysis[/yellow]\`, \`[yellow]Basic Terms[/yellow]\`, \`[yellow]1. Activity[/yellow]\`, \`[yellow]2. Event[/yellow]\`).
+      - UNDERLINE IMPORTANT LINES IN RED: Wrap core definitions, key phrases, crucial points, important rules, and example items in \`[red]important line text[/red]\`.
+        - Examples:
+          - \`An Activity is an individual task or operation within a project that [red]consumes both time and resources[/red] (such as labor, materials, and equipment).\`
+          - \`Example: "[red]Pouring the concrete foundation[/red]" or "[red]Installing electrical wiring.[/red]"\`
+          - \`An Event (also [red]known as a node[/red]) represents a specific [red]point in time[/red] that [red]signifies the start or completion of one or more activities[/red]. It [red]does not consume time or resources.[/red]\`
+          - \`Example: "[red]Foundation poured[/red]" or "[red]Project commenced.[/red]"\`
+      - Do NOT use markdown code fences (\`\`\`).
 - Explain every concept and example in a very simple, easy-to-understand classroom teaching style.
 - Use friendly teacher-to-student communication with encouraging transition phrases.
 - Cover definitions, theory, syntax, examples, use cases, common mistakes, and practical understanding.
@@ -229,7 +233,7 @@ Each Slide object must have:
 - "bullets": (Array of Strings) Content to display on the slide.
   - For programming code slides (\`isCode\`: true), the array MUST contain exactly one string representing the code block (with the output formatted via \\\\N\\\\N==== OUTPUT ====\\\\N).
   - For diagram slides (\`isDiagram\`: true), the array MUST be an empty array [].
-  - For explanation/Notepad slides (\`isCode\`: false and \`isDiagram\`: false), the array MUST contain 2 to 4 strings, where each string is a complete, natural paragraph of notes typed live. Do NOT use bullet symbols (like •, -, *), numbered lists, tables, code blocks, or markdown.
+  - For explanation/Notepad slides (\`isCode\`: false and \`isDiagram\`: false), the array MUST contain 2 to 4 strings with \`[yellow]\` topic tags and \`[red]\` red underline tags embedded. Do NOT use bullet symbols (like •, -, *), numbered lists without tags, tables, code blocks, or markdown.
 - "narration": (String) The spoken teaching script for this slide (~${Math.round(targetWords / slideCount)} words). Output plain narration text only for this field.
 - "isCode": (Boolean) Set to true if this slide is a code example or contains code, and false otherwise.
 - "isDiagram": (Boolean) Set to true if this slide is a diagram slide, and false otherwise.

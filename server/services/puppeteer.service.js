@@ -111,6 +111,9 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       reject(new Error('FFmpeg process error: ' + err.message));
     });
   });
+  
+  // Prevent UnhandledPromiseRejection if FFmpeg crashes while we're not awaiting it:
+  ffmpegFinished.catch(() => {});
 
   // --- Render each slide frame by frame ---
   try {
@@ -207,6 +210,7 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
     console.log('[Puppeteer] Screen-recording video complete: ' + videoPath);
 
   } catch (err) {
+    console.error('\n[Puppeteer] Fatal error during rendering:', err);
     // Kill FFmpeg if something went wrong
     if (!ffmpegClosed) {
       ffmpegProc.stdin.end();
