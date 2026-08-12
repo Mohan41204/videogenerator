@@ -1,5 +1,5 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+const { GoogleGenAI } = require('@google/genai');
+require('dotenv').config({ path: require('path').join(__dirname, '../../../.env') });
 
 const cleanJsonString = (str) => {
   if (!str) return '';
@@ -21,7 +21,7 @@ const test = async () => {
   const topic = 'Python Loops';
   const subTopic = 'While Loops';
 
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const prompt = `
 Imagine you are an experienced classroom teacher creating detailed spoken study notes for students.
 
@@ -71,32 +71,81 @@ Each Slide object must have:
 `;
 
   console.log('Sending request to Gemini with Schema...');
-  const model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.5-flash',
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            heading: { type: 'string' },
-            subheading: { type: 'string' },
-            bullets: {
+  const runModelWithRetry = async (modelName) => {
+    let attempts = 0;
+    const maxAttempts = 3;
+    let delay = 1000;
+
+    while (attempts < maxAttempts) {
+      console.log(`Attempt ${attempts + 1}/${maxAttempts}`);
+      try {
+        const response = await ai.models.generateContent({ 
+          model: modelName,
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
               type: 'array',
-              items: { type: 'string' }
-            },
-            narration: { type: 'string' },
-            isCode: { type: 'boolean' }
-          },
-          required: ['heading', 'subheading', 'bullets', 'narration', 'isCode']
+              items: {
+                type: 'object',
+                properties: {
+                  heading: { type: 'string' },
+                  subheading: { type: 'string' },
+                  bullets: {
+                    type: 'array',
+                    items: { type: 'string' }
+                  },
+                  narration: { type: 'string' },
+                  isCode: { type: 'boolean' }
+                },
+                required: ['heading', 'subheading', 'bullets', 'narration', 'isCode']
+              }
+            }
+          }
+        });
+        return response;
+      } catch (err) {
+        let status = err.status;
+        if (!status && err.message) {
+          try {
+            const match = err.message.match(/"code"\s*:\s*(\d+)/);
+            if (match) {
+              status = parseInt(match[1], 10);
+            }
+          } catch (e) {}
         }
+
+        console.warn(`${modelName === 'gemini-3.6-flash' ? 'Gemini 3.6 Flash' : modelName} returned ${status || 'error'}`);
+
+        if (status === 404 || status === 401 || status === 403 || status === 400) {
+          console.warn(`Fatal error ${status} encountered. Immediate fail/fallback without further retries.`);
+          throw err;
+        }
+
+        attempts++;
+        if (attempts >= maxAttempts) {
+          if (modelName === 'gemini-3.6-flash') {
+            console.warn(`Switching to fallback model: gemini-3.5-flash-lite`);
+          }
+          throw err;
+        }
+        console.log(`Retrying in ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
       }
     }
-  });
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  const text = response.text();
+  };
+
+  let response;
+  try {
+    console.log('Primary Gemini model: gemini-3.6-flash');
+    response = await runModelWithRetry('gemini-3.6-flash');
+  } catch (error) {
+    console.warn('gemini-3.6-flash failed. Switching to fallback...');
+    response = await runModelWithRetry('gemini-3.5-flash-lite');
+    console.log('Fallback model succeeded');
+  }
+  const text = response.text;
 
   const cleaned = cleanJsonString(text);
   try {

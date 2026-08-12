@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const audioService = require('../services/audio.service');
 const ffmpegService = require('../services/ffmpeg.service');
 const subtitleService = require('../services/subtitle.service');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 
 // Robust JSON extraction and cleaning utility
 const cleanJsonString = (str) => {
@@ -179,7 +179,8 @@ const generateScript = async (req, res) => {
     const targetWords = targetMins * 140; // ~140 words per minute of speech
     const slideCount = Math.max(3, Math.round(targetMins * 1.2)); // ~6 slides for 5 mins
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    console.log('Gemini credential loaded:', !!process.env.GEMINI_API_KEY);
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const prompt = `
 Imagine you are an experienced classroom teacher creating detailed spoken study notes for students in an online screen-share classroom.
 
@@ -195,31 +196,31 @@ Requirements for the teaching style:
     - Provide slide(s) with a **Basic Example Program** showing fundamental implementation.
     - Provide slide(s) with an **Advanced Example Program** showing real-world / production-grade implementation.
     - For slides displaying code examples, the \`bullets\` array should contain exactly one string representing the full, formatted, and indented code block. You MUST also include the expected EXECUTED OUTPUT of the code directly below the program inside the same string.
-    - Separate the code and the output using \`\\\\N\\\\N==== OUTPUT ====\\\\N\` followed by the output.
-    - Use \\N (the literal string '\\N') to represent newlines inside the code block and output so that lines and spacing are perfectly preserved on the screen. Do NOT include markdown code fences (\`\`\`) inside the bullets array. Write real, complete, professional code snippets (e.g., \`"print('Hello World')\\\\N\\\\N==== OUTPUT ====\\\\NHello World"\`).
+    - Separate the code and the output using \`\\N\\N==== OUTPUT ====\\N\` followed by the output.
+    - Use \\N (the literal string '\\N') to represent newlines inside the code block and output so that lines and spacing are preserved on the screen. Do NOT include markdown code fences (\`\`\`) inside the bullets array. Write real, complete, professional code snippets (e.g., \`"print('Hello World')\\N\\N==== OUTPUT ====\\NHello World"\`).
     - CRITICAL CODE LIMITATION: Keep code examples short, concise, and highly focused. Each code block MUST NOT exceed 6 to 10 lines of code total.
     - The slide object MUST have "isCode": true.
   - **If the topic/subtopic is NOT related to programming/coding**:
     - Do NOT include any programming code blocks or example programs.
     - Instead, generate detailed explanation slides, concrete real-world examples, analogies, practical case studies, and scenarios related to the topic and subtopic.
     - The slide object MUST have "isCode": false.
-    - CRITICAL VISUAL FORMATTING & HIGHLIGHTING RULES FOR NOTEPAD SLIDES:
-      - The \`bullets\` array MUST contain 2 to 4 structured sections or paragraphs written like an instructor typing notes live.
-      - HIGHLIGHT TOPICS AND SUBTOPICS IN YELLOW: Wrap topic titles, subtopic titles, major section headings, and sub-headings in \`[yellow]Topic Name[/yellow]\` (e.g. \`[yellow]Network Analysis[/yellow]\`, \`[yellow]Basic Terms[/yellow]\`, \`[yellow]1. Activity[/yellow]\`, \`[yellow]2. Event[/yellow]\`).
-      - UNDERLINE IMPORTANT LINES IN RED: Wrap core definitions, key phrases, crucial points, important rules, and example items in \`[red]important line text[/red]\`.
-        - Examples:
-          - \`An Activity is an individual task or operation within a project that [red]consumes both time and resources[/red] (such as labor, materials, and equipment).\`
-          - \`Example: "[red]Pouring the concrete foundation[/red]" or "[red]Installing electrical wiring.[/red]"\`
-          - \`An Event (also [red]known as a node[/red]) represents a specific [red]point in time[/red] that [red]signifies the start or completion of one or more activities[/red]. It [red]does not consume time or resources.[/red]\`
-          - \`Example: "[red]Foundation poured[/red]" or "[red]Project commenced.[/red]"\`
-      - Do NOT use markdown code fences (\`\`\`).
+    - **CRITICAL VISUAL FORMATTING & HIGHLIGHTING RULES FOR WHITEBOARD SLIDES**:
+      - The \`bullets\` array must contain 2 to 4 styled objects or paragraphs representing different elements rendered sequentially on the whiteboard.
+      - Support the following structures inside the \`bullets\` array:
+        - **Bullet Lists**: Lines starting with \`- \` or \`* \`
+        - **Numbered Lists**: Lines starting with \`1. \`, \`2. \`
+        - **Quotes**: Text starting with \`[quote]\` for key analogies or notable phrases
+        - **Tables**: Markdown-style table syntax (e.g., \`| Header 1 | Header 2 |\\n|---|---|\\n| Cell 1 | Cell 2 |\`)
+        - **Section Headings**: Lines starting with \`## \` or \`### \`
+      - **KEYWORD ONLY HIGHLIGHTS (CRITICAL)**: Do NOT highlight entire sentences or long phrases. Instead, wrap ONLY important words/concepts in \`[yellow]keyword[/yellow]\` and critical definitions in \`[red]term[/red]\`.
+        - Example: Instead of \`[yellow]Photosynthesis converts sunlight into glucose.[/yellow]\`, use \`[yellow]Photosynthesis[/yellow]\` converts \`[yellow]sunlight[/yellow]\` into \`[yellow]glucose[/yellow]\`. Highlight ONLY the specific concepts.
 - Explain every concept and example in a very simple, easy-to-understand classroom teaching style.
 - Use friendly teacher-to-student communication with encouraging transition phrases.
 - Cover definitions, theory, syntax, examples, use cases, common mistakes, and practical understanding.
 - CRITICAL DURATION TARGET: You MUST generate exactly ${slideCount} slides, and the total narration across all slides combined MUST be approximately ${targetWords} words total (~${Math.round(targetWords / slideCount)} words per slide narration) so that spoken audio duration is exactly around ${targetMins} minutes.
  
 DIAGRAM SLIDES (IMPORTANT):
-- For any concept that has a clear visual flow, structure, or relationship (e.g., how a for-loop works, a class hierarchy, a sequence of API calls, a data pipeline), you SHOULD include a dedicated diagram slide.
+- For any concept that has a clear visual flow, structure, or relationship (e.g., how a process works, a class hierarchy, a sequence of API calls, a data pipeline), you SHOULD include a dedicated diagram slide.
 - A diagram slide must have "isDiagram": true and a valid "mermaid" string containing raw Mermaid.js code.
 - The Mermaid code must be simple, maximum 10 nodes, use LR or TD layout, short labels (under 25 chars), no HTML, no markdown wrappers.
 - Set "isCode": false and "isDiagram": true for diagram slides. Leave "bullets" as an empty array [].
@@ -231,9 +232,6 @@ Each Slide object must have:
 - "heading": (String) A short, professional title for the slide.
 - "subheading": (String) An optional subtitle or secondary thought. Can be empty string.
 - "bullets": (Array of Strings) Content to display on the slide.
-  - For programming code slides (\`isCode\`: true), the array MUST contain exactly one string representing the code block (with the output formatted via \\\\N\\\\N==== OUTPUT ====\\\\N).
-  - For diagram slides (\`isDiagram\`: true), the array MUST be an empty array [].
-  - For explanation/Notepad slides (\`isCode\`: false and \`isDiagram\`: false), the array MUST contain 2 to 4 strings with \`[yellow]\` topic tags and \`[red]\` red underline tags embedded. Do NOT use bullet symbols (like •, -, *), numbered lists without tags, tables, code blocks, or markdown.
 - "narration": (String) The spoken teaching script for this slide (~${Math.round(targetWords / slideCount)} words). Output plain narration text only for this field.
 - "isCode": (Boolean) Set to true if this slide is a code example or contains code, and false otherwise.
 - "isDiagram": (Boolean) Set to true if this slide is a diagram slide, and false otherwise.
@@ -243,62 +241,84 @@ Each Slide object must have:
 `;
 
     const runModelWithRetry = async (modelName) => {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                heading:    { type: 'string' },
-                subheading: { type: 'string' },
-                bullets: {
-                  type: 'array',
-                  items: { type: 'string' }
-                },
-                narration:  { type: 'string' },
-                isCode:     { type: 'boolean' },
-                isDiagram:  { type: 'boolean' },
-                mermaid:    { type: 'string' },
-                fileName:   { type: 'string' },
-                runCommand: { type: 'string' }
-              },
-              required: ['heading', 'subheading', 'bullets', 'narration', 'isCode', 'isDiagram', 'mermaid']
-            }
-          }
-        }
-      });
       let attempts = 0;
       const maxAttempts = 3;
       let delay = 1000;
 
       while (attempts < maxAttempts) {
+        console.log(`Attempt ${attempts + 1}/${maxAttempts}`);
         try {
-          const result = await model.generateContent(prompt);
-          return result;
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    heading:    { type: 'string' },
+                    subheading: { type: 'string' },
+                    bullets: {
+                      type: 'array',
+                      items: { type: 'string' }
+                    },
+                    narration:  { type: 'string' },
+                    isCode:     { type: 'boolean' },
+                    isDiagram:  { type: 'boolean' },
+                    mermaid:    { type: 'string' },
+                    fileName:   { type: 'string' },
+                    runCommand: { type: 'string' }
+                  },
+                  required: ['heading', 'subheading', 'bullets', 'narration', 'isCode', 'isDiagram', 'mermaid']
+                }
+              }
+            }
+          });
+          return response;
         } catch (err) {
+          let status = err.status;
+          if (!status && err.message) {
+            try {
+              const match = err.message.match(/"code"\s*:\s*(\d+)/);
+              if (match) {
+                status = parseInt(match[1], 10);
+              }
+            } catch (e) {}
+          }
+
+          console.warn(`${modelName === 'gemini-3.6-flash' ? 'Gemini 3.6 Flash' : modelName} returned ${status || 'error'}`);
+
+          if (status === 404 || status === 401 || status === 403 || status === 400) {
+            console.warn(`Fatal error ${status} encountered. Immediate fail/fallback without further retries.`);
+            throw err;
+          }
+
           attempts++;
-          if (attempts >= maxAttempts) throw err;
-          console.warn(`Attempt ${attempts} with ${modelName} failed: ${err.message}. Retrying in ${delay}ms...`);
+          if (attempts >= maxAttempts) {
+            if (modelName === 'gemini-3.6-flash') {
+              console.warn(`Switching to fallback model: gemini-3.5-flash-lite`);
+            }
+            throw err;
+          }
+          console.log(`Retrying in ${delay}ms`);
           await new Promise(resolve => setTimeout(resolve, delay));
           delay *= 2;
         }
       }
     };
 
-    let result;
+    let response;
     try {
-      console.log('Generating script using gemini-2.5-flash...');
-      result = await runModelWithRetry('gemini-2.5-flash');
+      console.log('Primary Gemini model: gemini-3.6-flash');
+      response = await runModelWithRetry('gemini-3.6-flash');
     } catch (error) {
-      console.warn('gemini-2.5-flash failed after all retries. Falling back to gemini-flash-latest...');
-      result = await runModelWithRetry('gemini-flash-latest');
+      response = await runModelWithRetry('gemini-3.5-flash-lite');
+      console.log('Fallback model succeeded');
     }
 
-    const response = await result.response;
-    let text = response.text();
+    let text = response.text;
 
     // Clean and extract potential JSON formatting from Gemini
     const cleanedText = cleanJsonString(text);
@@ -320,7 +340,8 @@ const generateAwsScript = async (req, res) => {
     const targetMins = parseInt(durationMinutes, 10) || 5;
     const targetWords = targetMins * 140;
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    console.log('Gemini credential loaded:', !!process.env.GEMINI_API_KEY);
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const prompt = `
 Imagine you are an experienced AWS instructor creating an automated screen-recording tutorial.
 
@@ -399,66 +420,95 @@ Available actions for steps:
 Ensure the steps logically flow like a real human navigating the console. Do NOT use CSS selectors. Use ONLY semantic labels and types (e.g., type: "button", "link", "textbox", "checkbox", "dropdown", "tab", "section").
 `;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-flash-latest',
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'object',
-          properties: {
-            type: { type: 'string' },
-            service: { type: 'string' },
-            title: { type: 'string' },
-            narration: { type: 'string' },
-            steps: {
-              type: 'array',
-              items: {
+    const runAwsModelWithRetry = async (modelName) => {
+      let attempts = 0;
+      const maxAttempts = 3;
+      let delay = 5000;
+
+      while (attempts < maxAttempts) {
+        console.log(`Attempt ${attempts + 1}/${maxAttempts}`);
+        try {
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: {
                 type: 'object',
                 properties: {
-                  action: { type: 'string' },
-                  url: { type: 'string' },
-                  value: { type: 'string' },
-                  duration: { type: 'integer' },
-                  target: {
-                    type: 'object',
-                    properties: {
-                      label: { type: 'string' },
-                      type: { type: 'string' }
-                    },
-                    required: ['label']
+                  type: { type: 'string' },
+                  service: { type: 'string' },
+                  title: { type: 'string' },
+                  narration: { type: 'string' },
+                  steps: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        action: { type: 'string' },
+                        url: { type: 'string' },
+                        value: { type: 'string' },
+                        duration: { type: 'integer' },
+                        target: {
+                          type: 'object',
+                          properties: {
+                            label: { type: 'string' },
+                            type: { type: 'string' }
+                          },
+                          required: ['label']
+                        }
+                      },
+                      required: ['action']
+                    }
                   }
                 },
-                required: ['action']
+                required: ['type', 'service', 'title', 'narration', 'steps']
               }
             }
-          },
-          required: ['type', 'service', 'title', 'narration', 'steps']
+          });
+          return response;
+        } catch (err) {
+          let status = err.status;
+          if (!status && err.message) {
+            try {
+              const match = err.message.match(/"code"\s*:\s*(\d+)/);
+              if (match) {
+                status = parseInt(match[1], 10);
+              }
+            } catch (e) {}
+          }
+
+          console.warn(`${modelName === 'gemini-3.6-flash' ? 'Gemini 3.6 Flash' : modelName} returned ${status || 'error'}`);
+
+          if (status === 404 || status === 401 || status === 403 || status === 400) {
+            console.warn(`[AWS Script Gen] Fatal error ${status} encountered. Immediate fail/fallback without further retries.`);
+            throw err;
+          }
+
+          attempts++;
+          if (attempts >= maxAttempts) {
+            if (modelName === 'gemini-3.6-flash') {
+              console.warn(`Switching to fallback model: gemini-3.5-flash-lite`);
+            }
+            throw err;
+          }
+          console.log(`Retrying in ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2;
         }
       }
-    });
+    };
 
-    let result;
-    let attempts = 0;
-    const maxAttempts = 3;
-    let delay = 15000; // start with 15s delay for 429 errors
-
-    while (attempts < maxAttempts) {
-      try {
-        result = await model.generateContent(prompt);
-        break;
-      } catch (err) {
-        attempts++;
-        if (attempts >= maxAttempts) throw err;
-        
-        console.warn(`[AWS Script Gen] Attempt ${attempts} failed: ${err.message}. Retrying in ${delay}ms...`);
-        // If there is a specific retry delay from the API, we could parse it, but a static backoff is safe.
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 1.5;
-      }
+    let response;
+    try {
+      console.log('Primary Gemini model: gemini-3.6-flash');
+      response = await runAwsModelWithRetry('gemini-3.6-flash');
+    } catch (error) {
+      response = await runAwsModelWithRetry('gemini-3.5-flash-lite');
+      console.log('Fallback model succeeded');
     }
 
-    const response = await result.response;
-    let text = response.text();
+    let text = response.text;
 
     const cleanedText = cleanJsonString(text);
     res.status(200).json({ success: true, text: cleanedText });

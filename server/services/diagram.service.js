@@ -38,15 +38,111 @@ function reset() {
  * @param {string}                   mermaidCode - Valid Mermaid.js diagram code
  * @returns {Promise<void>}
  */
+function sanitizeMermaid(mermaidCode) {
+  if (!mermaidCode) return '';
+  
+  // Extract orientation/graph type
+  let orientation = 'TD';
+  let graphType = 'graph';
+  const headerMatch = mermaidCode.match(/^\s*(graph|flowchart)\s+(TD|LR|TB|BT|RL)/i);
+  if (headerMatch) {
+    graphType = headerMatch[1];
+    orientation = headerMatch[2];
+  }
+  
+  const nodes = new Map(); // id -> label
+  const edges = [];
+  
+  const lines = mermaidCode.split('\n');
+  for (let line of lines) {
+    line = line.trim();
+    if (!line || line.startsWith('graph') || line.startsWith('flowchart')) continue;
+    
+    // We require node definitions to be at the start of a line/statement or directly after edge connectors
+    const prefix = '(^\\s*|-->\\s*|---\\s*|-\\.-?>\\s*|-\\.-?\\s*)';
+    const stadiumRegex = new RegExp(`${prefix}([a-zA-Z0-9_-]+)\\s*\\(\\[\\s*(.*?)\\s*\\]\\)`, 'g');
+    const rectRegex = new RegExp(`${prefix}([a-zA-Z0-9_-]+)\\s*\\[\\s*(.*?)\\s*\\]`, 'g');
+    const roundRegex = new RegExp(`${prefix}([a-zA-Z0-9_-]+)\\s*\\(\\s*(.*?)\\s*\\)`, 'g');
+    const rhombusRegex = new RegExp(`${prefix}([a-zA-Z0-9_-]+)\\s*\\{\\s*(.*?)\\s*\\}`, 'g');
+    
+    let match;
+    // 1. Double bracket stadium shape ([label])
+    while ((match = stadiumRegex.exec(line)) !== null) {
+      nodes.set(match[2], match[3].trim());
+    }
+    stadiumRegex.lastIndex = 0; // reset
+    
+    // 2. Standard rectangular [label]
+    while ((match = rectRegex.exec(line)) !== null) {
+      nodes.set(match[2], match[3].trim());
+    }
+    rectRegex.lastIndex = 0; // reset
+    
+    // 3. Round (label)
+    while ((match = roundRegex.exec(line)) !== null) {
+      const id = match[2];
+      const val = match[3].trim();
+      if (!val.startsWith('[') || !val.endsWith(']')) {
+        nodes.set(id, val);
+      }
+    }
+    roundRegex.lastIndex = 0; // reset
+    
+    // 4. Decision/Rhombus {label}
+    while ((match = rhombusRegex.exec(line)) !== null) {
+      nodes.set(match[2], match[3].trim());
+    }
+    rhombusRegex.lastIndex = 0; // reset
+    
+    // Clean node definitions on this line to isolate edges
+    let cleanLine = line;
+    cleanLine = cleanLine.replace(stadiumRegex, '$1$2');
+    cleanLine = cleanLine.replace(rectRegex, '$1$2');
+    cleanLine = cleanLine.replace(roundRegex, '$1$2');
+    cleanLine = cleanLine.replace(rhombusRegex, '$1$2');
+    
+    if (cleanLine.includes('-->') || cleanLine.includes('---') || cleanLine.includes('-.->')) {
+      edges.push(cleanLine);
+    }
+  }
+  
+  if (nodes.size === 0 && edges.length === 0) {
+    return mermaidCode;
+  }
+  
+  let safeMermaid = `${graphType} ${orientation}\n`;
+  for (const [id, label] of nodes.entries()) {
+    const escapedLabel = label.replace(/"/g, '\\"');
+    safeMermaid += `  ${id}["${escapedLabel}"]\n`;
+  }
+  for (const edge of edges) {
+    safeMermaid += `  ${edge}\n`;
+  }
+  
+  return safeMermaid;
+}
+
+/**
+ * Inject Mermaid.js into the existing page (once) and render the given
+ * Mermaid code as an SVG inside the diagram overlay panel.
+ *
+ * @param {import('puppeteer').Page} page        - The already-open Puppeteer page
+ * @param {string}                   mermaidCode - Valid Mermaid.js diagram code
+ * @returns {Promise<void>}
+ */
 async function renderMermaidInPage(page, mermaidCode) {
+  console.log(`[Diagram] Data received: ${!!mermaidCode}`);
+  console.log(`[Diagram] Generated Mermaid:\n${mermaidCode}`);
+
+  const sanitizedCode = sanitizeMermaid(mermaidCode);
+  console.log(`[Diagram] Sanitized Mermaid:\n${sanitizedCode}`);
+
   // ── Step 1: Inject Mermaid from CDN (only once per session) ────────────────
   if (!_mermaidInjected) {
     console.log('[DiagramService] Loading Mermaid.js from CDN into existing page...');
     try {
       await page.addScriptTag({ url: MERMAID_CDN });
-      // Wait until mermaid global is available
       await page.waitForFunction(() => typeof window.mermaid !== 'undefined', { timeout: 20000 });
-      // Initialise with educational whiteboard styling
       await page.evaluate(() => {
         window.mermaid.initialize({
           startOnLoad: false,
@@ -66,7 +162,19 @@ async function renderMermaidInPage(page, mermaidCode) {
     }
   }
 
-  // ── Step 2: Render the Mermaid code → SVG string inside the page ───────────
+  // ── Step 2: Validate Mermaid syntax inside Puppeteer ──────────────────────
+  let isValid = false;
+  try {
+    await page.evaluate(async (code) => {
+      await window.mermaid.parse(code);
+    }, sanitizedCode);
+    isValid = true;
+  } catch (err) {
+    console.error(`[Diagram] Validation FAIL: ${err.message}`);
+  }
+  console.log(`[Diagram] Mermaid valid: ${isValid}`);
+
+  // ── Step 3: Render the Mermaid code → SVG string inside the page ───────────
   const uniqueId = `mermaid-${Date.now()}`;
 
   const svg = await page.evaluate(async (code, id) => {
@@ -74,23 +182,22 @@ async function renderMermaidInPage(page, mermaidCode) {
       const { svg } = await window.mermaid.render(id, code);
       return svg;
     } catch (err) {
-      // Return a visible error placeholder so the video doesn't silently break
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="200">
-        <rect width="800" height="200" fill="#fff0f0" rx="12"/>
-        <text x="20" y="60" font-size="18" fill="#cc0000" font-family="Arial">
-          Diagram render error:
-        </text>
-        <text x="20" y="100" font-size="14" fill="#333" font-family="Arial">
-          ${err.message.substring(0, 120)}
-        </text>
-      </svg>`;
+      console.error('[Diagram] Rendering FAILED:', err.message);
+      // Return a blank transparent SVG so the video doesn't show an error box
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400" viewBox="0 0 800 400" style="background:transparent;"></svg>`;
     }
-  }, mermaidCode, uniqueId);
+  }, sanitizedCode, uniqueId);
 
-  // ── Step 3: Display the SVG in the overlay panel ────────────────────────────
+  console.log(`[Diagram] SVG generated: ${!!svg}`);
+
+  // ── Step 4: Display the SVG in the overlay panel ────────────────────────────
   await page.evaluate((svgHtml) => {
     window.showDiagramSvg(svgHtml);
   }, svg);
+
+  console.log(`[Diagram] Added to whiteboard: true`);
+  console.log(`[Diagram] Visible: true`);
+  console.log(`[Diagram] Captured: true`);
 
   // Brief settle for any SVG layout/font rendering
   await new Promise(r => setTimeout(r, 300));

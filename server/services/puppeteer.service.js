@@ -126,48 +126,18 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
 
       console.log(`\n[Puppeteer] Slide ${slideIdx + 1}/${slides.length}: "${slide.heading}" (${duration.toFixed(1)}s, ${slideTotalFrames} frames)`);
 
-      // ── DIAGRAM SLIDE ─────────────────────────────────────────────────────
-      // When the LLM marks a slide as isDiagram:true and provides mermaid code,
-      // Mermaid is injected into THIS same page (no new browser, no FFmpeg conflict).
-      if (slide.isDiagram && slide.mermaid) {
-        console.log(`[Puppeteer]   → Rendering Mermaid diagram for slide ${slideIdx + 1}...`);
-
-        // Render Mermaid SVG inside the already-open page and display it.
-        // This uses page.addScriptTag (CDN, loaded once) — no second browser spawned.
-        await diagramService.renderMermaidInPage(page, slide.mermaid);
-
-        // Hold the diagram frame for the full slide duration
-        for (let f = 0; f < slideTotalFrames; f++) {
-          const frameBuffer = await page.screenshot({
-            type: 'jpeg',
-            quality: 82,
-            clip: { x: 0, y: 0, width: 1920, height: 1080 }
-          });
-
-          const written = ffmpegProc.stdin.write(frameBuffer);
-          if (!written) {
-            await new Promise((resolve) => ffmpegProc.stdin.once('drain', resolve));
-          }
-
-          if (f % 25 === 0) {
-            const totalRendered = slides.slice(0, slideIdx).reduce((a, _, i) => a + Math.ceil(durations[i] * FPS), 0) + f;
-            const pct = Math.round((totalRendered / totalFrames) * 100);
-            process.stdout.write(`\r[Puppeteer] Rendering... ${pct}% (slide ${slideIdx + 1}/${slides.length}, frame ${f}/${slideTotalFrames})`);
-          }
-        }
-
-        // Restore normal slide view before next slide
-        await page.evaluate(() => window.hideDiagram());
-        prevIsCode = false;
-        continue; // Skip to next slide
-      }
-
-      // ── NORMAL SLIDE (Notepad / VS Code) ──────────────────────────────────
+      // ── LOAD SLIDE ────────────────────────────────────────────────────────
       // Load the slide into the browser
       await page.evaluate((slideData, prevType) => {
         window._prevIsCode = prevType;
         window.loadSlide(slideData);
       }, slide, prevIsCode);
+
+      // If it is a diagram slide, render the Mermaid SVG into the container
+      if (slide.isDiagram && slide.mermaid) {
+        console.log(`[Puppeteer]   → Rendering Mermaid diagram for slide ${slideIdx + 1}...`);
+        await diagramService.renderMermaidInPage(page, slide.mermaid);
+      }
 
       // Capture frames for this slide
       for (let f = 0; f < slideTotalFrames; f++) {
@@ -199,6 +169,11 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
           const pct = Math.round((totalRendered / totalFrames) * 100);
           process.stdout.write(`\r[Puppeteer] Rendering... ${pct}% (slide ${slideIdx + 1}/${slides.length}, frame ${f}/${slideTotalFrames})`);
         }
+      }
+
+      // Cleanup diagram if it was rendered
+      if (slide.isDiagram && slide.mermaid) {
+        await page.evaluate(() => window.hideDiagram());
       }
 
       prevIsCode = !!slide.isCode;
