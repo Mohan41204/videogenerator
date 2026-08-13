@@ -34,6 +34,20 @@ async function resolveElement(page, params) {
     try {
       // Use the new strict resolver with a threshold of 70
       const element = await ElementResolver.resolve(page, params, 70);
+
+      // Scroll the element into view if it's below/above the visible viewport.
+      // This is critical for long AWS forms (Create VPC, Launch EC2, etc.)
+      // where the submit button sits far below the fold.
+      if (element) {
+        try {
+          await element.evaluate(el => {
+            el.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' });
+          });
+          // Brief pause so the page settles after scroll before we interact
+          await new Promise(r => setTimeout(r, 150));
+        } catch { /* element might be inside shadow DOM or already visible — ok */ }
+      }
+
       return element;
     } catch (err) {
       if (err.name === 'LowConfidenceMatchError') {
@@ -50,6 +64,7 @@ async function resolveElement(page, params) {
   return null;
 }
 
+
 /**
  * Click an element by selector or text.
  * Uses coordinate-based click first, then falls back to element.click()
@@ -65,6 +80,7 @@ async function click(page, params) {
   const target = params.selector || params.text || params.target?.label || '';
   console.log(`  [action:click] Clicking "${target}"`);
 
+  params.action = params.action || 'click';
   let element = await resolveElement(page, params);
   if (!element) {
     return { success: false, message: `Could not find element: ${target}` };
@@ -192,6 +208,7 @@ async function doubleClick(page, params) {
   const target = params.selector || params.text || params.target?.label || '';
   console.log(`  [action:doubleClick] Double-clicking "${target}"`);
 
+  params.action = params.action || 'doubleClick';
   const element = await resolveElement(page, params);
   if (!element) {
     return { success: false, message: `Could not find element: ${target}` };
@@ -225,6 +242,7 @@ async function type(page, params) {
   const value = params.value || '';
   console.log(`  [action:type] Typing "${value}" into "${target}"`);
 
+  params.action = params.action || 'type';
   const element = await resolveElement(page, params);
   if (!element) {
     return { success: false, message: `Could not find input: ${target}` };
@@ -299,6 +317,7 @@ async function select(page, params) {
   const value = params.value || '';
   console.log(`  [action:select] Selecting "${value}" in "${target}"`);
 
+  params.action = params.action || 'select';
   const element = await resolveElement(page, params);
   if (!element) {
     return { success: false, message: `Could not find dropdown: ${target}` };
@@ -339,6 +358,7 @@ async function select(page, params) {
 async function check(page, params) {
   const target = params.selector || params.text || params.target?.label || '';
   console.log(`  [action:check] Checking checkbox "${target}"`);
+  params.action = params.action || 'check';
 
   // Strategy 1: If a selector is provided, try to find a direct checkbox
   if (params.selector) {
@@ -411,6 +431,7 @@ async function check(page, params) {
 async function uncheck(page, params) {
   const target = params.selector || params.text || params.target?.label || '';
   console.log(`  [action:uncheck] Unchecking checkbox "${target}"`);
+  params.action = params.action || 'check';
 
   const element = await resolveElement(page, params);
   if (!element) {
@@ -434,6 +455,7 @@ async function hover(page, params) {
   const target = params.selector || params.text || params.target?.label || '';
   console.log(`  [action:hover] Hovering over "${target}"`);
 
+  params.action = params.action || 'hover';
   const element = await resolveElement(page, params);
   if (!element) {
     return { success: false, message: `Could not find element: ${target}` };

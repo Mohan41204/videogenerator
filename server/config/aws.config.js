@@ -44,8 +44,8 @@ module.exports = {
 
   // ── Viewport ─────────────────────────────────────────────────────────
   viewport: {
-    width: 1920,
-    height: 1080,
+    width: 1500,
+    height: 700,
     deviceScaleFactor: 1,
   },
 
@@ -74,8 +74,11 @@ module.exports = {
       '--disable-setuid-sandbox',
       '--disable-blink-features=AutomationControlled',
       '--disable-infobars',
-      '--window-size=1920,1080',
-      '--start-maximized',
+      '--window-size=1500,700',
+      // Scale the AWS Console content to 75% so all UI elements (sidebar,
+      // action buttons, long forms, success banners) fit vertically within 1500x700 
+      // without overflowing or being cut off at the bottom.
+      '--force-device-scale-factor=0.75',
       '--disable-extensions',
       '--disable-dev-shm-usage',
       '--lang=en-US',

@@ -244,19 +244,24 @@ async function getAuthenticatedPage() {
     }
   } catch { /* sidebar expansion is best-effort */ }
 
-  // ── Inject overlay scrollbar CSS ──────────────────────────────────
+  // ── Inject overlay scrollbar & dynamic scale CSS ──────────────────
   // Use overlay scrollbars so they appear visually in the video but
   // do NOT consume layout space (which would shrink the content area
-  // and cause AWS to collapse the sidebar).
+  // and cause AWS to collapse the sidebar). Also ensure html/body scale neatly.
   await page.evaluateOnNewDocument(() => {
     const style = document.createElement('style');
     style.textContent = `
-      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.5); border-radius: 5px; }
+      ::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.5); border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, 0.7); }
       * { scrollbar-width: thin; scrollbar-color: rgba(128,128,128,0.5) transparent; }
       html { overflow: overlay !important; }
+      
+      /* Cloudscape layout adjustments for compact 700px height */
+      .awsui-app-layout__content, main, [role="main"] {
+        max-width: 100% !important;
+      }
     `;
     if (document.head) document.head.appendChild(style);
     else document.addEventListener('DOMContentLoaded', () => document.head.appendChild(style));

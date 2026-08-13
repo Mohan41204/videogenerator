@@ -18,6 +18,7 @@ async function highlight(page, params) {
   const target = params.selector || params.text || params.target?.label || '';
   console.log(`  [action:highlight] Highlighting "${target}"`);
 
+  params.action = params.action || 'highlight';
   const element = await resolveElement(page, params);
   if (!element) {
     return { success: false, message: `Could not find element to highlight: ${target}` };

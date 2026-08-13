@@ -43,6 +43,57 @@ async function waitForNetworkIdle(page, params) {
     console.log(`  [action:waitForNetworkIdle] Network never fully idled (expected on AWS). Proceeding.`);
   }
   
+  // ── Detect AWS resource-creation progress page ─────────────────────
+  // After clicking "Create VPC", "Create bucket", "Launch instance" etc.,
+  // AWS shows a progress page where each resource is created one-by-one.
+  // The "View ..." action button ONLY appears after ALL resources are done.
+  // We poll for up to 90 seconds to detect this completion state.
+  try {
+    const isCreationInProgress = await page.evaluate(() => {
+      // AWS creation-progress pages have a status list with pending/in-progress items
+      const progressItems = document.querySelectorAll(
+        '[class*="progress"], [class*="creating"], [class*="in-progress"], ' +
+        '[class*="status-loading"], [aria-label*="creating"], [aria-label*="in progress"]'
+      );
+      const hasProgressBar = document.querySelector('[role="progressbar"]');
+      // Also check for the VPC-specific creation status list
+      const hasCreationList = document.querySelector(
+        '[class*="vpc-creation"], [class*="create-flow"], [class*="resource-status"]'
+      );
+      return progressItems.length > 0 || !!hasProgressBar || !!hasCreationList;
+    });
+
+    if (isCreationInProgress) {
+      console.log(`  [action:waitForNetworkIdle] Detected AWS resource creation in progress. Waiting up to 90s...`);
+      // Poll every 2 seconds until progress indicators are gone OR an action button appears
+      const maxWait = 90000;
+      const pollInterval = 2000;
+      const start = Date.now();
+
+      while (Date.now() - start < maxWait) {
+        await new Promise(r => setTimeout(r, pollInterval));
+
+        const done = await page.evaluate(() => {
+          // Check if all progress indicators are gone
+          const progressItems = document.querySelectorAll(
+            '[class*="progress"][class*="loading"], [class*="creating"], ' +
+            '[aria-label*="creating"], [aria-label*="in progress"]'
+          );
+          // Check if a "View" action button appeared (View VPC, View bucket, etc.)
+          const viewBtn = Array.from(document.querySelectorAll('button, a')).find(
+            el => /^View\s/i.test((el.textContent || '').trim())
+          );
+          return progressItems.length === 0 || !!viewBtn;
+        });
+
+        if (done) {
+          console.log(`  [action:waitForNetworkIdle] Resource creation complete.`);
+          break;
+        }
+      }
+    }
+  } catch { /* creation-progress detection is best-effort */ }
+  
   // Always wait for loading spinners to disappear
   try {
     await page.waitForFunction(() => {
