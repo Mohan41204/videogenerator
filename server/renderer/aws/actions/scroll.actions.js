@@ -9,11 +9,18 @@ const human = require('../humanBehavior');
 
 /**
  * Scroll the page or a specific element.
+ *
+ * Handles malformed Gemini output gracefully:
+ *   - Ignores empty/blank `target.label` (falls through to pixel scroll)
+ *   - Ignores invalid `duration` field on scroll actions
+ *
  * @param {import('puppeteer').Page} page
  * @param {object} params - { distance?: number, direction?: 'up'|'down', selector?: string, text?: string, target?: { label?: string } }
  */
 async function scroll(page, params) {
-  const target = (params.selector || params.text || params.target?.label || '').trim();
+  // Strip empty/blank target labels (Gemini sometimes outputs {"target":{"label":""}})
+  const rawTarget = params.selector || params.text || params.target?.label || '';
+  const target = rawTarget.trim();
   
   // Only try to scroll-to-element if we have a real non-empty label
   if (target) {

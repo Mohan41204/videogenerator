@@ -89,45 +89,24 @@ class AWSRenderer extends BaseRenderer {
 
     // ── Inject custom mouse cursor overlay ─────────────────────────────
     // Puppeteer screenshots don't capture the OS cursor, so we draw our own.
-    await page.evaluate(() => {
-      if (document.getElementById('__vg_cursor')) return;
-      
-      const cursor = document.createElement('div');
-      cursor.id = '__vg_cursor';
-      cursor.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 3L19 12L12 13L9 20L5 3Z" fill="white" stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
-      </svg>`;
-      cursor.style.cssText = `
-        position: fixed;
-        top: 0; left: 0;
-        width: 24px; height: 24px;
-        pointer-events: none;
-        z-index: 2147483647;
-        transform: translate(-2px, -2px);
-        filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.4));
-        transition: top 0.05s linear, left 0.05s linear;
-      `;
-      document.body.appendChild(cursor);
-      
-      // Track mouse movement
-      document.addEventListener('mousemove', (e) => {
-        cursor.style.left = e.clientX + 'px';
-        cursor.style.top = e.clientY + 'px';
-      }, true);
-    });
+    await human.ensureCursorInjected(page);
     this.log('Custom mouse cursor injected.');
 
     // ── Start FFmpeg pipeline ──────────────────────────────────────────
     const { proc: ffmpegProc, finished: ffmpegFinished } = this.startFFmpegPipeline(outputPath);
 
     // ── Frame capture loop (runs in background) ────────────────────────
-    // Each 1920x1080 screenshot takes ~300-500ms, so actual capture rate is ~2-3 FPS.
-    // We set FFmpeg input to match this rate (fps config = 5) and do NOT add
-    // extra delay between captures — the screenshot time IS the pacing.
+    // Uses CDP (Chrome DevTools Protocol) directly for screenshots instead
+    // of Puppeteer's page.screenshot(), because the latter hangs during
+    // page navigations (goto, link clicks). CDP returns immediately even
+    // if the page is mid-navigation, ensuring we capture every frame.
     let isRecording = true;
     let totalFramesCaptured = 0;
     const totalFrames = Math.ceil(totalDuration * this.fps);
     const frameInterval = 1000 / this.fps; // ms between frames
+
+    // Create a CDP session for independent screenshot capture
+    const cdpSession = await page.createCDPSession();
 
     const captureLoop = (async () => {
       while (isRecording) {
@@ -138,19 +117,17 @@ class AWSRenderer extends BaseRenderer {
         }
 
         try {
-          // Use JPEG (quality 80) — 3-4x faster than PNG, perfectly adequate for screen recording
-          const screenshotPromise = page.screenshot({
-            type: 'jpeg',
-            quality: 80,
-            clip: { x: 0, y: 0, width: this.width, height: this.height },
-          });
-
-          // Race against a 5-second timeout so one slow frame never kills recording
-          const frameBuffer = await Promise.race([
-            screenshotPromise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error('frame timeout')), 5000)),
+          // Use CDP directly — this does NOT hang during page navigations
+          const screenshotResult = await Promise.race([
+            cdpSession.send('Page.captureScreenshot', {
+              format: 'jpeg',
+              quality: 80,
+              clip: { x: 0, y: 0, width: this.width, height: this.height, scale: 1 },
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('frame timeout')), 2000)),
           ]);
 
+          const frameBuffer = Buffer.from(screenshotResult.data, 'base64');
           await this.writeFrame(ffmpegProc, frameBuffer);
           totalFramesCaptured++;
 
@@ -167,7 +144,10 @@ class AWSRenderer extends BaseRenderer {
             console.warn('[AWS:CaptureLoop] Page detached — stopping capture.');
             break;
           }
-          if (err.message !== 'frame timeout') {
+          // Log frame timeouts to help debug capture issues
+          if (err.message === 'frame timeout') {
+            // Silent — this is expected during heavy page loads
+          } else {
             console.error(`[AWS:CaptureError] ${err.message}`);
           }
         }
@@ -175,17 +155,28 @@ class AWSRenderer extends BaseRenderer {
         // No extra delay — screenshot capture time naturally paces the loop.
         await new Promise((r) => setTimeout(r, 10));
       }
+
+      // Clean up CDP session
+      try { await cdpSession.detach(); } catch { /* ok */ }
     })();
 
     // ── Execute action steps ───────────────────────────────────────────
     try {
-      await executeSteps(page, steps, browser, {
-        stopOnFailure: false,
+      const execResult = await executeSteps(page, steps, browser, {
+        stopOnFailure: true,
         onStepComplete: (stepIndex, result) => {
           const status = result.success ? '✓' : '✖';
           this.log(`Step ${stepIndex + 1}: ${status} ${result.message}`);
         },
       });
+
+      // Check if execution was stopped due to failure
+      const failedStep = execResult.results.find(r => !r.success);
+      if (failedStep) {
+        const err = new Error(`Failed at step ${failedStep.step} ('${failedStep.action}'): ${failedStep.message}`);
+        err.name = 'ActionExecutionError';
+        throw err;
+      }
 
       // If action execution finishes before audio duration, keep recording
       const elapsedFrames = totalFramesCaptured;
@@ -205,6 +196,15 @@ class AWSRenderer extends BaseRenderer {
       }
     } catch (err) {
       this.error('Error during action execution:', err);
+      // Ensure we clean up FFmpeg since the recording is broken
+      isRecording = false;
+      try {
+        ffmpegProc.stdin.end();
+        ffmpegProc.kill('SIGKILL');
+      } catch (e) { /* ignore kill errors */ }
+      
+      // Re-throw so the controller can handle the error
+      throw err;
     }
 
     // ── Stop recording and finalize ────────────────────────────────────

@@ -93,6 +93,12 @@ class BaseRenderer {
     this._ffmpegProc = proc;
     this._ffmpegClosed = false;
 
+    // Prevent unhandled 'error' events on stdin from crashing Node.js
+    // if FFmpeg closes early and we try to write to a broken pipe.
+    proc.stdin.on('error', (err) => {
+      // Ignore EPIPE/EOF errors. The 'close' or 'error' handlers on the process itself will catch the crash.
+    });
+
     proc.stderr.on('data', (data) => {
       const msg = data.toString();
       if (msg.includes('fps') || msg.includes('frame')) {
@@ -101,15 +107,20 @@ class BaseRenderer {
     });
 
     const finished = new Promise((resolve, reject) => {
-      proc.on('close', (code) => {
+      proc.on('close', (code, signal) => {
         this._ffmpegClosed = true;
-        if (code === 0) resolve();
-        else reject(new Error(`FFmpeg exited with code ${code}`));
+        // If code is null, the process was killed by a signal (e.g. SIGKILL during error cleanup)
+        if (code === 0 || code === null) resolve();
+        else reject(new Error(`FFmpeg exited with code ${code} (signal: ${signal})`));
       });
       proc.on('error', (err) => {
         reject(new Error('FFmpeg process error: ' + err.message));
       });
     });
+
+    // Prevent UnhandledPromiseRejection if FFmpeg crashes during the capture loop
+    // before we await the finished promise at the end of the recording.
+    finished.catch(() => {});
 
     return { proc, finished };
   }

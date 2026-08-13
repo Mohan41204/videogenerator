@@ -183,12 +183,84 @@ async function getAuthenticatedPage() {
 
   await page.setViewport(awsConfig.viewport);
 
-  // Stealth: override navigator.webdriver to avoid detection
+  // Stealth: override navigator.webdriver to avoid detection and auto-inject custom cursor
   await page.evaluateOnNewDocument(() => {
     Object.defineProperty(navigator, 'webdriver', { get: () => false });
+
+    const injectCursor = () => {
+      if (document.getElementById('__vg_cursor')) return;
+      const cursor = document.createElement('div');
+      cursor.id = '__vg_cursor';
+      cursor.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 3L19 12L12 13L9 20L5 3Z" fill="white" stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
+      </svg>`;
+      cursor.style.cssText = `
+        position: fixed;
+        left: 960px;
+        top: 540px;
+        width: 24px;
+        height: 24px;
+        pointer-events: none;
+        z-index: 2147483647;
+        transform: translate(-2px, -2px);
+        filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.4));
+        transition: left 400ms ease-out, top 400ms ease-out;
+      `;
+      document.body.appendChild(cursor);
+      
+      document.addEventListener('mousemove', (e) => {
+        cursor.style.left = e.clientX + 'px';
+        cursor.style.top = e.clientY + 'px';
+      }, true);
+    };
+
+    if (document.body) {
+      injectCursor();
+    } else {
+      document.addEventListener('DOMContentLoaded', injectCursor);
+    }
   });
 
   await ensureAuthenticated(page);
+
+  // ── Expand the AWS Console side navigation bar if collapsed ────────
+  // AWS defaults to a collapsed sidebar ("hamburger menu") on fresh profiles.
+  // Try to click the menu button to expand it for a better tutorial appearance.
+  try {
+    const sideNavToggle = await page.$('[data-testid="awsc-nav-header-regionmenu"], button[aria-label*="navigation"], #nav-menubar button, [data-testid="side-navigation-toggle"]');
+    if (sideNavToggle) {
+      // Check if sidebar is currently collapsed
+      const isCollapsed = await page.evaluate(() => {
+        const nav = document.querySelector('[data-testid="side-navigation"], nav[aria-label*="navigation"], #awsui-side-navigation');
+        if (!nav) return true;
+        const rect = nav.getBoundingClientRect();
+        return rect.width < 50;
+      });
+      if (isCollapsed) {
+        await sideNavToggle.click();
+        await new Promise((r) => setTimeout(r, 1000));
+        console.log('[SessionManager] Expanded side navigation bar.');
+      }
+    }
+  } catch { /* sidebar expansion is best-effort */ }
+
+  // ── Inject overlay scrollbar CSS ──────────────────────────────────
+  // Use overlay scrollbars so they appear visually in the video but
+  // do NOT consume layout space (which would shrink the content area
+  // and cause AWS to collapse the sidebar).
+  await page.evaluateOnNewDocument(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.5); border-radius: 5px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, 0.7); }
+      * { scrollbar-width: thin; scrollbar-color: rgba(128,128,128,0.5) transparent; }
+      html { overflow: overlay !important; }
+    `;
+    if (document.head) document.head.appendChild(style);
+    else document.addEventListener('DOMContentLoaded', () => document.head.appendChild(style));
+  });
 
   return { browser, page };
 }

@@ -91,32 +91,93 @@ function bezierCurve(startX, startY, endX, endY, steps) {
  * @param {number} targetX
  * @param {number} targetY
  */
-async function moveMouseNaturally(page, targetX, targetY) {
-  // Get current mouse position (default to center of viewport)
-  const currentPos = await page.evaluate(() => {
-    return {
-      x: window.__mouseX || 960,
-      y: window.__mouseY || 540,
-    };
-  });
+let currentMouseX = 960;
+let currentMouseY = 540;
 
-  const steps = randInt(15, 30);
-  const points = bezierCurve(currentPos.x, currentPos.y, targetX, targetY, steps);
+/**
+ * Ensure the custom mouse cursor overlay is injected and properly positioned.
+ * @param {import('puppeteer').Page} page
+ */
+async function ensureCursorInjected(page) {
+  try {
+    await page.evaluate((x, y, duration) => {
+      let cursor = document.getElementById('__vg_cursor');
+      if (!cursor) {
+        cursor = document.createElement('div');
+        cursor.id = '__vg_cursor';
+        cursor.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 3L19 12L12 13L9 20L5 3Z" fill="white" stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>`;
+        cursor.style.cssText = `
+          position: fixed;
+          left: ${x}px;
+          top: ${y}px;
+          width: 24px;
+          height: 24px;
+          pointer-events: none;
+          z-index: 2147483647;
+          transform: translate(-2px, -2px);
+          filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.4));
+          transition: left ${duration}ms ease-out, top ${duration}ms ease-out;
+        `;
+        document.body.appendChild(cursor);
+        
+        document.addEventListener('mousemove', (e) => {
+          cursor.style.left = e.clientX + 'px';
+          cursor.style.top = e.clientY + 'px';
+        }, true);
+      }
+    }, currentMouseX, currentMouseY, timing.mouseMoveDuration);
+  } catch (err) {
+    // Ignore context destruction errors during page loads
+  }
+}
+
+/**
+ * Move the mouse from its current position to (targetX, targetY)
+ * following a natural Bezier curve with slight jitter.
+ *
+ * @param {import('puppeteer').Page} page
+ * @param {number} targetX
+ * @param {number} targetY
+ */
+async function moveMouseNaturally(page, targetX, targetY) {
+  await ensureCursorInjected(page);
+
+  const startX = currentMouseX;
+  const startY = currentMouseY;
+
+  // Visual animation: instantly update the target on the DOM cursor.
+  // The CSS transition will animate it smoothly from startX/Y to targetX/Y.
+  try {
+    await page.evaluate((x, y) => {
+      const cursor = document.getElementById('__vg_cursor');
+      if (cursor) {
+        cursor.style.left = x + 'px';
+        cursor.style.top = y + 'px';
+      }
+    }, targetX, targetY);
+  } catch (err) {
+    // Ignore evaluation issues
+  }
+
+  // Update actual Puppeteer internal mouse coordinates
+  const steps = 5; // Reduced steps to prevent DevTools protocol blocking
+  const points = bezierCurve(startX, startY, targetX, targetY, steps);
   const stepDelay = Math.floor(timing.mouseMoveDuration / steps);
 
   for (const point of points) {
-    // Add small jitter (±2px) for realism
-    const jitterX = point.x + randInt(-2, 2);
-    const jitterY = point.y + randInt(-2, 2);
-    await page.mouse.move(jitterX, jitterY);
+    await page.mouse.move(point.x, point.y);
     await new Promise((r) => setTimeout(r, stepDelay));
   }
 
-  // Store final position for the next movement
-  await page.evaluate((x, y) => {
-    window.__mouseX = x;
-    window.__mouseY = y;
-  }, targetX, targetY);
+  // Ensure final position matches target exactly
+  await page.mouse.move(targetX, targetY);
+  currentMouseX = targetX;
+  currentMouseY = targetY;
+
+  // Let the CSS transition finish animating visually
+  await new Promise((r) => setTimeout(r, 100));
 }
 
 /**
@@ -124,13 +185,35 @@ async function moveMouseNaturally(page, targetX, targetY) {
  * @param {import('puppeteer').Page} page
  */
 async function naturalMouseJitter(page) {
-  const pos = await page.evaluate(() => ({
-    x: window.__mouseX || 960,
-    y: window.__mouseY || 540,
-  }));
-  const jX = pos.x + randInt(-8, 8);
-  const jY = pos.y + randInt(-5, 5);
+  await ensureCursorInjected(page);
+
+  const startX = currentMouseX;
+  const startY = currentMouseY;
+  const jX = startX + randInt(-8, 8);
+  const jY = startY + randInt(-5, 5);
+
+  try {
+    await page.evaluate((x, y) => {
+      const cursor = document.getElementById('__vg_cursor');
+      if (cursor) {
+        // Temporarily disable transition for quick jitter
+        const oldTransition = cursor.style.transition;
+        cursor.style.transition = 'none';
+        cursor.style.left = x + 'px';
+        cursor.style.top = y + 'px';
+        // Restore transition
+        setTimeout(() => {
+          cursor.style.transition = oldTransition;
+        }, 50);
+      }
+    }, jX, jY);
+  } catch (err) {
+    // Ignore
+  }
+
   await page.mouse.move(jX, jY);
+  currentMouseX = jX;
+  currentMouseY = jY;
   await new Promise((r) => setTimeout(r, randInt(50, 150)));
 }
 
@@ -290,6 +373,7 @@ module.exports = {
   clickPause,
   moveMouseNaturally,
   naturalMouseJitter,
+  ensureCursorInjected,
   typeNaturally,
   smoothScroll,
   clickWithHighlight,

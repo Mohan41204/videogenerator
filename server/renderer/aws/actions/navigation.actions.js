@@ -32,23 +32,8 @@ async function goto(page, params) {
     await page.waitForSelector('div[id], main, [role="main"], #app, #root', { timeout: 5000, visible: true });
   } catch { /* proceed anyway */ }
   
-  // Re-inject custom mouse cursor (navigation destroys the previous one)
-  try {
-    await page.evaluate(() => {
-      if (document.getElementById('__vg_cursor')) return;
-      const cursor = document.createElement('div');
-      cursor.id = '__vg_cursor';
-      cursor.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 3L19 12L12 13L9 20L5 3Z" fill="white" stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
-      </svg>`;
-      cursor.style.cssText = `position:fixed;top:0;left:0;width:24px;height:24px;pointer-events:none;z-index:2147483647;transform:translate(-2px,-2px);filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.4));transition:top 0.05s linear,left 0.05s linear;`;
-      document.body.appendChild(cursor);
-      document.addEventListener('mousemove', (e) => {
-        cursor.style.left = e.clientX + 'px';
-        cursor.style.top = e.clientY + 'px';
-      }, true);
-    });
-  } catch { /* proceed */ }
+  // Re-inject custom mouse cursor
+  await human.ensureCursorInjected(page);
   
   await human.randomPause(2000, 3500);
   return { success: true, message: `Navigated to ${url}` };
@@ -56,7 +41,9 @@ async function goto(page, params) {
 
 /**
  * Use the AWS Console unified search bar to find a service.
- * Clicks the search bar, types the query, then clicks the first matching result.
+ * Only types the query and waits for the dropdown to appear.
+ * Does NOT click any result — the subsequent highlight/click steps
+ * in the Gemini-generated script handle that for cinematic effect.
  *
  * @param {import('puppeteer').Page} page
  * @param {object} params - { text: string }
@@ -120,31 +107,37 @@ async function search(page, params) {
   await human.randomPause(100, 200);
 
   await human.typeNaturally(page, query);
-  await human.randomPause(800, 1500);
 
-  // Click the first search result
+  // Wait for search dropdown results to appear (don't click — let highlight/click steps do that)
+  console.log('  [action:search] Waiting for search results dropdown...');
   const resultSelectors = [
     '[data-testid="search-result"]',
     '.awsc-search__result-item',
     '[role="option"]',
+    '[role="listbox"]',
     '.search-result',
   ];
 
+  let dropdownAppeared = false;
   for (const sel of resultSelectors) {
     try {
-      const result = await page.waitForSelector(sel, { timeout: 3000 });
-      if (result) {
-        await human.clickWithHighlight(page, result);
-        await human.randomPause(1000, 2000);
-        return { success: true, message: `Searched and selected "${query}"` };
-      }
+      await page.waitForSelector(sel, { timeout: 3000 });
+      dropdownAppeared = true;
+      break;
     } catch { /* try next */ }
   }
 
-  // If no result widget, press Enter
-  await page.keyboard.press('Enter');
-  await human.randomPause(1000, 2000);
-  return { success: true, message: `Searched for "${query}" (pressed Enter)` };
+  if (dropdownAppeared) {
+    // Give the dropdown a moment to fully render
+    await human.randomPause(500, 800);
+    console.log('  [action:search] Search dropdown visible.');
+  } else {
+    // Dropdown didn't appear — still proceed (the next steps may handle it)
+    console.log('  [action:search] No dropdown detected, proceeding...');
+    await human.randomPause(800, 1500);
+  }
+
+  return { success: true, message: `Typed "${query}" in search bar` };
 }
 
 /**

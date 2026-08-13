@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const audioService = require('../services/audio.service');
 const ffmpegService = require('../services/ffmpeg.service');
 const subtitleService = require('../services/subtitle.service');
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Robust JSON extraction and cleaning utility
 const cleanJsonString = (str) => {
@@ -77,7 +77,7 @@ const generateVideo = async (req, res) => {
       // Auto-fix any structure issues (only for programming slides)
       slides = slides.map(slide => {
         if (slide.type && slide.type.toLowerCase() === 'aws') return slide;
-        
+
         if (slide.code && (!slide.bullets || !slide.bullets.length)) {
           slide.bullets = [slide.code];
         }
@@ -141,7 +141,7 @@ const generateVideo = async (req, res) => {
     const rendererFactory = require('../renderer/rendererFactory');
     const type = (slides.length > 0 && slides[0].type) ? slides[0].type : 'programming';
     const renderer = rendererFactory.getRenderer(type);
-    
+
     await renderer.renderVideo(slides, durations, screenVideoPath);
 
     // --- STEP 4: Merge silent screen video + narration audio ---
@@ -179,8 +179,7 @@ const generateScript = async (req, res) => {
     const targetWords = targetMins * 140; // ~140 words per minute of speech
     const slideCount = Math.max(3, Math.round(targetMins * 1.2)); // ~6 slides for 5 mins
 
-    console.log('Gemini credential loaded:', !!process.env.GEMINI_API_KEY);
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const prompt = `
 Imagine you are an experienced classroom teacher creating detailed spoken study notes for students in an online screen-share classroom.
 
@@ -196,42 +195,32 @@ Requirements for the teaching style:
     - Provide slide(s) with a **Basic Example Program** showing fundamental implementation.
     - Provide slide(s) with an **Advanced Example Program** showing real-world / production-grade implementation.
     - For slides displaying code examples, the \`bullets\` array should contain exactly one string representing the full, formatted, and indented code block. You MUST also include the expected EXECUTED OUTPUT of the code directly below the program inside the same string.
-    - Separate the code and the output using \`\\N\\N==== OUTPUT ====\\N\` followed by the output.
-    - Use \\N (the literal string '\\N') to represent newlines inside the code block and output so that lines and spacing are preserved on the screen. Do NOT include markdown code fences (\`\`\`) inside the bullets array. Write real, complete, professional code snippets (e.g., \`"print('Hello World')\\N\\N==== OUTPUT ====\\NHello World"\`).
+    - Separate the code and the output using \`\\\\N\\\\N==== OUTPUT ====\\\\N\` followed by the output.
+    - Use \\N (the literal string '\\N') to represent newlines inside the code block and output so that lines and spacing are perfectly preserved on the screen. Do NOT include markdown code fences (\`\`\`) inside the bullets array. Write real, complete, professional code snippets (e.g., \`"print('Hello World')\\\\N\\\\N==== OUTPUT ====\\\\NHello World"\`).
     - CRITICAL CODE LIMITATION: Keep code examples short, concise, and highly focused. Each code block MUST NOT exceed 6 to 10 lines of code total.
     - The slide object MUST have "isCode": true.
   - **If the topic/subtopic is NOT related to programming/coding**:
     - Do NOT include any programming code blocks or example programs.
     - Instead, generate detailed explanation slides, concrete real-world examples, analogies, practical case studies, and scenarios related to the topic and subtopic.
     - The slide object MUST have "isCode": false.
-    - **CRITICAL VISUAL FORMATTING & HIGHLIGHTING RULES FOR WHITEBOARD SLIDES**:
-      - The \`bullets\` array must contain 2 to 4 styled objects or paragraphs representing different elements rendered sequentially on the whiteboard.
-      - Support the following structures inside the \`bullets\` array:
-        - **Bullet Lists**: Lines starting with \`- \` or \`* \`
-        - **Numbered Lists**: Lines starting with \`1. \`, \`2. \`
-        - **Quotes**: Text starting with \`[quote]\` for key analogies or notable phrases
-        - **Tables**: Markdown-style table syntax (e.g., \`| Header 1 | Header 2 |\\n|---|---|\\n| Cell 1 | Cell 2 |\`)
-        - **Section Headings**: Lines starting with \`## \` or \`### \`
-      - **KEYWORD ONLY HIGHLIGHTS (CRITICAL)**: Do NOT highlight entire sentences or long phrases. Instead, wrap ONLY important words/concepts in \`[yellow]keyword[/yellow]\` and critical definitions in \`[red]term[/red]\`.
-        - Example: Instead of \`[yellow]Photosynthesis converts sunlight into glucose.[/yellow]\`, use \`[yellow]Photosynthesis[/yellow]\` converts \`[yellow]sunlight[/yellow]\` into \`[yellow]glucose[/yellow]\`. Highlight ONLY the specific concepts.
 - Explain every concept and example in a very simple, easy-to-understand classroom teaching style.
 - Use friendly teacher-to-student communication with encouraging transition phrases.
 - Cover definitions, theory, syntax, examples, use cases, common mistakes, and practical understanding.
 - CRITICAL DURATION TARGET: You MUST generate exactly ${slideCount} slides, and the total narration across all slides combined MUST be approximately ${targetWords} words total (~${Math.round(targetWords / slideCount)} words per slide narration) so that spoken audio duration is exactly around ${targetMins} minutes.
- 
+
 DIAGRAM SLIDES (IMPORTANT):
-- For any concept that has a clear visual flow, structure, or relationship (e.g., how a process works, a class hierarchy, a sequence of API calls, a data pipeline), you SHOULD include a dedicated diagram slide.
+- For any concept that has a clear visual flow, structure, or relationship (e.g., how a for-loop works, a class hierarchy, a sequence of API calls, a data pipeline), you SHOULD include a dedicated diagram slide.
 - A diagram slide must have "isDiagram": true and a valid "mermaid" string containing raw Mermaid.js code.
 - The Mermaid code must be simple, maximum 10 nodes, use LR or TD layout, short labels (under 25 chars), no HTML, no markdown wrappers.
 - Set "isCode": false and "isDiagram": true for diagram slides. Leave "bullets" as an empty array [].
 - For non-diagram slides, "isDiagram" must be false and "mermaid" must be an empty string "".
- 
+
 OUTPUT FORMAT:
 You MUST output ONLY a valid JSON array of "Slide" objects. Do not include markdown formatting, headings symbols, or code block formatting outside the JSON. Just raw JSON array.
 Each Slide object must have:
 - "heading": (String) A short, professional title for the slide.
 - "subheading": (String) An optional subtitle or secondary thought. Can be empty string.
-- "bullets": (Array of Strings) Content to display on the slide.
+- "bullets": (Array of Strings) 2 to 4 bullet points summarizing the visual content. Keep these brief! (Except for programming code slides where the array should contain exactly one string representing the code block, and diagram slides where it should be an empty array []).
 - "narration": (String) The spoken teaching script for this slide (~${Math.round(targetWords / slideCount)} words). Output plain narration text only for this field.
 - "isCode": (Boolean) Set to true if this slide is a code example or contains code, and false otherwise.
 - "isDiagram": (Boolean) Set to true if this slide is a diagram slide, and false otherwise.
@@ -241,84 +230,62 @@ Each Slide object must have:
 `;
 
     const runModelWithRetry = async (modelName) => {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                heading:    { type: 'string' },
+                subheading: { type: 'string' },
+                bullets: {
+                  type: 'array',
+                  items: { type: 'string' }
+                },
+                narration:  { type: 'string' },
+                isCode:     { type: 'boolean' },
+                isDiagram:  { type: 'boolean' },
+                mermaid:    { type: 'string' },
+                fileName:   { type: 'string' },
+                runCommand: { type: 'string' }
+              },
+              required: ['heading', 'subheading', 'bullets', 'narration', 'isCode', 'isDiagram', 'mermaid']
+            }
+          }
+        }
+      });
       let attempts = 0;
       const maxAttempts = 3;
       let delay = 1000;
 
       while (attempts < maxAttempts) {
-        console.log(`Attempt ${attempts + 1}/${maxAttempts}`);
         try {
-          const response = await ai.models.generateContent({
-            model: modelName,
-            contents: prompt,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    heading:    { type: 'string' },
-                    subheading: { type: 'string' },
-                    bullets: {
-                      type: 'array',
-                      items: { type: 'string' }
-                    },
-                    narration:  { type: 'string' },
-                    isCode:     { type: 'boolean' },
-                    isDiagram:  { type: 'boolean' },
-                    mermaid:    { type: 'string' },
-                    fileName:   { type: 'string' },
-                    runCommand: { type: 'string' }
-                  },
-                  required: ['heading', 'subheading', 'bullets', 'narration', 'isCode', 'isDiagram', 'mermaid']
-                }
-              }
-            }
-          });
-          return response;
+          const result = await model.generateContent(prompt);
+          return result;
         } catch (err) {
-          let status = err.status;
-          if (!status && err.message) {
-            try {
-              const match = err.message.match(/"code"\s*:\s*(\d+)/);
-              if (match) {
-                status = parseInt(match[1], 10);
-              }
-            } catch (e) {}
-          }
-
-          console.warn(`${modelName === 'gemini-3.6-flash' ? 'Gemini 3.6 Flash' : modelName} returned ${status || 'error'}`);
-
-          if (status === 404 || status === 401 || status === 403 || status === 400) {
-            console.warn(`Fatal error ${status} encountered. Immediate fail/fallback without further retries.`);
-            throw err;
-          }
-
           attempts++;
-          if (attempts >= maxAttempts) {
-            if (modelName === 'gemini-3.6-flash') {
-              console.warn(`Switching to fallback model: gemini-3.5-flash-lite`);
-            }
-            throw err;
-          }
-          console.log(`Retrying in ${delay}ms`);
+          if (attempts >= maxAttempts) throw err;
+          console.warn(`Attempt ${attempts} with ${modelName} failed: ${err.message}. Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           delay *= 2;
         }
       }
     };
 
-    let response;
+    let result;
     try {
-      console.log('Primary Gemini model: gemini-3.6-flash');
-      response = await runModelWithRetry('gemini-3.6-flash');
+      console.log('Generating script using gemini-2.5-flash...');
+      result = await runModelWithRetry('gemini-2.5-flash');
     } catch (error) {
-      response = await runModelWithRetry('gemini-3.5-flash-lite');
-      console.log('Fallback model succeeded');
+      console.warn('gemini-2.5-flash failed after all retries. Falling back to gemini-flash-latest...');
+      result = await runModelWithRetry('gemini-flash-latest');
     }
 
-    let text = response.text;
+    const response = await result.response;
+    let text = response.text();
 
     // Clean and extract potential JSON formatting from Gemini
     const cleanedText = cleanJsonString(text);
@@ -340,8 +307,7 @@ const generateAwsScript = async (req, res) => {
     const targetMins = parseInt(durationMinutes, 10) || 5;
     const targetWords = targetMins * 140;
 
-    console.log('Gemini credential loaded:', !!process.env.GEMINI_API_KEY);
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const prompt = `
 Imagine you are an experienced AWS instructor creating an automated screen-recording tutorial.
 
@@ -362,15 +328,62 @@ Your JSON will be executed by a Puppeteer-based recording engine. Optimize the r
 3. Produce cinematic tutorial pacing suitable for YouTube.
 4. **CRITICAL FLOW RULE:** ALWAYS start by navigating to the AWS Console Home (\`https://console.aws.amazon.com/console/home\`). NEVER jump directly to a service URL. Use the \`search\` action to type the service name, then \`click\` the service from dropdown results.
 
+**SCROLL ACTION RULES (CRITICAL — strictly enforced, violations break the recording):**
+5. A scroll action has EXACTLY two fields: "direction" and "distance". There is NO "value", "target" or "duration" field on a scroll action. This is INVALID and will break execution:
+   { "action": "scroll", "value": "down" }
+   This is the ONLY valid format:
+   { "action": "scroll", "direction": "down", "distance": 300 }
+6. "direction" must be the literal string "up" or "down". "distance" must be an integer number of pixels (typically 250–500), estimated based on how far the target element likely is from the current viewport.
+7. NEVER emit two or more scroll actions back-to-back to reach the same target. Combine them into ONE scroll action with a larger "distance" instead. For example, do NOT do this:
+   { "action": "scroll", "direction": "down", "distance": 150 },
+   { "action": "scroll", "direction": "down", "distance": 150 }
+   Instead, use a single scroll, interact, and then scroll again if needed. Here is a perfect example of a valid scroll sequence:
+   {
+     "action": "scroll",
+     "direction": "down",
+     "distance": 300
+   },
+   {
+     "action": "highlight",
+     "target": {
+       "label": "Block all public access",
+       "context": "checkbox option under the Block Public Access settings section of the create bucket form",
+       "type": "checkbox"
+     }
+   },
+   {
+     "action": "scroll",
+     "direction": "down",
+     "distance": 400
+   },
+   {
+     "action": "highlight",
+     "target": {
+       "label": "Create bucket",
+       "context": "primary submission button located at the bottom of the create bucket form",
+       "type": "button"
+     }
+   }
+8. Only insert a scroll action when the next target is very likely off-screen (e.g. deep in a long form, below the fold). Do not scroll "just in case" or scroll toward elements already likely visible.
+9. NEVER scroll to, or place the cursor near, the very top of the viewport (roughly y < 60px). That area contains the browser-level breadcrumb/toolbar strip, and repeated cursor presence there causes the AWS Console's auto-hide toolbar to toggle show/hide rapidly, which is a major source of jitter.
+10. Do not immediately follow a scroll with another action targeting an element near the top of the viewport (y < 60px) since scrolling often triggers the AWS auto-hide header to appear, displacing the element you were aiming for.
+11. Do not chain unrelated \`highlight\`/\`click\` pairs back-to-back without a navigation or wait action in between when the page layout is still settling (e.g., right after a page load or a panel expand/collapse).
+
+Before finalizing your output, review every scroll action and verify: (a) it uses "direction" + "distance" only, and (b) no two scroll actions appear consecutively.
+
 **CRITICAL ELEMENT TARGETING RULES — VIOLATION = SCRIPT FAILURE:**
 - The \`target.label\` MUST always be the **visible text label on the UI element itself** (e.g., a button label, input field label, heading, or link text visible on screen).
-- **NEVER output a \`target\` with an empty or blank \`label\` field.** Example of BANNED output: \`{"action":"scroll","target":{"label":""}}\`. This will CRASH the engine.
-- **NEVER output a \`duration\` field on a \`scroll\` action.** It is not a valid field.
+- **NEVER output a \`target\` with an empty or blank \`label\` field.** This will CRASH the engine.
 - NEVER use a value you are about to type as a \`target.label\`. For example, if you want to type a bucket name into a "Bucket name" textbox, the target label is \`"Bucket name"\`, NOT \`"demo-s3-bucket-789012"\`.
 - NEVER use a dynamic value (bucket name, resource name, ARN, ID) as a \`target.label\` unless that exact text is visibly rendered as a link or button on the screen AFTER the resource has been created.
 - After creating a resource, use \`waitForNetworkIdle\` first, then \`click\` the resource by its exact name (since the listing renders it as a link).
-- **For \`scroll\` actions: ONLY use \`direction\` ("down" or "up") and \`distance\` (pixels). NEVER include a \`target\` or \`duration\` field on a scroll action.**
 - For the global search bar, use action \`search\` with just a \`value\` field (no \`target\` needed).
+
+**TARGET DISAMBIGUATION — \`target.context\` (CRITICAL, REQUIRED ON EVERY \`target\`):**
+- Many AWS Console pages render the SAME text in more than one place at once — most commonly the service/page name appears both in the top breadcrumb trail AND as an actual clickable link or button in the main content area. If you only give a \`label\`, the engine cannot tell which one you mean, and it will frequently mis-click the breadcrumb instead of the real element. This has caused real failures.
+- Every \`target\` object MUST include a \`context\` string field, in addition to \`label\` and \`type\`, describing WHERE on the page the element is located and how to tell it apart from lookalikes. Examples of good context: \`"the primary blue button inside the main form, not the breadcrumb link at the top of the page"\`, \`"row in the resource list table, not the page title"\`, \`"left-hand sidebar navigation menu"\`, \`"inside the modal dialog"\`.
+- If the element you are targeting is itself part of the breadcrumb trail and that is genuinely intended (rare), say so explicitly in \`context\` (e.g. \`"breadcrumb link used to navigate back up one level"\`) so it's clear this was deliberate rather than a mistake.
+- Never leave \`context\` empty when \`label\` could plausibly match more than one element on the page.
 
 The JSON MUST follow this exact structure:
 {
@@ -383,23 +396,23 @@ The JSON MUST follow this exact structure:
     { "action": "waitForNetworkIdle" },
     { "action": "search", "value": "${topic}" },
     { "action": "waitForNetworkIdle" },
-    { "action": "click", "target": { "label": "Amazon ${topic}", "type": "link" } },
+    { "action": "click", "target": { "label": "Amazon ${topic}", "type": "link", "context": "search results dropdown item, not the breadcrumb" } },
     { "action": "waitForNetworkIdle" },
-    { "action": "highlight", "target": { "label": "Create bucket", "type": "button" } },
-    { "action": "click", "target": { "label": "Create bucket", "type": "button" } },
+    { "action": "highlight", "target": { "label": "Create bucket", "type": "button", "context": "primary action button in the main content area, top-right of the bucket list" } },
+    { "action": "click", "target": { "label": "Create bucket", "type": "button", "context": "primary action button in the main content area, top-right of the bucket list" } },
     { "action": "waitForNetworkIdle" },
     {
       "action": "type",
-      "target": { "label": "Bucket name", "type": "textbox" },
+      "target": { "label": "Bucket name", "type": "textbox", "context": "text input field inside the General configuration section of the create-bucket form" },
       "value": "demo-videogen-001"
     },
     { "action": "scroll", "direction": "down", "distance": 300 },
-    { "action": "highlight", "target": { "label": "Block all public access", "type": "checkbox" } },
+    { "action": "highlight", "target": { "label": "Block all public access", "type": "checkbox", "context": "checkbox inside the Block Public Access settings section" } },
     { "action": "scroll", "direction": "down", "distance": 300 },
-    { "action": "highlight", "target": { "label": "Create bucket", "type": "button" } },
-    { "action": "click", "target": { "label": "Create bucket", "type": "button" } },
+    { "action": "highlight", "target": { "label": "Create bucket", "type": "button", "context": "submit button at the bottom of the create-bucket form, not the top button used earlier" } },
+    { "action": "click", "target": { "label": "Create bucket", "type": "button", "context": "submit button at the bottom of the create-bucket form, not the top button used earlier" } },
     { "action": "waitForNetworkIdle" },
-    { "action": "click", "target": { "label": "demo-videogen-001", "type": "link" } }
+    { "action": "click", "target": { "label": "demo-videogen-001", "type": "link", "context": "row in the S3 bucket listing table, not any breadcrumb text" } }
   ]
 }
 
@@ -407,108 +420,80 @@ Available actions for steps:
 - goto (requires 'url')
 - waitForNetworkIdle (optional 'timeout')
 - search (requires 'value' - types into the global AWS search bar)
-- click (requires 'target' object with 'label' and 'type')
-- doubleClick (requires 'target' object)
-- type (requires 'target' object to focus the field, plus 'value' to type)
-- select (requires 'target' object, plus 'value')
-- check / uncheck (requires 'target' object)
-- hover (requires 'target' object)
-- scroll (requires 'direction': "up"/"down" and 'distance' in pixels)
-- highlight (requires 'target' object - draws a visual box around the element)
+- click (requires 'target' object with 'label', 'type', and 'context')
+- doubleClick (requires 'target' object with 'label', 'type', and 'context')
+- type (requires 'target' object with 'label', 'type', and 'context' to focus the field, plus 'value' to type)
+- select (requires 'target' object with 'label', 'type', and 'context', plus 'value')
+- check / uncheck (requires 'target' object with 'label', 'type', and 'context')
+- hover (requires 'target' object with 'label', 'type', and 'context')
+- scroll (requires 'direction': "up"/"down" and 'distance' in pixels — NEVER a 'target' or 'duration')
+- highlight (requires 'target' object with 'label', 'type', and 'context' - draws a visual box around the element)
 - wait (requires 'duration' in ms - AVOID IF POSSIBLE)
 
-Ensure the steps logically flow like a real human navigating the console. Do NOT use CSS selectors. Use ONLY semantic labels and types (e.g., type: "button", "link", "textbox", "checkbox", "dropdown", "tab", "section").
+Ensure the steps logically flow like a real human navigating the console. Do NOT use CSS selectors. Use ONLY semantic labels and types (e.g., type: "button", "link", "textbox", "checkbox", "dropdown", "tab", "section"), and always pair them with a disambiguating "context" string.
 `;
 
-    const runAwsModelWithRetry = async (modelName) => {
-      let attempts = 0;
-      const maxAttempts = 3;
-      let delay = 5000;
-
-      while (attempts < maxAttempts) {
-        console.log(`Attempt ${attempts + 1}/${maxAttempts}`);
-        try {
-          const response = await ai.models.generateContent({
-            model: modelName,
-            contents: prompt,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: {
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-flash-latest',
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'object',
+          properties: {
+            type: { type: 'string' },
+            service: { type: 'string' },
+            title: { type: 'string' },
+            narration: { type: 'string' },
+            steps: {
+              type: 'array',
+              items: {
                 type: 'object',
                 properties: {
-                  type: { type: 'string' },
-                  service: { type: 'string' },
-                  title: { type: 'string' },
-                  narration: { type: 'string' },
-                  steps: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        action: { type: 'string' },
-                        url: { type: 'string' },
-                        value: { type: 'string' },
-                        duration: { type: 'integer' },
-                        target: {
-                          type: 'object',
-                          properties: {
-                            label: { type: 'string' },
-                            type: { type: 'string' }
-                          },
-                          required: ['label']
-                        }
-                      },
-                      required: ['action']
-                    }
+                  action: { type: 'string' },
+                  url: { type: 'string' },
+                  value: { type: 'string' },
+                  duration: { type: 'integer' },
+                  target: {
+                    type: 'object',
+                    properties: {
+                      label: { type: 'string' },
+                      type: { type: 'string' },
+                      context: { type: 'string' }
+                    },
+                    required: ['label', 'context']
                   }
                 },
-                required: ['type', 'service', 'title', 'narration', 'steps']
+                required: ['action']
               }
             }
-          });
-          return response;
-        } catch (err) {
-          let status = err.status;
-          if (!status && err.message) {
-            try {
-              const match = err.message.match(/"code"\s*:\s*(\d+)/);
-              if (match) {
-                status = parseInt(match[1], 10);
-              }
-            } catch (e) {}
-          }
-
-          console.warn(`${modelName === 'gemini-3.6-flash' ? 'Gemini 3.6 Flash' : modelName} returned ${status || 'error'}`);
-
-          if (status === 404 || status === 401 || status === 403 || status === 400) {
-            console.warn(`[AWS Script Gen] Fatal error ${status} encountered. Immediate fail/fallback without further retries.`);
-            throw err;
-          }
-
-          attempts++;
-          if (attempts >= maxAttempts) {
-            if (modelName === 'gemini-3.6-flash') {
-              console.warn(`Switching to fallback model: gemini-3.5-flash-lite`);
-            }
-            throw err;
-          }
-          console.log(`Retrying in ${delay}ms`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay *= 2;
+          },
+          required: ['type', 'service', 'title', 'narration', 'steps']
         }
       }
-    };
+    });
 
-    let response;
-    try {
-      console.log('Primary Gemini model: gemini-3.6-flash');
-      response = await runAwsModelWithRetry('gemini-3.6-flash');
-    } catch (error) {
-      response = await runAwsModelWithRetry('gemini-3.5-flash-lite');
-      console.log('Fallback model succeeded');
+    let result;
+    let attempts = 0;
+    const maxAttempts = 3;
+    let delay = 15000; // start with 15s delay for 429 errors
+
+    while (attempts < maxAttempts) {
+      try {
+        result = await model.generateContent(prompt);
+        break;
+      } catch (err) {
+        attempts++;
+        if (attempts >= maxAttempts) throw err;
+
+        console.warn(`[AWS Script Gen] Attempt ${attempts} failed: ${err.message}. Retrying in ${delay}ms...`);
+        // If there is a specific retry delay from the API, we could parse it, but a static backoff is safe.
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 1.5;
+      }
     }
 
-    let text = response.text;
+    const response = await result.response;
+    let text = response.text();
 
     const cleanedText = cleanJsonString(text);
     res.status(200).json({ success: true, text: cleanedText });

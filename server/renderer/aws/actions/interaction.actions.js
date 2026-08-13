@@ -54,6 +54,10 @@ async function resolveElement(page, params) {
  * Click an element by selector or text.
  * Uses coordinate-based click first, then falls back to element.click()
  * if no navigation was detected.
+ *
+ * If the resolved element is non-interactive (e.g. <h4>, <span>, <div>),
+ * tries to find a clickable ancestor (<a>, <button>, [role="button"]) first.
+ *
  * @param {import('puppeteer').Page} page
  * @param {object} params - { selector?, text? }
  */
@@ -61,16 +65,50 @@ async function click(page, params) {
   const target = params.selector || params.text || params.target?.label || '';
   console.log(`  [action:click] Clicking "${target}"`);
 
-  const element = await resolveElement(page, params);
+  let element = await resolveElement(page, params);
   if (!element) {
     return { success: false, message: `Could not find element: ${target}` };
   }
 
+  // If the resolved element is non-interactive (e.g. <h4>, <span>),
+  // try to find a clickable parent so Puppeteer's click doesn't fail.
+  try {
+    const tagName = await element.evaluate(el => el.tagName.toLowerCase());
+    const interactiveTags = ['button', 'a', 'input', 'select', 'textarea'];
+    if (!interactiveTags.includes(tagName)) {
+      const parentHandle = await element.evaluateHandle(el => {
+        let check = el.parentElement;
+        for (let i = 0; i < 6 && check; i++) {
+          const tag = check.tagName.toLowerCase();
+          const role = check.getAttribute('role') || '';
+          if (tag === 'a' || tag === 'button' ||
+              role === 'button' || role === 'link' || role === 'menuitem' || role === 'option') {
+            return check;
+          }
+          check = check.parentElement;
+        }
+        return null;
+      });
+      const parentEl = parentHandle.asElement();
+      if (parentEl) {
+        console.log(`  [action:click] Resolved <${tagName}> is non-interactive, using clickable parent.`);
+        element = parentEl;
+      }
+    }
+  } catch { /* proceed with original element */ }
+
   // Capture URL before click to detect page navigation
   const urlBefore = page.url();
 
-  await human.clickWithHighlight(page, element);
-  
+  // Try coordinate-based click with highlight (most natural for recording)
+  let clickSucceeded = false;
+  try {
+    await human.clickWithHighlight(page, element);
+    clickSucceeded = true;
+  } catch (err) {
+    console.warn(`  [action:click] clickWithHighlight failed: ${err.message}`);
+  }
+
   // Give the page a moment for any React re-render or SPA navigation to start
   await human.randomPause(400, 600);
   
@@ -78,8 +116,8 @@ async function click(page, params) {
   let urlAfter = page.url();
   const didNavigateFromCoordClick = urlAfter !== urlBefore;
   
-  // If coordinate-based click didn't navigate, try element.click() as fallback
-  if (!didNavigateFromCoordClick) {
+  // If coordinate-based click didn't navigate, try fallback clicks
+  if (!didNavigateFromCoordClick && !clickSucceeded) {
     try {
       // First try Puppeteer's element.click()
       await element.click();
@@ -87,6 +125,25 @@ async function click(page, params) {
       urlAfter = page.url();
     } catch {
       // If that also fails, dispatch a click event via JavaScript
+      try {
+        await page.evaluate(el => {
+          if (el && typeof el.click === 'function') {
+            el.click();
+          } else if (el) {
+            el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+          }
+        }, element);
+        await human.randomPause(300, 500);
+        urlAfter = page.url();
+      } catch { /* element might be stale or detached */ }
+    }
+  } else if (!didNavigateFromCoordClick) {
+    // Coordinate click succeeded but no navigation — try element.click() as fallback
+    try {
+      await element.click();
+      await human.randomPause(300, 500);
+      urlAfter = page.url();
+    } catch {
       try {
         await page.evaluate(el => {
           if (el && typeof el.click === 'function') {
@@ -157,6 +214,9 @@ async function doubleClick(page, params) {
 
 /**
  * Type text into an input field.
+ * Locks page scroll during typing to prevent screen shaking from
+ * real-time validation (e.g., AWS bucket name DNS checks).
+ *
  * @param {import('puppeteer').Page} page
  * @param {object} params - { selector?, text?, value: string }
  */
@@ -169,6 +229,12 @@ async function type(page, params) {
   if (!element) {
     return { success: false, message: `Could not find input: ${target}` };
   }
+
+  // Scroll the input into view at a stable position (center of viewport)
+  try {
+    await element.evaluate(el => el.scrollIntoView({ behavior: 'instant', block: 'center' }));
+    await human.randomPause(200, 400);
+  } catch { /* proceed */ }
 
   // Click the input first
   const box = await element.boundingBox();
@@ -185,8 +251,38 @@ async function type(page, params) {
   await page.keyboard.up('Control');
   await human.randomPause(80, 150);
 
+  // Lock page scroll to prevent shaking from real-time validation
+  // (AWS bucket name input triggers DNS checks on every keystroke,
+  //  causing error/success messages to appear and shift the layout)
+  await page.evaluate(() => {
+    const scrollContainer = document.scrollingElement || document.documentElement;
+    window.__vg_scrollLock = {
+      scrollTop: scrollContainer.scrollTop,
+      scrollLeft: scrollContainer.scrollLeft,
+      overflow: document.body.style.overflow,
+    };
+    // Freeze scroll position — block any layout-triggered scrolling
+    document.body.style.overflow = 'hidden';
+    scrollContainer.scrollTop = window.__vg_scrollLock.scrollTop;
+  });
+
   // Type naturally
   await human.typeNaturally(page, value);
+
+  // Wait briefly for any validation animations to settle
+  await human.randomPause(300, 600);
+
+  // Unlock page scroll
+  await page.evaluate(() => {
+    if (window.__vg_scrollLock) {
+      document.body.style.overflow = window.__vg_scrollLock.overflow || '';
+      const scrollContainer = document.scrollingElement || document.documentElement;
+      scrollContainer.scrollTop = window.__vg_scrollLock.scrollTop;
+      scrollContainer.scrollLeft = window.__vg_scrollLock.scrollLeft;
+      delete window.__vg_scrollLock;
+    }
+  });
+
   await human.actionPause();
   return { success: true, message: `Typed "${value}" into "${target}"` };
 }

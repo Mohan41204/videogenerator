@@ -49,12 +49,12 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       '--allow-file-access-from-files',
       '--disable-features=VizDisplayCompositor',
       '--disable-gpu',
-      '--window-size=1920,1080'
+      '--window-size=1500,775'
     ]
   });
 
   const page = await browser.newPage();
-  await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1 });
+  await page.setViewport({ width: 1500, height: 775, deviceScaleFactor: 1 });
 
   // Load the screen-share HTML template
   const templatePath = path.join(__dirname, '../templates/screen_share.html');
@@ -79,7 +79,7 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
     '-vcodec', 'mjpeg',
     '-r', String(FPS),
     '-i', 'pipe:0',
-    '-vf', `scale=1920:1080`,
+    '-vf', `scale=1500:775`,
     '-c:v', 'libx264',
     '-preset', 'ultrafast',
     '-tune', 'stillimage',
@@ -99,12 +99,12 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
 
   let ffmpegClosed = false;
   const ffmpegFinished = new Promise((resolve, reject) => {
-    ffmpegProc.on('close', (code) => {
+    ffmpegProc.on('close', (code, signal) => {
       ffmpegClosed = true;
-      if (code === 0) {
+      if (code === 0 || code === null) {
         resolve();
       } else {
-        reject(new Error(`FFmpeg process exited with code ${code}`));
+        reject(new Error(`FFmpeg process exited with code ${code} (signal: ${signal})`));
       }
     });
     ffmpegProc.on('error', (err) => {
@@ -152,7 +152,7 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
         const frameBuffer = await page.screenshot({
           type: 'jpeg',
           quality: 82,
-          clip: { x: 0, y: 0, width: 1920, height: 1080 }
+          clip: { x: 0, y: 0, width: 1500, height: 775 }
         });
 
         // Write frame to FFmpeg stdin

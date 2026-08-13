@@ -79,14 +79,21 @@ class ConfidenceScorer {
 
     // ── Interactivity & Role (Medium Weight) ──────────────────────
     const tag = info.tagName.toLowerCase();
-    const isInteractiveTag = ['button', 'a', 'input', 'select', 'textarea'].includes(tag);
+    const role = (info.role || '').toLowerCase();
     
-    if (isInteractiveTag) {
-      score += 20; // It's natively clickable
-    }
-    
-    if (info.role === 'button' || info.role === 'link' || info.role === 'tab' || info.role === 'menuitem') {
-      score += 20; // Explicitly declared as clickable via ARIA
+    // Semantic weights
+    if (tag === 'button' || role === 'button') {
+      score += 100;
+    } else if (tag === 'a' || role === 'link') {
+      score += 95;
+    } else if (role === 'menuitem' || role === 'tab') {
+      score += 90;
+    } else if (tag === 'option' || role === 'option') {
+      score += 90;
+    } else if (tag === 'input' || tag === 'textarea') {
+      score += 20;
+    } else if (['select', 'label'].includes(tag)) {
+      score += 20;
     }
 
     // ── Context & Visibility (Bonus Weight) ─────────────────────────
@@ -96,6 +103,10 @@ class ConfidenceScorer {
     
     if (info.isInNav) {
       score += 15; // Elements in sidebars/navbars are common targets
+    }
+
+    if (info.isInSearchDropdown) {
+      score += 200; // Prioritize dropdown elements over general page content (e.g. Recently Visited)
     }
 
     // Specificity Bonus: Smaller elements (like buttons) score slightly higher than massive container divs
