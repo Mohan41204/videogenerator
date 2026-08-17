@@ -12,4 +12,7 @@ router.post('/generate-script', videoController.generateScript);
 // Generate AWS script endpoint
 router.post('/generate-aws-script', videoController.generateAwsScript);
 
+// Regenerate audio endpoint
+router.post('/:id/audio/:lang/regenerate', videoController.regenerateAudio);
+
 module.exports = router;

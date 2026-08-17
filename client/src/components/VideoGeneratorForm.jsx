@@ -128,8 +128,8 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
       setProgress(100);
 
       if (response.data.success) {
-        toast.success('Video generated successfully!');
-        onVideoGenerated(`http://localhost:5000${response.data.data.videoUrl}`, text);
+        toast.success(response.data.message || 'Video generated successfully!');
+        onVideoGenerated(response.data.data, text);
       } else {
         toast.error(response.data.message || 'Failed to generate video.');
       }

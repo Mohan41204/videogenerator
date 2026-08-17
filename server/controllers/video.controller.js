@@ -44,10 +44,14 @@ const generateVideo = async (req, res) => {
 
     const uniqueId = uuidv4();
     const outputDir = path.join(__dirname, '../output');
+    // Ensure output directory exists for audio and video
+    const videoDir = path.join(outputDir, 'video');
+    const audioDir = path.join(outputDir, 'audio');
+    if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir, { recursive: true });
+    if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
 
-    const finalAudioPath      = path.join(outputDir, `${uniqueId}.mp3`);
-    const screenVideoPath     = path.join(outputDir, `${uniqueId}_screen.mp4`);
-    const finalVideoPath      = path.join(outputDir, `${uniqueId}.mp4`);
+    const finalVideoPath = path.join(videoDir, `${uniqueId}.mp4`);
+    const screenVideoPath = path.join(outputDir, `${uniqueId}_screen.mp4`);
 
     // --- Parse slides JSON ---
     console.log('Parsing script as JSON slides...');
@@ -57,7 +61,6 @@ const generateVideo = async (req, res) => {
       slides = JSON.parse(cleaned);
 
       if (Array.isArray(slides) && slides.length > 0 && slides[0].action) {
-        // Fallback: if Gemini returned an array of steps instead of the wrapper object
         slides = [{
           type: 'aws',
           service: 'AWS Service',
@@ -67,14 +70,12 @@ const generateVideo = async (req, res) => {
         }];
       } else if (!Array.isArray(slides)) {
         if (slides.type && slides.type.toLowerCase() === 'aws') {
-          // AWS JSON is a single object. Wrap it in an array so the audio loops work.
           slides = [slides];
         } else {
           throw new Error('Expected an array of slides or an AWS lesson object');
         }
       }
 
-      // Auto-fix any structure issues (only for programming slides)
       slides = slides.map(slide => {
         if (slide.type && slide.type.toLowerCase() === 'aws') return slide;
 
@@ -90,19 +91,10 @@ const generateVideo = async (req, res) => {
           if (!slide.fileName || !slide.runCommand) {
             let fn = 'main.py';
             let cmd = 'python main.py';
-            if (/public\s+class|System\.out\.print/i.test(codeText)) {
-              fn = 'Main.java';
-              cmd = 'java Main';
-            } else if (/#include|std::/i.test(codeText)) {
-              fn = 'main.cpp';
-              cmd = 'g++ main.cpp -o main && ./main';
-            } else if (/console\.log|const\s+|let\s+|function\s+/i.test(codeText)) {
-              fn = 'index.js';
-              cmd = 'node index.js';
-            } else if (/using\s+System|Console\.WriteLine/i.test(codeText)) {
-              fn = 'Program.cs';
-              cmd = 'dotnet run';
-            }
+            if (/public\s+class|System\.out\.print/i.test(codeText)) fn = 'Main.java', cmd = 'java Main';
+            else if (/#include|std::/i.test(codeText)) fn = 'main.cpp', cmd = 'g++ main.cpp -o main && ./main';
+            else if (/console\.log|const\s+|let\s+|function\s+/i.test(codeText)) fn = 'index.js', cmd = 'node index.js';
+            else if (/using\s+System|Console\.WriteLine/i.test(codeText)) fn = 'Program.cs', cmd = 'dotnet run';
             if (!slide.fileName) slide.fileName = fn;
             if (!slide.runCommand) slide.runCommand = cmd;
           }
@@ -114,51 +106,92 @@ const generateVideo = async (req, res) => {
       return res.status(400).json({ success: false, message: `Invalid script JSON: ${e.message}` });
     }
 
-    const audioPaths = [];
-    const durations  = [];
+    const SUPPORTED_LANGUAGES = require('../config/languages');
+    const translationService = require('../services/translation.service');
 
-    // --- STEP 1: Generate narration audio for each slide ---
-    console.log(`Generating audio for ${slides.length} slides...`);
-    const batchSize = 10;
-    for (let i = 0; i < slides.length; i += batchSize) {
-      const batch = slides.slice(i, i + batchSize);
-      const results = await Promise.all(batch.map(async (slide, batchIndex) => {
-        const actualIndex = i + batchIndex;
-        const chunkPath = path.join(outputDir, `${uniqueId}_chunk_${actualIndex}.mp3`);
-        await audioService.generateAudio(slide.narration || ' ', chunkPath);
-        const duration = await audioService.getAudioDuration(chunkPath);
-        return { path: chunkPath, duration };
-      }));
-      results.forEach(r => { audioPaths.push(r.path); durations.push(r.duration); });
+    // --- STEP 1: Generate English (Ground Truth) Audio ---
+    console.log(`Generating English audio for ${slides.length} slides...`);
+    const englishAudioPaths = [];
+    const englishDurations = [];
+    const englishMasterPath = path.join(audioDir, `${uniqueId}_english.mp3`);
+
+    for (let i = 0; i < slides.length; i++) {
+      const slide = slides[i];
+      const chunkPath = path.join(outputDir, `${uniqueId}_chunk_${i}_en.mp3`);
+      await audioService.generateAudio(slide.narration || ' ', chunkPath, 'en');
+      const duration = await audioService.getAudioDuration(chunkPath);
+      englishAudioPaths.push(chunkPath);
+      englishDurations.push(duration);
     }
+    await audioService.mergeAudioFiles(englishAudioPaths, englishMasterPath);
 
-    // --- STEP 2: Merge all audio chunks into one master narration file ---
-    console.log('Merging audio chunks...');
-    await audioService.mergeAudioFiles(audioPaths, finalAudioPath);
-
-    // --- STEP 3: Render animated video with appropriate Renderer ---
+    // --- STEP 2: Render animated silent video ---
     console.log('Rendering video with renderer factory...');
     const rendererFactory = require('../renderer/rendererFactory');
     const type = (slides.length > 0 && slides[0].type) ? slides[0].type : 'programming';
     const renderer = rendererFactory.getRenderer(type);
+    await renderer.renderVideo(slides, englishDurations, screenVideoPath);
 
-    await renderer.renderVideo(slides, durations, screenVideoPath);
+    // --- STEP 3: Merge silent video + English audio for master MP4 ---
+    console.log('Merging screen video with English audio...');
+    await ffmpegService.mergeVideoAndAudio(screenVideoPath, englishMasterPath, finalVideoPath);
 
-    // --- STEP 4: Merge silent screen video + narration audio ---
-    console.log('Merging screen video with narration audio...');
-    await ffmpegService.mergeVideoAndAudio(screenVideoPath, finalAudioPath, finalVideoPath);
+    // --- STEP 4: Generate Multilingual Audio (Concurrent) ---
+    const enableMultilingual = process.env.ENABLE_MULTILINGUAL_AUDIO === 'true';
+    const audioTracks = { en: `/output/audio/${uniqueId}_english.mp3` };
+    let status = 'success';
+
+    if (enableMultilingual) {
+      console.log('Generating multilingual audio tracks...');
+      const langCodes = Object.keys(SUPPORTED_LANGUAGES).filter(k => k !== 'en');
+      
+      const generationTasks = langCodes.map(async (lang) => {
+        const langConfig = SUPPORTED_LANGUAGES[lang];
+        const masterLangPath = path.join(audioDir, `${uniqueId}_${langConfig.fileName}`);
+        try {
+          const langChunks = [];
+          for (let i = 0; i < slides.length; i++) {
+            const slide = slides[i];
+            const translatedNarration = await translationService.translateText(slide.narration || ' ', langConfig.name);
+            const rawChunkPath = path.join(outputDir, `${uniqueId}_rawchunk_${i}_${lang}.mp3`);
+            await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code);
+            
+            // Adjust duration to exactly match English chunk
+            const adjustedChunkPath = path.join(outputDir, `${uniqueId}_chunk_${i}_${lang}.mp3`);
+            await audioService.adjustAudioDuration(rawChunkPath, adjustedChunkPath, englishDurations[i]);
+            langChunks.push(adjustedChunkPath);
+            fs.unlink(rawChunkPath, () => {});
+          }
+          await audioService.mergeAudioFiles(langChunks, masterLangPath);
+          audioTracks[lang] = `/output/audio/${uniqueId}_${langConfig.fileName}`;
+          // Cleanup chunks
+          langChunks.forEach(p => fs.unlink(p, () => {}));
+        } catch (err) {
+          console.error(`Failed to generate audio for ${lang}:`, err);
+          status = 'partial';
+        }
+      });
+      await Promise.allSettled(generationTasks);
+    }
+
+    // Save metadata for potential regeneration
+    const metadataPath = path.join(outputDir, `${uniqueId}_metadata.json`);
+    fs.writeFileSync(metadataPath, JSON.stringify({ slides, englishDurations }));
 
     // --- STEP 5: Clean up temporary files ---
     if (backgroundPath && req.file) fs.unlink(backgroundPath, () => {});
-    fs.unlink(finalAudioPath, () => {});
     fs.unlink(screenVideoPath, () => {});
-    audioPaths.forEach(p => fs.unlink(p, () => {}));
+    englishAudioPaths.forEach(p => fs.unlink(p, () => {}));
 
-    const videoUrl = `/output/${uniqueId}.mp4`;
     res.status(200).json({
       success: true,
-      message: 'Video generated successfully',
-      data: { videoUrl, id: uniqueId }
+      status: status,
+      message: status === 'partial' ? 'Video generated with partial audio tracks' : 'Video generated successfully',
+      data: { 
+        videoUrl: `/output/video/${uniqueId}.mp4`,
+        id: uniqueId,
+        audioTracks 
+      }
     });
 
   } catch (error) {
@@ -503,8 +536,63 @@ Ensure the steps logically flow like a real human navigating the console. Do NOT
   }
 };
 
+const regenerateAudio = async (req, res) => {
+  try {
+    const { id, lang } = req.params;
+    const outputDir = path.join(__dirname, '../output');
+    const metadataPath = path.join(outputDir, `${id}_metadata.json`);
+    
+    if (!fs.existsSync(metadataPath)) {
+      return res.status(404).json({ success: false, message: 'Metadata not found for this video' });
+    }
+
+    const SUPPORTED_LANGUAGES = require('../config/languages');
+    const langConfig = SUPPORTED_LANGUAGES[lang];
+    if (!langConfig) {
+      return res.status(400).json({ success: false, message: 'Unsupported language code' });
+    }
+
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    const { slides, englishDurations } = metadata;
+    const translationService = require('../services/translation.service');
+    const audioService = require('../services/audio.service');
+    
+    const audioDir = path.join(outputDir, 'audio');
+    if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
+
+    const masterLangPath = path.join(audioDir, `${id}_${langConfig.fileName}`);
+    const langChunks = [];
+
+    for (let i = 0; i < slides.length; i++) {
+      const slide = slides[i];
+      const translatedNarration = await translationService.translateText(slide.narration || ' ', langConfig.name);
+      const rawChunkPath = path.join(outputDir, `${id}_rawchunk_${i}_${lang}.mp3`);
+      await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code);
+      
+      const adjustedChunkPath = path.join(outputDir, `${id}_chunk_${i}_${lang}.mp3`);
+      await audioService.adjustAudioDuration(rawChunkPath, adjustedChunkPath, englishDurations[i]);
+      langChunks.push(adjustedChunkPath);
+      fs.unlink(rawChunkPath, () => {});
+    }
+
+    await audioService.mergeAudioFiles(langChunks, masterLangPath);
+    langChunks.forEach(p => fs.unlink(p, () => {}));
+
+    res.status(200).json({
+      success: true,
+      message: `${langConfig.name} audio regenerated successfully`,
+      data: { url: `/output/audio/${id}_${langConfig.fileName}` }
+    });
+
+  } catch (error) {
+    console.error(`Regenerate audio error for ${req.params.lang}:`, error);
+    res.status(500).json({ success: false, message: 'Failed to regenerate audio', error: error.message });
+  }
+};
+
 module.exports = {
   generateVideo,
   generateScript,
-  generateAwsScript
+  generateAwsScript,
+  regenerateAudio
 };

@@ -5,11 +5,11 @@ import VideoGeneratorForm from './components/VideoGeneratorForm';
 import VideoPlayer from './components/VideoPlayer';
 
 function App() {
-  const [generatedVideoUrl, setGeneratedVideoUrl] = useState(null);
+  const [videoData, setVideoData] = useState(null);
   const [generatedScript, setGeneratedScript] = useState(null);
 
-  const handleVideoGenerated = (url, script) => {
-    setGeneratedVideoUrl(url);
+  const handleVideoGenerated = (data, script) => {
+    setVideoData(data);
     if (script) setGeneratedScript(script);
   };
 
@@ -38,7 +38,7 @@ function App() {
 
           {/* Right Column: Player / Result */}
           <div className="w-full flex flex-col justify-center sticky top-8">
-            <VideoPlayer videoUrl={generatedVideoUrl} script={generatedScript} />
+            <VideoPlayer videoData={videoData} script={generatedScript} />
           </div>
 
         </div>

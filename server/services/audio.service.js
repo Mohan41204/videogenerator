@@ -8,11 +8,16 @@ const ffmpegPath = require('ffmpeg-static');
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
 
-const generateSingleAudio = (text, outputPath) => {
+const generateSingleAudio = (text, outputPath, langCode = 'en') => {
   return new Promise((resolve, reject) => {
     try {
-      const gtts = new gTTS(text, 'en');
-      gtts.lang = 'en-in'; // Set to Indian English accent
+      const gtts = new gTTS(text, langCode);
+      if (langCode === 'en') {
+        gtts.lang = 'en-in'; // Set to Indian English accent
+      } else {
+        // gTTS supports 'ta', 'hi', 'ml', 'te', 'kn' directly
+        gtts.lang = langCode;
+      }
       gtts.save(outputPath, function (err, result) {
         if (err) {
           reject(err);
@@ -54,7 +59,7 @@ const getPauseDuration = (punctuation) => {
   return 0.4;
 };
 
-const generateAudio = async (text, outputPath) => {
+const generateAudio = async (text, outputPath, langCode = 'en') => {
   try {
     const uniqueId = path.basename(outputPath, '.mp3');
     const outputDir = path.dirname(outputPath);
@@ -86,14 +91,14 @@ const generateAudio = async (text, outputPath) => {
     try {
       for (let i = 0; i < segments.length; i++) {
         const seg = segments[i];
-        const speechPath = path.join(outputDir, `${uniqueId}_sub_${i}_speech.mp3`);
+        const speechPath = path.join(outputDir, `${uniqueId}_sub_${i}_speech_${langCode}.mp3`);
 
-        await generateSingleAudio(seg.text, speechPath);
+        await generateSingleAudio(seg.text, speechPath, langCode);
         tempFiles.push(speechPath);
 
         const pauseDur = getPauseDuration(seg.punctuation);
         if (pauseDur > 0) {
-          const silencePath = path.join(outputDir, `${uniqueId}_sub_${i}_silence.mp3`);
+          const silencePath = path.join(outputDir, `${uniqueId}_sub_${i}_silence_${langCode}.mp3`);
           await generateSilence(pauseDur, silencePath);
           tempFiles.push(silencePath);
         }
@@ -153,8 +158,43 @@ const mergeAudioFiles = (inputPaths, outputPath) => {
   });
 };
 
+const adjustAudioDuration = (inputPath, outputPath, targetDurationSecs) => {
+  return new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(inputPath, (err, metadata) => {
+      if (err) return reject(err);
+      
+      const currentDuration = metadata.format.duration;
+      if (Math.abs(currentDuration - targetDurationSecs) < 0.1) {
+         // Close enough, just copy
+         fs.copyFileSync(inputPath, outputPath);
+         return resolve(outputPath);
+      }
+      
+      const ratio = currentDuration / targetDurationSecs;
+      
+      // FFmpeg atempo filter works between 0.5 and 2.0.
+      let filter = `atempo=${ratio}`;
+      if (ratio > 2.0) {
+        filter = `atempo=2.0,atempo=${ratio/2.0}`;
+      } else if (ratio < 0.5) {
+        filter = `atempo=0.5,atempo=${ratio/0.5}`;
+      }
+      
+      ffmpeg(inputPath)
+        .audioFilter(filter)
+        .on('error', (err) => {
+          console.error('Error adjusting audio duration:', err);
+          reject(err);
+        })
+        .on('end', () => resolve(outputPath))
+        .save(outputPath);
+    });
+  });
+};
+
 module.exports = {
   generateAudio,
   getAudioDuration,
-  mergeAudioFiles
+  mergeAudioFiles,
+  adjustAudioDuration
 };

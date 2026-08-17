@@ -1,31 +1,125 @@
-import React, { useState } from 'react';
-import { Download, Video, Presentation } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Download, Video, Presentation, AlertCircle, RefreshCw, Archive } from 'lucide-react';
 import pptxgen from "pptxgenjs";
+import JSZip from 'jszip'; // Added JSZip
 
-const VideoPlayer = ({ videoUrl, script }) => {
+const LANGUAGE_NAMES = {
+  en: 'English',
+  ta: 'Tamil',
+  hi: 'Hindi',
+  ml: 'Malayalam',
+  te: 'Telugu',
+  kn: 'Kannada'
+};
+
+const VideoPlayer = ({ videoData, script }) => {
   const [isDownloadingMP4, setIsDownloadingMP4] = useState(false);
   const [isDownloadingPPT, setIsDownloadingPPT] = useState(false);
+  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+  const [isDownloadingAudio, setIsDownloadingAudio] = useState(false);
+  
+  const [selectedLang, setSelectedLang] = useState('en');
+  const [retryStatus, setRetryStatus] = useState({});
+  const [localVideoData, setLocalVideoData] = useState(null);
 
-  const handleDownloadVideo = async (e) => {
-    e.preventDefault();
-    if (isDownloadingMP4) return;
-    setIsDownloadingMP4(true);
+  const videoRef = useRef(null);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    setLocalVideoData(videoData);
+    if (videoData?.audioTracks && !videoData.audioTracks[selectedLang]) {
+      setSelectedLang('en');
+    }
+  }, [videoData]);
+
+  // Sync audio with video
+  useEffect(() => {
+    const video = videoRef.current;
+    const audio = audioRef.current;
+    if (!video || !audio) return;
+
+    const handlePlay = () => audio.play().catch(e => console.log("Audio play prevented"));
+    const handlePause = () => audio.pause();
+    const handleSeek = () => { audio.currentTime = video.currentTime; };
+    const handleRateChange = () => { audio.playbackRate = video.playbackRate; };
+
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('seeked', handleSeek);
+    video.addEventListener('ratechange', handleRateChange);
+
+    return () => {
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('seeked', handleSeek);
+      video.removeEventListener('ratechange', handleRateChange);
+    };
+  }, [selectedLang, localVideoData]);
+  
+  const handleDownloadFile = async (url, filename, setLoader) => {
+    if (setLoader) setLoader(true);
     try {
-      const response = await fetch(videoUrl);
+      const response = await fetch(url);
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = 'generated-video.mp4';
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
-      console.error("Error downloading video, falling back:", error);
-      window.open(videoUrl, '_blank');
+      console.error("Error downloading file:", error);
+      window.open(url, '_blank');
     } finally {
-      setIsDownloadingMP4(false);
+      if (setLoader) setLoader(false);
+    }
+  };
+
+  const handleDownloadVideo = (e) => {
+    e.preventDefault();
+    if (isDownloadingMP4) return;
+    handleDownloadFile(`http://localhost:5000${localVideoData.videoUrl}`, 'generated-video.mp4', setIsDownloadingMP4);
+  };
+
+  const handleDownloadAudio = (langCode, e) => {
+    e.preventDefault();
+    if (isDownloadingAudio) return;
+    const url = localVideoData.audioTracks[langCode];
+    if (url) {
+      handleDownloadFile(`http://localhost:5000${url}`, `audio_${LANGUAGE_NAMES[langCode]}.mp3`, setIsDownloadingAudio);
+    }
+  };
+
+  const handleDownloadAllAudio = async (e) => {
+    e.preventDefault();
+    if (isDownloadingZip) return;
+    setIsDownloadingZip(true);
+    try {
+      const zip = new JSZip();
+      const tracks = localVideoData.audioTracks || {};
+      for (const [lang, url] of Object.entries(tracks)) {
+        if (!url) continue;
+        const response = await fetch(`http://localhost:5000${url}`);
+        const blob = await response.blob();
+        zip.file(`audio_${LANGUAGE_NAMES[lang]}.mp3`, blob);
+      }
+      
+      const content = await zip.generateAsync({ type: "blob" });
+      const blobUrl = window.URL.createObjectURL(content);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = 'all_audio_tracks.zip';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Error zipping:", err);
+      alert("Failed to create ZIP. You can download tracks individually.");
+    } finally {
+      setIsDownloadingZip(false);
     }
   };
 
@@ -70,7 +164,33 @@ const VideoPlayer = ({ videoUrl, script }) => {
       }
     }, 100);
   };
-  if (!videoUrl) {
+  
+  const handleRetryLanguage = async (lang) => {
+    setRetryStatus(prev => ({ ...prev, [lang]: 'loading' }));
+    try {
+      const response = await fetch(`http://localhost:5000/api/videos/${localVideoData.id}/audio/${lang}/regenerate`, {
+        method: 'POST'
+      });
+      const result = await response.json();
+      if (result.success) {
+        setLocalVideoData(prev => ({
+          ...prev,
+          audioTracks: { ...prev.audioTracks, [lang]: result.data.url }
+        }));
+        setRetryStatus(prev => ({ ...prev, [lang]: 'success' }));
+        if (selectedLang === lang) {
+            setSelectedLang('en'); // force re-render/reload audio
+            setTimeout(() => setSelectedLang(lang), 50);
+        }
+      } else {
+        setRetryStatus(prev => ({ ...prev, [lang]: 'error' }));
+      }
+    } catch (err) {
+      setRetryStatus(prev => ({ ...prev, [lang]: 'error' }));
+    }
+  };
+
+  if (!localVideoData?.videoUrl) {
     return (
       <div className="glass-panel rounded-2xl p-8 aspect-video flex flex-col items-center justify-center text-slate-500 border border-slate-700/50 border-dashed">
         <Video size={48} className="mb-4 opacity-50" />
@@ -82,6 +202,10 @@ const VideoPlayer = ({ videoUrl, script }) => {
     );
   }
 
+  const audioTracks = localVideoData.audioTracks || {};
+  // Always show the audio track panel if audioTracks is provided by backend
+  const isMultilingualEnabled = Object.keys(audioTracks).length > 0;
+
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="glass-panel p-2 rounded-2xl shadow-2xl relative group overflow-hidden">
@@ -89,14 +213,63 @@ const VideoPlayer = ({ videoUrl, script }) => {
         <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
         <video
+          ref={videoRef}
           controls
-          className="w-full h-auto max-h-[60vh] object-contain rounded-xl bg-black"
-          src={videoUrl}
-          autoPlay
+          className="w-full h-auto max-h-[60vh] object-contain rounded-xl bg-black relative z-10"
+          src={`http://localhost:5000${localVideoData.videoUrl}`}
         >
           Your browser does not support the video tag.
         </video>
       </div>
+
+      {isMultilingualEnabled && (
+        <div className="glass-panel p-4 rounded-xl border border-slate-700 space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-medium text-slate-300">Download Additional Audio Tracks</h3>
+          </div>
+          
+          <div className="space-y-2">
+             <h4 className="text-xs text-slate-400 uppercase font-semibold">Available Tracks</h4>
+             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {Object.keys(LANGUAGE_NAMES).map(lang => {
+                  const hasTrack = !!audioTracks[lang];
+                  const status = retryStatus[lang];
+                  return (
+                    <div key={lang} className="flex flex-col gap-1 p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                       <div className="flex justify-between items-center">
+                          <span className={`text-sm ${hasTrack ? 'text-white' : 'text-slate-500'}`}>{LANGUAGE_NAMES[lang]}</span>
+                          {hasTrack ? (
+                             <button onClick={(e) => handleDownloadAudio(lang, e)} className="text-purple-400 hover:text-purple-300" title="Download Audio">
+                                <Download size={14} />
+                             </button>
+                          ) : (
+                             <button 
+                               onClick={() => handleRetryLanguage(lang)} 
+                               disabled={status === 'loading'}
+                               className="text-orange-400 hover:text-orange-300 disabled:opacity-50" 
+                               title="Retry Generation"
+                             >
+                                <RefreshCw size={14} className={status === 'loading' ? 'animate-spin' : ''} />
+                             </button>
+                          )}
+                       </div>
+                       {!hasTrack && <span className="text-[10px] text-orange-400 flex items-center gap-1"><AlertCircle size={10}/> Failed</span>}
+                    </div>
+                  );
+                })}
+             </div>
+          </div>
+          
+          <button
+            onClick={handleDownloadAllAudio}
+            disabled={isDownloadingZip}
+            className="w-full text-sm flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {isDownloadingZip ? <RefreshCw size={14} className="animate-spin" /> : <Archive size={14} />}
+            Download All Audio (ZIP)
+          </button>
+        </div>
+      )}
 
       <div className="flex gap-4">
         <button
