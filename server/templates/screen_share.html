@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>AI Whiteboard Teaching Workspace</title>
   <!-- Modern educational fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&family=Noto+Sans+Kannada:wght@400;500;600;700&family=Noto+Sans+Malayalam:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -182,7 +182,7 @@
     #whiteboard-window {
       background: #fafbfc;
       color: #1e293b;
-      font-family: 'Outfit', 'Inter', 'Segoe UI', sans-serif;
+      font-family: 'Outfit', 'Inter', 'Noto Sans Tamil', 'Noto Sans Devanagari', 'Noto Sans Telugu', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Segoe UI', sans-serif;
     }
 
     .wb-header {
@@ -214,9 +214,9 @@
     }
 
     .wb-toolbar {
+      display: none !important; /* Hidden from final video per requirements */
       background: #ffffff;
       height: 58px;
-      display: flex;
       align-items: center;
       justify-content: center;
       gap: 18px;
@@ -341,22 +341,32 @@
       background: #ffffff;
     }
     .wb-canvas {
-      width: 4000px;
-      height: 4000px;
-      position: absolute;
-      top: 0;
-      left: 0;
+      width: 100%;
+      height: 100%;
+      position: relative;
       background-color: #ffffff;
       background-image: none;
-      transform-origin: 0 0;
+      transform-origin: center center;
       transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      padding: 80px;
+      padding: 40px 80px;
       box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: pre-wrap;
+    }
+    .wb-canvas * {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
 
     /* Whiteboard elements container */
     .wb-element {
-      position: absolute;
+      position: relative;
+      width: 100%;
       opacity: 0;
       transform: translateY(30px) scale(0.96);
       transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
@@ -370,9 +380,10 @@
     /* Text engine cards */
     .wb-card {
       padding: 32px;
+      width: 100%;
     }
     .wb-title {
-      font-size: 40px;
+      font-size: clamp(32px, 5vh, 48px);
       font-weight: 800;
       color: #0f172a;
       margin-bottom: 16px;
@@ -380,7 +391,7 @@
       letter-spacing: -0.025em;
     }
     .wb-section-heading {
-      font-size: 24px;
+      font-size: clamp(20px, 3vh, 30px);
       font-weight: 700;
       color: #1e293b;
       margin-top: 20px;
@@ -390,7 +401,7 @@
       display: inline-block;
     }
     .wb-paragraph {
-      font-size: 16px;
+      font-size: clamp(16px, 2.5vh, 24px);
       line-height: 1.75;
       color: #334155;
       margin-bottom: 16px;
@@ -398,7 +409,7 @@
     .wb-list {
       margin-left: 24px;
       margin-bottom: 16px;
-      font-size: 16px;
+      font-size: clamp(16px, 2.5vh, 24px);
       line-height: 1.75;
       color: #334155;
     }
@@ -607,19 +618,7 @@
       <span class="wb-header-title" id="wb-lesson-title-label">Lesson Overview</span>
       <div style="width: 80px;"></div>
     </div>
-    <div class="wb-toolbar">
-      <div class="wb-tool-item"><span class="wb-tool-icon">✏️</span> Pen</div>
-      <div class="wb-tool-item"><span class="wb-tool-icon">🖍️</span> Highlighter</div>
-      <div class="wb-tool-item active"><span class="wb-tool-icon">T</span> Text</div>
-      <div class="wb-tool-item"><span class="wb-tool-icon">◻️</span> Shapes</div>
-      <div class="wb-tool-item"><span class="wb-tool-icon">📈</span> Diagram</div>
-      <div class="wb-tool-item"><span class="wb-tool-icon">🖼️</span> Image</div>
-      <div class="wb-divider"></div>
-      <div class="wb-tool-item"><span class="wb-tool-icon">↶</span> Undo</div>
-      <div class="wb-tool-item"><span class="wb-tool-icon">↷</span> Redo</div>
-      <div class="wb-divider"></div>
-      <div class="wb-tool-item"><span class="wb-tool-icon">🔍</span> Zoom</div>
-    </div>
+    <!-- Toolbar removed -->
     <div class="wb-workspace">
       <div class="wb-teacher-col">
         <div class="wb-avatar-card">
@@ -1056,20 +1055,15 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
   var viewport = document.getElementById('wb-viewport');
   var canvas = document.getElementById('wb-canvas');
   if (viewport && canvas) {
-    var transformStr = 'scale(1) translate(0px, 0px)';
-    
-    // Zoom in on text card during typing
-    if (progress > 0.15 && progress <= 0.75) {
-      transformStr = 'scale(1.05) translate(-20px, -20px)';
-    } 
-    // Pan to diagram when it is revealed
-    else if (progress > 0.75 && progress < 0.9 && diagramCard) {
-      transformStr = 'scale(1.05) translate(-420px, -20px)';
+    // Dynamic text auto-scaling to prevent overflow
+    var scale = 1;
+    // For flex containers, scrollHeight reflects the total content height
+    while (canvas.scrollHeight > canvas.clientHeight && scale > 0.4) {
+      scale -= 0.05;
+      // Temporarily apply scale to check if it fits
+      canvas.style.transform = 'scale(' + scale + ')';
     }
-    // Return to full view at the end
-    else if (progress >= 0.9) {
-      transformStr = 'scale(0.98) translate(0px, 0px)';
-    }
+    var transformStr = 'scale(' + scale + ')';
     canvas.style.transform = transformStr;
   }
   

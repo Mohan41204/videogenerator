@@ -1,0 +1,33 @@
+{
+  "default": {
+    "voiceId": "custom-voice-943f920b-c99c-44d6-9585-ab0c97b6b306",
+    "status": "READY",
+    "originalFile": "voice_1788281641534.wav",
+    "language": "en",
+    "name": "Ram",
+    "createdAt": "2026-09-01T16:54:01.609Z"
+  },
+  "custom-voice-e0e5917c-6450-4d5f-b7f5-97973916aace": {
+    "voiceId": "custom-voice-e0e5917c-6450-4d5f-b7f5-97973916aace",
+    "status": "READY",
+    "originalFile": "voice_1788281149540.webm",
+    "language": "en",
+    "createdAt": "2026-09-01T16:45:49.602Z"
+  },
+  "custom-voice-735ebcd8-33d7-4b05-aafa-f9d88a1f79f1": {
+    "voiceId": "custom-voice-735ebcd8-33d7-4b05-aafa-f9d88a1f79f1",
+    "status": "READY",
+    "originalFile": "voice_1788281343088.wav",
+    "language": "en",
+    "name": "Anitha",
+    "createdAt": "2026-09-01T16:49:03.175Z"
+  },
+  "custom-voice-943f920b-c99c-44d6-9585-ab0c97b6b306": {
+    "voiceId": "custom-voice-943f920b-c99c-44d6-9585-ab0c97b6b306",
+    "status": "READY",
+    "originalFile": "voice_1788281641534.wav",
+    "language": "en",
+    "name": "Ram",
+    "createdAt": "2026-09-01T16:54:01.609Z"
+  }
+}

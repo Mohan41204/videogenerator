@@ -35,8 +35,16 @@ const cleanJsonString = (str) => {
 
 const generateVideo = async (req, res) => {
   try {
-    const { text, format } = req.body;
+    const { text, format, languages, voiceId } = req.body;
     const backgroundPath = req.file ? req.file.path : null;
+    let selectedLanguages = null;
+    if (languages) {
+      try {
+        selectedLanguages = JSON.parse(languages);
+      } catch(e) {
+        console.error('Failed to parse languages from request');
+      }
+    }
 
     if (!text) {
       return res.status(400).json({ success: false, message: 'Text is required' });
@@ -108,6 +116,8 @@ const generateVideo = async (req, res) => {
 
     const SUPPORTED_LANGUAGES = require('../config/languages');
     const translationService = require('../services/translation.service');
+    const { getActiveVoiceId } = require('./voice.controller');
+    const resolvedVoiceId = voiceId || getActiveVoiceId();
 
     // --- STEP 1: Generate English (Ground Truth) Audio ---
     console.log(`Generating English audio for ${slides.length} slides...`);
@@ -118,7 +128,7 @@ const generateVideo = async (req, res) => {
     for (let i = 0; i < slides.length; i++) {
       const slide = slides[i];
       const chunkPath = path.join(outputDir, `${uniqueId}_chunk_${i}_en.mp3`);
-      await audioService.generateAudio(slide.narration || ' ', chunkPath, 'en');
+      await audioService.generateAudio(slide.narration || ' ', chunkPath, 'en', resolvedVoiceId);
       const duration = await audioService.getAudioDuration(chunkPath);
       englishAudioPaths.push(chunkPath);
       englishDurations.push(duration);
@@ -136,25 +146,47 @@ const generateVideo = async (req, res) => {
     console.log('Merging screen video with English audio...');
     await ffmpegService.mergeVideoAndAudio(screenVideoPath, englishMasterPath, finalVideoPath);
 
-    // --- STEP 4: Generate Multilingual Audio (Concurrent) ---
+    // --- STEP 4: Generate Multilingual Videos (Concurrent) ---
     const enableMultilingual = process.env.ENABLE_MULTILINGUAL_AUDIO === 'true';
-    const audioTracks = { en: `/output/audio/${uniqueId}_english.mp3` };
+    const videos = {
+      en: {
+        url: `/output/video/${uniqueId}.mp4`,
+        language: 'English',
+        code: 'en',
+        slides: slides
+      }
+    };
+    const failedLanguages = [];
     let status = 'success';
 
     if (enableMultilingual) {
-      console.log('Generating multilingual audio tracks...');
-      const langCodes = Object.keys(SUPPORTED_LANGUAGES).filter(k => k !== 'en');
+      console.log('Generating multilingual videos...');
+      let langCodes = Object.keys(SUPPORTED_LANGUAGES).filter(k => k !== 'en');
+      if (selectedLanguages && Array.isArray(selectedLanguages)) {
+        langCodes = langCodes.filter(k => selectedLanguages.includes(k));
+      }
       
-      const generationTasks = langCodes.map(async (lang) => {
+      for (const lang of langCodes) {
         const langConfig = SUPPORTED_LANGUAGES[lang];
-        const masterLangPath = path.join(audioDir, `${uniqueId}_${langConfig.fileName}`);
+        // Ensure language specific name
+        const langVideoFileName = `${uniqueId}_${langConfig.code}.mp4`;
+        const langVideoPath = path.join(videoDir, langVideoFileName);
+        const masterLangAudioPath = path.join(audioDir, `${uniqueId}_${langConfig.fileName}`);
+        const langScreenVideoPath = path.join(outputDir, `${uniqueId}_screen_${lang}.mp4`);
+        
         try {
+          // 1. Translate the entire slide deck
+          console.log(`Translating slides for ${langConfig.name}...`);
+          const langSlides = await translationService.translateSlides(slides, langConfig.name);
+          
+          // 2. Generate target language audio chunks using the translated narration
           const langChunks = [];
-          for (let i = 0; i < slides.length; i++) {
-            const slide = slides[i];
-            const translatedNarration = await translationService.translateText(slide.narration || ' ', langConfig.name);
+          for (let i = 0; i < langSlides.length; i++) {
+            const slide = langSlides[i];
+            // Use original English narration and convert it to mixed-language conversational style
+            const translatedNarration = await translationService.translateText(slides[i].narration || ' ', langConfig.name);
             const rawChunkPath = path.join(outputDir, `${uniqueId}_rawchunk_${i}_${lang}.mp3`);
-            await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code);
+            await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, voiceId);
             
             // Adjust duration to exactly match English chunk
             const adjustedChunkPath = path.join(outputDir, `${uniqueId}_chunk_${i}_${lang}.mp3`);
@@ -162,35 +194,58 @@ const generateVideo = async (req, res) => {
             langChunks.push(adjustedChunkPath);
             fs.unlink(rawChunkPath, () => {});
           }
-          await audioService.mergeAudioFiles(langChunks, masterLangPath);
-          audioTracks[lang] = `/output/audio/${uniqueId}_${langConfig.fileName}`;
-          // Cleanup chunks
+          await audioService.mergeAudioFiles(langChunks, masterLangAudioPath);
+          
+          // 3. Render animated silent video for this specific language
+          console.log(`Rendering localized video for ${langConfig.name}...`);
+          await renderer.renderVideo(langSlides, englishDurations, langScreenVideoPath);
+          
+          // 4. Merge localized video + localized audio
+          await ffmpegService.mergeVideoAndAudio(langScreenVideoPath, masterLangAudioPath, langVideoPath);
+          
+          videos[lang] = {
+            url: `/output/video/${langVideoFileName}`,
+            language: langConfig.name,
+            code: langConfig.code,
+            slides: langSlides
+          };
+          
+          // Cleanup chunks and intermediate files
           langChunks.forEach(p => fs.unlink(p, () => {}));
+          fs.unlink(masterLangAudioPath, () => {});
+          fs.unlink(langScreenVideoPath, () => {});
         } catch (err) {
-          console.error(`Failed to generate audio for ${lang}:`, err);
+          console.error(`Failed to generate localized video for ${lang}:`, err);
           status = 'partial';
+          failedLanguages.push({ code: lang, error: err.message });
         }
-      });
-      await Promise.allSettled(generationTasks);
+      }
     }
 
     // Save metadata for potential regeneration
     const metadataPath = path.join(outputDir, `${uniqueId}_metadata.json`);
-    fs.writeFileSync(metadataPath, JSON.stringify({ slides, englishDurations }));
+    fs.writeFileSync(metadataPath, JSON.stringify({
+      slides,
+      englishDurations,
+      languages: videos,
+      voiceId: resolvedVoiceId
+    }, null, 2));
 
     // --- STEP 5: Clean up temporary files ---
     if (backgroundPath && req.file) fs.unlink(backgroundPath, () => {});
     fs.unlink(screenVideoPath, () => {});
     englishAudioPaths.forEach(p => fs.unlink(p, () => {}));
+    fs.unlink(englishMasterPath, () => {}); // we can clean the master english audio too
 
     res.status(200).json({
       success: true,
       status: status,
-      message: status === 'partial' ? 'Video generated with partial audio tracks' : 'Video generated successfully',
+      message: status === 'partial' ? 'Video generated with some language failures' : 'Video generated successfully',
+      failedLanguages: failedLanguages.length > 0 ? failedLanguages : undefined,
       data: { 
         videoUrl: `/output/video/${uniqueId}.mp4`,
         id: uniqueId,
-        audioTracks 
+        videos 
       }
     });
 
@@ -536,7 +591,7 @@ Ensure the steps logically flow like a real human navigating the console. Do NOT
   }
 };
 
-const regenerateAudio = async (req, res) => {
+const regenerateLanguageVideo = async (req, res) => {
   try {
     const { id, lang } = req.params;
     const outputDir = path.join(__dirname, '../output');
@@ -553,21 +608,44 @@ const regenerateAudio = async (req, res) => {
     }
 
     const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-    const { slides, englishDurations } = metadata;
+    const { englishDurations, languages, voiceId: savedVoiceId } = metadata;
+    
+    // Fallback to original slides if languages data is missing this language
+    const originalSlides = metadata.slides;
+    const langSlides = languages && languages[lang] && languages[lang].slides 
+                       ? languages[lang].slides 
+                       : originalSlides; // fallback
+
     const translationService = require('../services/translation.service');
     const audioService = require('../services/audio.service');
+    const ffmpegService = require('../services/ffmpeg.service');
     
     const audioDir = path.join(outputDir, 'audio');
+    const videoDir = path.join(outputDir, 'video');
     if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
+    if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir, { recursive: true });
 
-    const masterLangPath = path.join(audioDir, `${id}_${langConfig.fileName}`);
+    // 1. Re-render silent video using localized slides
+    console.log(`Re-rendering localized silent video for ${id} in ${lang}...`);
+    const screenVideoPath = path.join(outputDir, `${id}_screen_regen_${lang}.mp4`);
+    const rendererFactory = require('../renderer/rendererFactory');
+    const type = (langSlides.length > 0 && langSlides[0].type) ? langSlides[0].type : 'programming';
+    const renderer = rendererFactory.getRenderer(type);
+    await renderer.renderVideo(langSlides, englishDurations, screenVideoPath);
+
+    // 2. Generate target language audio using localized slides
+    const masterLangAudioPath = path.join(audioDir, `${id}_${langConfig.fileName}`);
     const langChunks = [];
 
-    for (let i = 0; i < slides.length; i++) {
-      const slide = slides[i];
-      const translatedNarration = await translationService.translateText(slide.narration || ' ', langConfig.name);
+    const { getActiveVoiceId } = require('./voice.controller');
+    const voiceId = req.body.voiceId || savedVoiceId || getActiveVoiceId();
+
+    for (let i = 0; i < langSlides.length; i++) {
+      const slide = langSlides[i];
+      // Always translate original English narration to mixed-language conversational style for audio
+      const translatedNarration = await translationService.translateText(originalSlides[i].narration || ' ', langConfig.name);
       const rawChunkPath = path.join(outputDir, `${id}_rawchunk_${i}_${lang}.mp3`);
-      await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code);
+      await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, voiceId);
       
       const adjustedChunkPath = path.join(outputDir, `${id}_chunk_${i}_${lang}.mp3`);
       await audioService.adjustAudioDuration(rawChunkPath, adjustedChunkPath, englishDurations[i]);
@@ -575,18 +653,29 @@ const regenerateAudio = async (req, res) => {
       fs.unlink(rawChunkPath, () => {});
     }
 
-    await audioService.mergeAudioFiles(langChunks, masterLangPath);
+    await audioService.mergeAudioFiles(langChunks, masterLangAudioPath);
+    
+    // 3. Merge localized audio and video
+    const langVideoFileName = `${id}_${langConfig.code}.mp4`;
+    const langVideoPath = path.join(videoDir, langVideoFileName);
+    
+    console.log(`Merging regenerated video for ${lang}...`);
+    await ffmpegService.mergeVideoAndAudio(screenVideoPath, masterLangAudioPath, langVideoPath);
+
+    // Cleanup
     langChunks.forEach(p => fs.unlink(p, () => {}));
+    fs.unlink(screenVideoPath, () => {});
+    fs.unlink(masterLangAudioPath, () => {});
 
     res.status(200).json({
       success: true,
-      message: `${langConfig.name} audio regenerated successfully`,
-      data: { url: `/output/audio/${id}_${langConfig.fileName}` }
+      message: `${langConfig.name} video regenerated successfully`,
+      data: { url: `/output/video/${langVideoFileName}` }
     });
 
   } catch (error) {
-    console.error(`Regenerate audio error for ${req.params.lang}:`, error);
-    res.status(500).json({ success: false, message: 'Failed to regenerate audio', error: error.message });
+    console.error(`Regenerate video error for ${req.params.lang}:`, error);
+    res.status(500).json({ success: false, message: 'Failed to regenerate language video', error: error.message });
   }
 };
 
@@ -594,5 +683,5 @@ module.exports = {
   generateVideo,
   generateScript,
   generateAwsScript,
-  regenerateAudio
+  regenerateLanguageVideo
 };

@@ -8,27 +8,17 @@ const ffmpegPath = require('ffmpeg-static');
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
 
-const generateSingleAudio = (text, outputPath, langCode = 'en') => {
-  return new Promise((resolve, reject) => {
-    try {
-      const gtts = new gTTS(text, langCode);
-      if (langCode === 'en') {
-        gtts.lang = 'en-in'; // Set to Indian English accent
-      } else {
-        // gTTS supports 'ta', 'hi', 'ml', 'te', 'kn' directly
-        gtts.lang = langCode;
-      }
-      gtts.save(outputPath, function (err, result) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(outputPath);
-        }
-      });
-    } catch (error) {
-      reject(error);
-    }
-  });
+const GoogleCustomVoiceProvider = require('./tts/GoogleCustomVoiceProvider');
+const ttsProvider = new GoogleCustomVoiceProvider();
+
+const generateSingleAudio = async (text, outputPath, langCode = 'en', voiceId = null) => {
+  try {
+    await ttsProvider.generateSpeech({ text, language: langCode, voiceId, outputPath });
+    return outputPath;
+  } catch (error) {
+    console.error('generateSingleAudio Error:', error);
+    throw error;
+  }
 };
 
 const generateSilence = (duration, outputPath) => {
@@ -59,7 +49,7 @@ const getPauseDuration = (punctuation) => {
   return 0.4;
 };
 
-const generateAudio = async (text, outputPath, langCode = 'en') => {
+const generateAudio = async (text, outputPath, langCode = 'en', voiceId = null) => {
   try {
     const uniqueId = path.basename(outputPath, '.mp3');
     const outputDir = path.dirname(outputPath);
@@ -93,7 +83,7 @@ const generateAudio = async (text, outputPath, langCode = 'en') => {
         const seg = segments[i];
         const speechPath = path.join(outputDir, `${uniqueId}_sub_${i}_speech_${langCode}.mp3`);
 
-        await generateSingleAudio(seg.text, speechPath, langCode);
+        await generateSingleAudio(seg.text, speechPath, langCode, voiceId);
         tempFiles.push(speechPath);
 
         const pauseDur = getPauseDuration(seg.punctuation);

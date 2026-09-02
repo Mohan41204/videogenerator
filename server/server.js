@@ -36,7 +36,10 @@ app.use('/output', express.static(path.join(__dirname, 'output')));
 
 // Routes
 const videoRoutes = require('./routes/video.routes');
+const voiceRoutes = require('./routes/voice.routes');
+
 app.use('/api/videos', videoRoutes);
+app.use('/api/voice', voiceRoutes);
 
 // Error Middleware
 app.use((err, req, res, next) => {

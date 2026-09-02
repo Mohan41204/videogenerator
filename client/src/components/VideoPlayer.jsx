@@ -16,46 +16,21 @@ const VideoPlayer = ({ videoData, script }) => {
   const [isDownloadingMP4, setIsDownloadingMP4] = useState(false);
   const [isDownloadingPPT, setIsDownloadingPPT] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
-  const [isDownloadingAudio, setIsDownloadingAudio] = useState(false);
+  const [isDownloadingVideoLang, setIsDownloadingVideoLang] = useState(false);
   
   const [selectedLang, setSelectedLang] = useState('en');
   const [retryStatus, setRetryStatus] = useState({});
   const [localVideoData, setLocalVideoData] = useState(null);
 
   const videoRef = useRef(null);
-  const audioRef = useRef(null);
 
   useEffect(() => {
     setLocalVideoData(videoData);
-    if (videoData?.audioTracks && !videoData.audioTracks[selectedLang]) {
+    if (videoData?.videos && !videoData.videos[selectedLang]) {
       setSelectedLang('en');
     }
   }, [videoData]);
 
-  // Sync audio with video
-  useEffect(() => {
-    const video = videoRef.current;
-    const audio = audioRef.current;
-    if (!video || !audio) return;
-
-    const handlePlay = () => audio.play().catch(e => console.log("Audio play prevented"));
-    const handlePause = () => audio.pause();
-    const handleSeek = () => { audio.currentTime = video.currentTime; };
-    const handleRateChange = () => { audio.playbackRate = video.playbackRate; };
-
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-    video.addEventListener('seeked', handleSeek);
-    video.addEventListener('ratechange', handleRateChange);
-
-    return () => {
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
-      video.removeEventListener('seeked', handleSeek);
-      video.removeEventListener('ratechange', handleRateChange);
-    };
-  }, [selectedLang, localVideoData]);
-  
   const handleDownloadFile = async (url, filename, setLoader) => {
     if (setLoader) setLoader(true);
     try {
@@ -83,41 +58,41 @@ const VideoPlayer = ({ videoData, script }) => {
     handleDownloadFile(`http://localhost:5000${localVideoData.videoUrl}`, 'generated-video.mp4', setIsDownloadingMP4);
   };
 
-  const handleDownloadAudio = (langCode, e) => {
+  const handleDownloadLanguageVideo = (langCode, e) => {
     e.preventDefault();
-    if (isDownloadingAudio) return;
-    const url = localVideoData.audioTracks[langCode];
+    if (isDownloadingVideoLang) return;
+    const url = localVideoData.videos[langCode]?.url;
     if (url) {
-      handleDownloadFile(`http://localhost:5000${url}`, `audio_${LANGUAGE_NAMES[langCode]}.mp3`, setIsDownloadingAudio);
+      handleDownloadFile(`http://localhost:5000${url}`, `video_${LANGUAGE_NAMES[langCode]}.mp4`, setIsDownloadingVideoLang);
     }
   };
 
-  const handleDownloadAllAudio = async (e) => {
+  const handleDownloadAllVideos = async (e) => {
     e.preventDefault();
     if (isDownloadingZip) return;
     setIsDownloadingZip(true);
     try {
       const zip = new JSZip();
-      const tracks = localVideoData.audioTracks || {};
-      for (const [lang, url] of Object.entries(tracks)) {
-        if (!url) continue;
-        const response = await fetch(`http://localhost:5000${url}`);
+      const tracks = localVideoData.videos || {};
+      for (const [lang, videoObj] of Object.entries(tracks)) {
+        if (!videoObj || !videoObj.url) continue;
+        const response = await fetch(`http://localhost:5000${videoObj.url}`);
         const blob = await response.blob();
-        zip.file(`audio_${LANGUAGE_NAMES[lang]}.mp3`, blob);
+        zip.file(`video_${LANGUAGE_NAMES[lang]}.mp4`, blob);
       }
       
       const content = await zip.generateAsync({ type: "blob" });
       const blobUrl = window.URL.createObjectURL(content);
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = 'all_audio_tracks.zip';
+      link.download = 'all_language_videos.zip';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error("Error zipping:", err);
-      alert("Failed to create ZIP. You can download tracks individually.");
+      alert("Failed to create ZIP. You can download videos individually.");
     } finally {
       setIsDownloadingZip(false);
     }
@@ -168,18 +143,24 @@ const VideoPlayer = ({ videoData, script }) => {
   const handleRetryLanguage = async (lang) => {
     setRetryStatus(prev => ({ ...prev, [lang]: 'loading' }));
     try {
-      const response = await fetch(`http://localhost:5000/api/videos/${localVideoData.id}/audio/${lang}/regenerate`, {
+      const response = await fetch(`http://localhost:5000/api/videos/${localVideoData.id}/video/${lang}/regenerate`, {
         method: 'POST'
       });
       const result = await response.json();
       if (result.success) {
         setLocalVideoData(prev => ({
           ...prev,
-          audioTracks: { ...prev.audioTracks, [lang]: result.data.url }
+          videos: { 
+            ...prev.videos, 
+            [lang]: {
+              ...prev.videos[lang],
+              url: result.data.url 
+            }
+          }
         }));
         setRetryStatus(prev => ({ ...prev, [lang]: 'success' }));
         if (selectedLang === lang) {
-            setSelectedLang('en'); // force re-render/reload audio
+            setSelectedLang('en'); // force re-render/reload video
             setTimeout(() => setSelectedLang(lang), 50);
         }
       } else {
@@ -202,21 +183,37 @@ const VideoPlayer = ({ videoData, script }) => {
     );
   }
 
-  const audioTracks = localVideoData.audioTracks || {};
-  // Always show the audio track panel if audioTracks is provided by backend
-  const isMultilingualEnabled = Object.keys(audioTracks).length > 0;
+  const videos = localVideoData.videos || {};
+  const isMultilingualEnabled = Object.keys(videos).length > 0;
+  
+  const currentVideoUrl = videos[selectedLang]?.url || localVideoData.videoUrl;
 
   return (
     <div className="space-y-4 animate-fade-in">
+      {isMultilingualEnabled && (
+         <div className="flex justify-center gap-2 mb-4">
+            {Object.keys(videos).map(lang => (
+              <button
+                key={lang}
+                onClick={() => setSelectedLang(lang)}
+                className={`px-4 py-1 text-sm rounded-full transition-colors ${selectedLang === lang ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+              >
+                {LANGUAGE_NAMES[lang]}
+              </button>
+            ))}
+         </div>
+      )}
+
       <div className="glass-panel p-2 rounded-2xl shadow-2xl relative group overflow-hidden">
         {/* Glow effect behind video */}
         <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
         <video
+          key={currentVideoUrl} // Re-mount video element on src change
           ref={videoRef}
           controls
           className="w-full h-auto max-h-[60vh] object-contain rounded-xl bg-black relative z-10"
-          src={`http://localhost:5000${localVideoData.videoUrl}`}
+          src={`http://localhost:5000${currentVideoUrl}`}
         >
           Your browser does not support the video tag.
         </video>
@@ -225,21 +222,21 @@ const VideoPlayer = ({ videoData, script }) => {
       {isMultilingualEnabled && (
         <div className="glass-panel p-4 rounded-xl border border-slate-700 space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-sm font-medium text-slate-300">Download Additional Audio Tracks</h3>
+            <h3 className="text-sm font-medium text-slate-300">Download Language Videos</h3>
           </div>
           
           <div className="space-y-2">
-             <h4 className="text-xs text-slate-400 uppercase font-semibold">Available Tracks</h4>
+             <h4 className="text-xs text-slate-400 uppercase font-semibold">Available Videos</h4>
              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {Object.keys(LANGUAGE_NAMES).map(lang => {
-                  const hasTrack = !!audioTracks[lang];
+                  const hasTrack = !!videos[lang];
                   const status = retryStatus[lang];
                   return (
                     <div key={lang} className="flex flex-col gap-1 p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
                        <div className="flex justify-between items-center">
                           <span className={`text-sm ${hasTrack ? 'text-white' : 'text-slate-500'}`}>{LANGUAGE_NAMES[lang]}</span>
                           {hasTrack ? (
-                             <button onClick={(e) => handleDownloadAudio(lang, e)} className="text-purple-400 hover:text-purple-300" title="Download Audio">
+                             <button onClick={(e) => handleDownloadLanguageVideo(lang, e)} className="text-purple-400 hover:text-purple-300" title="Download Video">
                                 <Download size={14} />
                              </button>
                           ) : (
@@ -261,12 +258,12 @@ const VideoPlayer = ({ videoData, script }) => {
           </div>
           
           <button
-            onClick={handleDownloadAllAudio}
+            onClick={handleDownloadAllVideos}
             disabled={isDownloadingZip}
             className="w-full text-sm flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-lg transition-colors disabled:opacity-50"
           >
             {isDownloadingZip ? <RefreshCw size={14} className="animate-spin" /> : <Archive size={14} />}
-            Download All Audio (ZIP)
+            Download All Videos (ZIP)
           </button>
         </div>
       )}

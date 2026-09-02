@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { UploadCloud, Wand2, MonitorPlay, Smartphone, Download } from 'lucide-react';
+import VoiceRecorder from './VoiceRecorder';
 
 const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [topic, setTopic] = useState('');
@@ -11,10 +12,58 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [text, setText] = useState('');
   const [format, setFormat] = useState('16:9');
   const [background, setBackground] = useState(null);
+  const [selectedLanguages, setSelectedLanguages] = useState(['ta', 'hi', 'ml', 'te', 'kn']);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0); // Mock progress
   const [scriptProgress, setScriptProgress] = useState(0);
   const [tutorialType, setTutorialType] = useState('programming');
+  const [testText, setTestText] = useState('This is a test of the custom voice system.');
+  const [testLang, setTestLang] = useState('ta');
+  const [isTestingVoice, setIsTestingVoice] = useState(false);
+  const [testAudioUrl, setTestAudioUrl] = useState(null);
+  const [voices, setVoices] = useState([]);
+  const [selectedVoiceId, setSelectedVoiceId] = useState('');
+
+  useEffect(() => {
+    fetchVoices();
+  }, []);
+
+  const fetchVoices = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/voice/list');
+      if (res.data.success) {
+        setVoices(res.data.voices);
+        if (res.data.voices.length > 0) {
+          setSelectedVoiceId(res.data.voices[0].voiceId);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch voices', e);
+    }
+  };
+
+  const handleTestVoice = async () => {
+    setIsTestingVoice(true);
+    setTestAudioUrl(null);
+    try {
+      const response = await axios.post('http://localhost:5000/api/voice/test', {
+        text: testText,
+        language: testLang,
+        voiceId: selectedVoiceId
+      });
+      if (response.data.success) {
+        setTestAudioUrl(`http://localhost:5000${response.data.audioUrl}`);
+        toast.success('Test audio generated successfully');
+      } else {
+        toast.error(response.data.message || 'Failed to test voice');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Error testing voice');
+    } finally {
+      setIsTestingVoice(false);
+    }
+  };
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -117,6 +166,8 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
     const formData = new FormData();
     formData.append('text', text);
     formData.append('format', format);
+    formData.append('languages', JSON.stringify(selectedLanguages));
+    formData.append('voiceId', selectedVoiceId);
     if (background) {
       formData.append('background', background);
     }
@@ -143,7 +194,8 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
   };
 
   return (
-    <div className="glass-panel rounded-2xl p-8 shadow-2xl relative overflow-hidden group">
+    <div className="flex flex-col gap-8">
+      <div className="glass-panel rounded-2xl p-8 shadow-2xl relative overflow-hidden group">
       {/* Decorative gradient orb */}
       <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-all duration-700"></div>
 
@@ -236,6 +288,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
                 <option value={15} className="bg-slate-800 text-white">15 Mins (Standard)</option>
                 <option value={30} className="bg-slate-800 text-white">30 Mins (Detailed)</option>
                 <option value={40} className="bg-slate-800 text-white">40 Mins (Full Masterclass)</option>
+                <option value={60} className="bg-slate-800 text-white">60 Mins (Deep Dive Course)</option>
               </select>
             </div>
           </div>
@@ -345,6 +398,106 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
           </div>
         )}
 
+        {/* Language Selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-300">Additional Languages</label>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { code: 'ta', name: 'Tamil' },
+              { code: 'hi', name: 'Hindi' },
+              { code: 'ml', name: 'Malayalam' },
+              { code: 'te', name: 'Telugu' },
+              { code: 'kn', name: 'Kannada' }
+            ].map(lang => (
+              <label key={lang.code} className="flex items-center gap-2 cursor-pointer bg-slate-800/50 px-3 py-2 rounded-lg border border-slate-700 hover:border-purple-500 transition-all">
+                <input 
+                  type="checkbox" 
+                  checked={selectedLanguages.includes(lang.code)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedLanguages([...selectedLanguages, lang.code]);
+                    } else {
+                      setSelectedLanguages(selectedLanguages.filter(c => c !== lang.code));
+                    }
+                  }}
+                  disabled={isGenerating}
+                  className="rounded text-purple-500 focus:ring-purple-500 bg-slate-900 border-slate-600"
+                />
+                <span className="text-sm text-slate-300">{lang.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Voice Selection */}
+        {voices.length > 0 && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+              <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+              Select Teacher Voice
+            </label>
+            <select
+              value={selectedVoiceId}
+              onChange={(e) => setSelectedVoiceId(e.target.value)}
+              className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+              disabled={isGeneratingScript || isGenerating}
+            >
+              {voices.map(v => (
+                <option key={v.voiceId} value={v.voiceId}>
+                  {v.name || v.voiceId} ({new Date(v.createdAt).toLocaleString()})
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-500">This voice will be used to narrate all selected languages.</p>
+          </div>
+        )}
+
+        {/* Voice Test Feature */}
+        <div className="bg-slate-800/30 p-5 rounded-xl border border-slate-700">
+          <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+            <MonitorPlay size={16} className="text-blue-400" />
+            Test Custom Voice Translation
+          </h3>
+          <div className="flex flex-col md:flex-row gap-3 items-end">
+            <div className="flex-1 space-y-2 w-full">
+              <label className="text-xs text-slate-400">English Text to Translate</label>
+              <input 
+                type="text" 
+                value={testText}
+                onChange={(e) => setTestText(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="space-y-2 w-full md:w-32">
+              <label className="text-xs text-slate-400">Language</label>
+              <select 
+                value={testLang} 
+                onChange={(e) => setTestLang(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="ta">Tamil</option>
+                <option value="hi">Hindi</option>
+                <option value="ml">Malayalam</option>
+                <option value="te">Telugu</option>
+                <option value="kn">Kannada</option>
+              </select>
+            </div>
+            <button 
+              type="button" 
+              onClick={handleTestVoice}
+              disabled={isTestingVoice}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap h-[42px] flex items-center disabled:opacity-50"
+            >
+              {isTestingVoice ? 'Generating...' : 'Generate Test'}
+            </button>
+          </div>
+          {testAudioUrl && (
+            <div className="mt-4 pt-4 border-t border-slate-700">
+              <audio src={testAudioUrl} controls autoPlay className="w-full h-10" />
+            </div>
+          )}
+        </div>
+
         {/* Submit Button */}
         <button
           type="submit"
@@ -380,7 +533,17 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
           </div>
         )}
 
-      </form>
+        </form>
+      </div>
+      
+      <div className="mt-4">
+        <h2 className="text-xl font-bold text-slate-200 mb-4 px-2">Voice Management</h2>
+        <VoiceRecorder onVoiceSet={(id) => { 
+          console.log('Custom voice active:', id); 
+          fetchVoices();
+          setSelectedVoiceId(id);
+        }} />
+      </div>
     </div>
   );
 };
