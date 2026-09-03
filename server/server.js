@@ -31,15 +31,23 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Serve static files
-app.use('/output', express.static(path.join(__dirname, 'output')));
+// Serve static files (forces download header for MP4 videos)
+app.use('/output', express.static(path.join(__dirname, 'output'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.mp4')) {
+      res.setHeader('Content-Disposition', 'attachment');
+    }
+  }
+}));
 
 // Routes
 const videoRoutes = require('./routes/video.routes');
 const voiceRoutes = require('./routes/voice.routes');
+const generateRoutes = require('./routes/generate.routes');
 
 app.use('/api/videos', videoRoutes);
 app.use('/api/voice', voiceRoutes);
+app.use('/api/generate', generateRoutes);
 
 // Error Middleware
 app.use((err, req, res, next) => {
