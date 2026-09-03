@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { UploadCloud, Wand2, MonitorPlay, Smartphone, Download } from 'lucide-react';
-import VoiceRecorder from './VoiceRecorder';
 
 const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [topic, setTopic] = useState('');
@@ -17,53 +16,9 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [progress, setProgress] = useState(0); // Mock progress
   const [scriptProgress, setScriptProgress] = useState(0);
   const [tutorialType, setTutorialType] = useState('programming');
-  const [testText, setTestText] = useState('This is a test of the custom voice system.');
-  const [testLang, setTestLang] = useState('ta');
-  const [isTestingVoice, setIsTestingVoice] = useState(false);
-  const [testAudioUrl, setTestAudioUrl] = useState(null);
-  const [voices, setVoices] = useState([]);
-  const [selectedVoiceId, setSelectedVoiceId] = useState('');
+  const [selectedVoiceId, setSelectedVoiceId] = useState('google-cloud-tts-female');
 
-  useEffect(() => {
-    fetchVoices();
-  }, []);
 
-  const fetchVoices = async (preferredVoiceId) => {
-    try {
-      const res = await axios.get('http://localhost:5000/api/voice/list');
-      if (res.data.success) {
-        setVoices(res.data.voices);
-        if (preferredVoiceId) {
-          setSelectedVoiceId(preferredVoiceId);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to fetch voices', e);
-    }
-  };
-
-  const handleTestVoice = async () => {
-    setIsTestingVoice(true);
-    setTestAudioUrl(null);
-    try {
-      const response = await axios.post('http://localhost:5000/api/voice/test', {
-        text: testText,
-        language: testLang,
-        voiceId: selectedVoiceId
-      });
-      if (response.data.success) {
-        setTestAudioUrl(`http://localhost:5000${response.data.audioUrl}`);
-        toast.success('Test audio generated successfully');
-      } else {
-        toast.error(response.data.message || 'Failed to test voice');
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Error testing voice');
-    } finally {
-      setIsTestingVoice(false);
-    }
-  };
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -438,8 +393,8 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
               </svg>
               Select Teacher Voice
             </span>
-            <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium border ${selectedVoiceId ? 'bg-purple-900/30 text-purple-300 border-purple-700/50' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-              {selectedVoiceId ? 'Custom Voice' : 'Default Computer Voice'}
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-medium border bg-blue-900/30 text-blue-300 border-blue-700/50">
+              Google Cloud TTS
             </span>
           </label>
           <select
@@ -448,65 +403,15 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
             className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
             disabled={isGeneratingScript || isGenerating}
           >
-            <option value="">Default Computer Voice (Built-in natural TTS)</option>
-            {voices.map(v => (
-              <option key={v.voiceId} value={v.voiceId}>
-                {v.name || v.voiceId} (Custom Voice{v.createdAt ? ` - ${new Date(v.createdAt).toLocaleDateString()}` : ''})
-              </option>
-            ))}
+            <option value="google-cloud-tts-female">Google Cloud TTS (Female Wavenet)</option>
+            <option value="google-cloud-tts-male">Google Cloud TTS (Male Wavenet)</option>
           </select>
           <p className="text-xs text-slate-400">
-            {selectedVoiceId
-              ? "Custom recorded voice will be used to narrate all selected languages."
-              : "Standard computer voice will be used. No custom voice or Google Cloud setup required."}
+            High-quality Google Cloud Wavenet voice will be used for narration.
           </p>
         </div>
 
-        {/* Voice Test Feature */}
-        <div className="bg-slate-800/30 p-5 rounded-xl border border-slate-700">
-          <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-            <MonitorPlay size={16} className="text-blue-400" />
-            Test Custom Voice Translation
-          </h3>
-          <div className="flex flex-col md:flex-row gap-3 items-end">
-            <div className="flex-1 space-y-2 w-full">
-              <label className="text-xs text-slate-400">English Text to Translate</label>
-              <input 
-                type="text" 
-                value={testText}
-                onChange={(e) => setTestText(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div className="space-y-2 w-full md:w-32">
-              <label className="text-xs text-slate-400">Language</label>
-              <select 
-                value={testLang} 
-                onChange={(e) => setTestLang(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="ta">Tamil</option>
-                <option value="hi">Hindi</option>
-                <option value="ml">Malayalam</option>
-                <option value="te">Telugu</option>
-                <option value="kn">Kannada</option>
-              </select>
-            </div>
-            <button 
-              type="button" 
-              onClick={handleTestVoice}
-              disabled={isTestingVoice}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap h-[42px] flex items-center disabled:opacity-50"
-            >
-              {isTestingVoice ? 'Generating...' : 'Generate Test'}
-            </button>
-          </div>
-          {testAudioUrl && (
-            <div className="mt-4 pt-4 border-t border-slate-700">
-              <audio src={testAudioUrl} controls autoPlay className="w-full h-10" />
-            </div>
-          )}
-        </div>
+
 
         {/* Submit Button */}
         <button
@@ -544,14 +449,6 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
         )}
 
         </form>
-      </div>
-      
-      <div className="mt-4">
-        <h2 className="text-xl font-bold text-slate-200 mb-4 px-2">Voice Management</h2>
-        <VoiceRecorder onVoiceSet={(id) => { 
-          console.log('Custom voice active:', id); 
-          fetchVoices(id);
-        }} />
       </div>
     </div>
   );

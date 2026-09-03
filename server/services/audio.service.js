@@ -51,7 +51,11 @@ const generateSingleAudio = async (text, outputPath, langCode = 'en', voiceId = 
   // If a custom voice is selected, try using GoogleCustomVoiceProvider with fallback to default
   try {
     const provider = getCustomVoiceProvider();
-    await provider.generateSpeech({ text, language: langCode, voiceId, outputPath });
+    const isGoogleCloud = voiceId && typeof voiceId === 'string' && voiceId.startsWith('google-cloud-tts');
+    const passedVoiceId = isGoogleCloud ? null : voiceId;
+    const voiceGender = isGoogleCloud && voiceId.includes('male') && !voiceId.includes('female') ? 'male' : 'female';
+    
+    await provider.generateSpeech({ text, language: langCode, voiceId: passedVoiceId, voiceGender, outputPath });
     return outputPath;
   } catch (error) {
     console.warn(`[TTS] Custom voice provider failed for voice "${voiceId}" (${error.message}). Falling back to default computer voice (gTTS)...`);

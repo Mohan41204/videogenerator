@@ -30,26 +30,26 @@ class GoogleCustomVoiceProvider extends TTSProvider {
   /**
    * Generates speech and saves it to the output path.
    */
-  async generateSpeech({ text, language, voiceId, outputPath }) {
+  async generateSpeech({ text, language, voiceId, voiceGender, outputPath }) {
     if (!text || text.trim() === '') {
       throw new Error('Text is required for speech generation.');
     }
 
     // Determine standard voice mapping if custom voice is unavailable
-    let languageCode = 'en-US';
-    let defaultName = 'en-US-Journey-F'; // A natural sounding standard voice
+    let languageCode = 'en-IN';
+    let defaultName = voiceGender === 'male' ? 'en-IN-Wavenet-B' : 'en-IN-Wavenet-A'; 
     
     // Map language codes appropriately
     switch(language) {
-      case 'ta': languageCode = 'ta-IN'; defaultName = 'ta-IN-Standard-C'; break;
-      case 'hi': languageCode = 'hi-IN'; defaultName = 'hi-IN-Neural2-A'; break;
-      case 'te': languageCode = 'te-IN'; defaultName = 'te-IN-Standard-A'; break;
-      case 'kn': languageCode = 'kn-IN'; defaultName = 'kn-IN-Standard-A'; break;
-      case 'ml': languageCode = 'ml-IN'; defaultName = 'ml-IN-Standard-A'; break;
+      case 'ta': languageCode = 'ta-IN'; defaultName = voiceGender === 'male' ? 'ta-IN-Wavenet-B' : 'ta-IN-Wavenet-A'; break;
+      case 'hi': languageCode = 'hi-IN'; defaultName = voiceGender === 'male' ? 'hi-IN-Wavenet-B' : 'hi-IN-Wavenet-A'; break;
+      case 'te': languageCode = 'te-IN'; defaultName = voiceGender === 'male' ? 'te-IN-Wavenet-B' : 'te-IN-Wavenet-A'; break;
+      case 'kn': languageCode = 'kn-IN'; defaultName = voiceGender === 'male' ? 'kn-IN-Wavenet-B' : 'kn-IN-Wavenet-A'; break;
+      case 'ml': languageCode = 'ml-IN'; defaultName = voiceGender === 'male' ? 'ml-IN-Wavenet-B' : 'ml-IN-Wavenet-A'; break;
       case 'en': 
       default:
         languageCode = 'en-IN'; 
-        defaultName = 'en-IN-Neural2-A'; 
+        defaultName = voiceGender === 'male' ? 'en-IN-Wavenet-B' : 'en-IN-Wavenet-A'; 
         break;
     }
 
