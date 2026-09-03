@@ -9,8 +9,8 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      width: 1920px;
-      height: 1080px;
+      width: 100vw;
+      height: 100vh;
       overflow: hidden;
       background: #0f172a;
       font-family: 'Inter', sans-serif;
@@ -18,8 +18,8 @@
     }
 
     #desktop {
-      width: 1920px;
-      height: 1080px;
+      width: 100%;
+      height: 100%;
       position: relative;
     }
 
@@ -27,8 +27,8 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 1920px;
-      height: 1080px;
+      width: 100%;
+      height: 100%;
       border-radius: 0;
       overflow: hidden;
       display: flex;
@@ -488,15 +488,212 @@
 
     /* Diagrams embedded in whiteboard */
     .wb-diagram-container {
-      padding: 24px;
-      margin: 20px 0;
-      display: flex;
+      width: 100%;
+      max-width: 1300px;
+      min-height: 280px;
+      max-height: 420px;
+      padding: 16px 24px;
+      margin: 10px auto;
+      display: none; /* Hide until revealed to prevent blank reserved space */
       align-items: center;
       justify-content: center;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.04);
+      box-sizing: border-box;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    .wb-diagram-container.visible {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
     }
     .wb-diagram-container svg {
       max-width: 100%;
+      max-height: 380px;
+      width: auto;
       height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* Real-World Visual Scenario Container */
+    .wb-image-container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 8px auto;
+      display: none; /* Hide until revealed to prevent blank reserved space */
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+      padding: 14px 20px;
+      box-sizing: border-box;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .wb-image-container.visible {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .wb-image-wrapper {
+      position: relative;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      max-height: 360px;
+      border-radius: 10px;
+      overflow: visible;
+    }
+    .wb-scenario-img {
+      max-width: 100%;
+      max-height: 340px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 10px;
+      display: block;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Annotation Layer (SVG & HTML Badges) */
+    .wb-annotation-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+      overflow: visible;
+    }
+    .wb-annotation-html-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 20;
+    }
+    .wb-ann-item {
+      opacity: 0;
+      transform: scale(0.92);
+      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .wb-ann-item.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Educational Callout Badge */
+    .wb-annotation-callout {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(8px);
+      border: 1.5px solid #2563eb;
+      border-radius: 8px;
+      padding: 4px 10px;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.18), 0 1px 3px rgba(0, 0, 0, 0.08);
+      white-space: nowrap;
+      pointer-events: auto;
+    }
+    .wb-callout-concept {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1d4ed8;
+      letter-spacing: -0.2px;
+      line-height: 1.2;
+    }
+    .wb-callout-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+      margin-top: 1px;
+    }
+
+    /* Target Highlight Circle / Pin */
+    .wb-ann-pin {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #2563eb;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35);
+      transform: translate(-50%, -50%);
+    }
+
+    /* Arrow path and shape styling */
+    .wb-ann-arrow {
+      stroke: #2563eb;
+      stroke-width: 3;
+      fill: none;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+    }
+    .wb-ann-box {
+      fill: rgba(37, 99, 235, 0.08);
+      stroke: #2563eb;
+      stroke-width: 2.5;
+      stroke-dasharray: 6 4;
+      rx: 8px;
+    }
+    .wb-ann-circle {
+      fill: rgba(37, 99, 235, 0.12);
+      stroke: #2563eb;
+      stroke-width: 2.5;
+    }
+    .wb-concept-mapping-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #f1f5f9;
+      width: 100%;
+    }
+    .wb-concept-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #334155;
+    }
+    .wb-concept-pill .pill-real {
+      color: #0f172a;
+      font-weight: 600;
+    }
+    .wb-concept-pill .pill-arrow {
+      color: #64748b;
+      font-size: 13px;
+    }
+    .wb-concept-pill .pill-tech {
+      color: #2563eb;
+      font-weight: 700;
     }
 
     /* Teacher Pointer */
@@ -887,17 +1084,24 @@ window.loadSlide = function(slide) {
     var canvas = document.getElementById('wb-canvas');
     canvas.innerHTML = '';
     
+    var hasDiagram = !!(slide.isDiagram || slide.mermaid || (slide.visual && slide.visual.enabled));
+    
     // Build Text Card Element
     var textCard = document.createElement('div');
-    textCard.className = 'wb-element wb-card';
+    textCard.className = 'wb-element wb-card visible';
     textCard.id = 'wb-main-text-card';
-    textCard.style.top = '80px';
-    textCard.style.left = '80px';
+    textCard.style.width = '100%';
+    textCard.style.maxWidth = '1350px';
+    textCard.style.padding = hasDiagram ? '12px 24px 6px 24px' : '28px 32px';
     
     // Create Title
     var titleEl = document.createElement('h1');
     titleEl.className = 'wb-title';
     titleEl.id = 'wb-main-title';
+    if (hasDiagram) {
+      titleEl.style.fontSize = '30px';
+      titleEl.style.marginBottom = '6px';
+    }
     textCard.appendChild(titleEl);
     
     // Create Subtitle/Heading if present
@@ -905,29 +1109,213 @@ window.loadSlide = function(slide) {
       var subHeadingEl = document.createElement('div');
       subHeadingEl.className = 'wb-section-heading';
       subHeadingEl.id = 'wb-main-subheading';
+      if (hasDiagram) {
+        subHeadingEl.style.fontSize = '18px';
+        subHeadingEl.style.marginTop = '4px';
+        subHeadingEl.style.marginBottom = '6px';
+      }
       textCard.appendChild(subHeadingEl);
     }
     
-    // Container for bullets/blocks
-    var blockContainer = document.createElement('div');
-    blockContainer.id = 'wb-blocks-container';
-    textCard.appendChild(blockContainer);
-    
     canvas.appendChild(textCard);
     
-    // If Diagram is present, build diagram container element side-by-side!
-    if (slide.isDiagram || slide.mermaid) {
-      textCard.style.width = '780px';
+    // If Diagram is present, build diagram container element directly in the main educational area!
+    if (hasDiagram) {
+      // Set appear time from visualTiming, or default to 0 for legacy scripts without visualTiming
+      window._diagramAppearSecond = 4;
+      if (slide.visualTiming && slide.visualTiming.enabled !== false && typeof slide.visualTiming.appearAtSecond === 'number') {
+        window._diagramAppearSecond = slide.visualTiming.appearAtSecond;
+      } else if (!slide.visualTiming || slide.visualTiming.enabled === false) {
+        window._diagramAppearSecond = 0; // Legacy scripts show diagram from beginning
+      }
       
       var diagramCard = document.createElement('div');
       diagramCard.className = 'wb-element wb-diagram-container';
       diagramCard.id = 'wb-diagram-card';
-      diagramCard.style.top = '80px';
-      diagramCard.style.left = '920px';
-      diagramCard.style.width = '820px';
       canvas.appendChild(diagramCard);
     } else {
-      textCard.style.width = '1760px';
+      window._diagramAppearSecond = 0;
+    }
+
+    // STRICT VISUAL ISOLATION: Real-world visual is ONLY created on non-diagram slides where explicitly enabled
+    // This guarantees diagrams have 100% full screen whiteboard space and no visual interference
+    var hasRealWorld = !hasDiagram && !!(slide.realWorldVisual && slide.realWorldVisual.enabled === true && (slide.imagePath || slide.imageUrl));
+    window._hasRealWorld = hasRealWorld;
+    window._imageAppearSecond = 0;
+
+    if (hasRealWorld) {
+      window._imageAppearSecond = 4;
+      if (slide.realWorldVisualTiming && slide.realWorldVisualTiming.enabled !== false && typeof slide.realWorldVisualTiming.appearAtSecond === 'number') {
+        window._imageAppearSecond = slide.realWorldVisualTiming.appearAtSecond;
+      }
+
+      var imageCard = document.createElement('div');
+      imageCard.className = 'wb-element wb-image-container';
+      imageCard.id = 'wb-image-card';
+
+      var wrapper = document.createElement('div');
+      wrapper.className = 'wb-image-wrapper';
+
+      var imgEl = document.createElement('img');
+      imgEl.className = 'wb-scenario-img';
+      imgEl.id = 'wb-scenario-image';
+
+      var imgSrc = slide.imagePath || slide.imageUrl || '';
+      if (imgSrc && !imgSrc.startsWith('http') && !imgSrc.startsWith('data:') && !imgSrc.startsWith('file://')) {
+        imgSrc = 'file:///' + imgSrc.replace(/\\/g, '/');
+      }
+      imgEl.src = imgSrc;
+      imgEl.alt = slide.realWorldVisual.scenario || 'Real-World Visual Scenario';
+      wrapper.appendChild(imgEl);
+
+      // Create Educational Annotation Overlay Layer
+      var annotations = slide.realWorldVisual.annotations || [];
+      window._scenarioAnnotations = annotations;
+
+      var svgNs = "http://www.w3.org/2000/svg";
+      var svgEl = document.createElementNS(svgNs, "svg");
+      svgEl.setAttribute("class", "wb-annotation-svg");
+      svgEl.setAttribute("id", "wb-annotation-svg");
+      svgEl.setAttribute("viewBox", "0 0 1000 600");
+      svgEl.setAttribute("preserveAspectRatio", "none");
+
+      // Marker for arrowheads
+      var defs = document.createElementNS(svgNs, "defs");
+      var marker = document.createElementNS(svgNs, "marker");
+      marker.setAttribute("id", "wb-arrow-head");
+      marker.setAttribute("viewBox", "0 0 10 10");
+      marker.setAttribute("refX", "8");
+      marker.setAttribute("refY", "5");
+      marker.setAttribute("markerWidth", "6");
+      marker.setAttribute("markerHeight", "6");
+      marker.setAttribute("orient", "auto-start-reverse");
+      var markerPath = document.createElementNS(svgNs, "path");
+      markerPath.setAttribute("d", "M 0 1 L 10 5 L 0 9 z");
+      markerPath.setAttribute("fill", "#2563eb");
+      marker.appendChild(markerPath);
+      defs.appendChild(marker);
+      svgEl.appendChild(defs);
+
+      // HTML layer for crisp typography callouts
+      var htmlLayer = document.createElement("div");
+      htmlLayer.className = "wb-annotation-html-layer";
+      htmlLayer.id = "wb-annotation-html-layer";
+
+      annotations.forEach(function(ann, aIdx) {
+        var annGroup = document.createElementNS(svgNs, "g");
+        annGroup.setAttribute("class", "wb-ann-item");
+        annGroup.setAttribute("id", "wb-ann-svg-" + aIdx);
+
+        var x = ann.x * 1000;
+        var y = ann.y * 600;
+
+        if (ann.type === 'arrow' && typeof ann.toX === 'number' && typeof ann.toY === 'number') {
+          var toX = ann.toX * 1000;
+          var toY = ann.toY * 600;
+          var arrowLine = document.createElementNS(svgNs, "line");
+          arrowLine.setAttribute("x1", x);
+          arrowLine.setAttribute("y1", y);
+          arrowLine.setAttribute("x2", toX);
+          arrowLine.setAttribute("y2", toY);
+          arrowLine.setAttribute("class", "wb-ann-arrow");
+          arrowLine.setAttribute("marker-end", "url(#wb-arrow-head)");
+          annGroup.appendChild(arrowLine);
+        } else if (ann.type === 'box') {
+          var box = document.createElementNS(svgNs, "rect");
+          var w = Math.min(260, (1 - ann.x) * 1000);
+          var h = Math.min(180, (1 - ann.y) * 600);
+          box.setAttribute("x", Math.max(10, x - w/2));
+          box.setAttribute("y", Math.max(10, y - h/2));
+          box.setAttribute("width", w);
+          box.setAttribute("height", h);
+          box.setAttribute("class", "wb-ann-box");
+          annGroup.appendChild(box);
+        } else if (ann.type === 'circle' || ann.type === 'highlight') {
+          var circle = document.createElementNS(svgNs, "circle");
+          circle.setAttribute("cx", x);
+          circle.setAttribute("cy", y);
+          circle.setAttribute("r", "28");
+          circle.setAttribute("class", "wb-ann-circle");
+          annGroup.appendChild(circle);
+        }
+        svgEl.appendChild(annGroup);
+
+        // HTML Callout Card / Badge
+        var callout = document.createElement("div");
+        callout.className = "wb-ann-item wb-annotation-callout";
+        callout.id = "wb-ann-html-" + aIdx;
+
+        var posX = ann.x * 100;
+        var posY = ann.y * 100;
+        if (ann.type === 'arrow' && typeof ann.toX === 'number' && typeof ann.toY === 'number') {
+          posX = ((ann.x + ann.toX) / 2) * 100;
+          posY = ((ann.y + ann.toY) / 2) * 100;
+        }
+        callout.style.left = posX + "%";
+        callout.style.top = posY + "%";
+
+        var conceptSpan = document.createElement("span");
+        conceptSpan.className = "wb-callout-concept";
+        conceptSpan.textContent = ann.concept || ann.label || '';
+        callout.appendChild(conceptSpan);
+
+        if (ann.label && ann.label !== ann.concept) {
+          var labelSpan = document.createElement("span");
+          labelSpan.className = "wb-callout-label";
+          labelSpan.textContent = ann.label;
+          callout.appendChild(labelSpan);
+        }
+
+        htmlLayer.appendChild(callout);
+      });
+
+      wrapper.appendChild(svgEl);
+      wrapper.appendChild(htmlLayer);
+      imageCard.appendChild(wrapper);
+
+      // Add concept mapping bar if mappings exist
+      var mappings = slide.realWorldVisual.conceptMapping || [];
+      if (mappings.length > 0) {
+        var mapBar = document.createElement('div');
+        mapBar.className = 'wb-concept-mapping-bar';
+        mappings.forEach(function(m) {
+          var pill = document.createElement('div');
+          pill.className = 'wb-concept-pill';
+
+          var realSpan = document.createElement('span');
+          realSpan.className = 'pill-real';
+          realSpan.textContent = m.realWorldElement || '';
+
+          var arrowSpan = document.createElement('span');
+          arrowSpan.className = 'pill-arrow';
+          arrowSpan.textContent = ' ➔ ';
+
+          var techSpan = document.createElement('span');
+          techSpan.className = 'pill-tech';
+          techSpan.textContent = m.concept || '';
+
+          pill.appendChild(realSpan);
+          pill.appendChild(arrowSpan);
+          pill.appendChild(techSpan);
+          mapBar.appendChild(pill);
+        });
+        imageCard.appendChild(mapBar);
+      }
+
+      canvas.appendChild(imageCard);
+    }
+    
+    // Container for bullets/blocks (below diagram if diagram exists, or inside textCard if normal)
+    var blockContainer = document.createElement('div');
+    blockContainer.id = 'wb-blocks-container';
+    if (hasDiagram) {
+      blockContainer.className = 'wb-element visible';
+      blockContainer.style.width = '100%';
+      blockContainer.style.maxWidth = '1300px';
+      blockContainer.style.marginTop = '4px';
+      canvas.appendChild(blockContainer);
+    } else {
+      textCard.appendChild(blockContainer);
     }
   }
 };
@@ -1030,13 +1418,45 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
     mainCard.classList.add('visible');
   }
   
-  // 4. Render and Zoom Diagram
+  // 4. Render and Maintain Diagram Visibility based on appearAtSecond
   var diagramCard = document.getElementById('wb-diagram-card');
   if (diagramCard) {
-    if (progress > 0.75) {
+    var appearTime = window._diagramAppearSecond || 0;
+    if (elapsedSecs >= appearTime) {
       diagramCard.classList.add('visible');
     } else {
       diagramCard.classList.remove('visible');
+    }
+  }
+
+  // 4b. Render and Maintain Real-World Image Visibility based on appearAtSecond
+  var imageCard = document.getElementById('wb-image-card');
+  if (imageCard) {
+    var imgAppearTime = window._imageAppearSecond || 0;
+    if (elapsedSecs >= imgAppearTime) {
+      imageCard.classList.add('visible');
+    } else {
+      imageCard.classList.remove('visible');
+    }
+
+    // 4c. Render and Sequentially Reveal Annotations (arrows, callouts, highlights)
+    var annotations = window._scenarioAnnotations || [];
+    for (var a = 0; a < annotations.length; a++) {
+      var ann = annotations[a];
+      var annAppear = ann.appearAtSecond || imgAppearTime;
+      var isAnnVisible = elapsedSecs >= annAppear;
+      
+      var svgItem = document.getElementById('wb-ann-svg-' + a);
+      if (svgItem) {
+        if (isAnnVisible) svgItem.classList.add('visible');
+        else svgItem.classList.remove('visible');
+      }
+
+      var htmlItem = document.getElementById('wb-ann-html-' + a);
+      if (htmlItem) {
+        if (isAnnVisible) htmlItem.classList.add('visible');
+        else htmlItem.classList.remove('visible');
+      }
     }
   }
   
@@ -1055,16 +1475,7 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
   var viewport = document.getElementById('wb-viewport');
   var canvas = document.getElementById('wb-canvas');
   if (viewport && canvas) {
-    // Dynamic text auto-scaling to prevent overflow
-    var scale = 1;
-    // For flex containers, scrollHeight reflects the total content height
-    while (canvas.scrollHeight > canvas.clientHeight && scale > 0.4) {
-      scale -= 0.05;
-      // Temporarily apply scale to check if it fits
-      canvas.style.transform = 'scale(' + scale + ')';
-    }
-    var transformStr = 'scale(' + scale + ')';
-    canvas.style.transform = transformStr;
+    canvas.style.transform = 'scale(1) translate(0px, 0px)';
   }
   
   // 7. Teacher Pointer (laser dot) movement
@@ -1132,6 +1543,16 @@ window.showDiagramSvg = function(svgHtml) {
   var container = document.getElementById('wb-diagram-card');
   if (container) {
     container.innerHTML = svgHtml;
+    // Note: Do not force .visible here; visibility is managed by window.renderFrame(elapsedSecs)
+    var svgEl = container.querySelector('svg');
+    if (svgEl) {
+      svgEl.style.maxHeight = '380px';
+      svgEl.style.maxWidth = '100%';
+      svgEl.style.height = 'auto';
+      svgEl.style.width = 'auto';
+      svgEl.style.display = 'block';
+      svgEl.style.margin = '0 auto';
+    }
   }
 };
 

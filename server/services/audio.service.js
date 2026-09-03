@@ -8,16 +8,54 @@ const ffmpegPath = require('ffmpeg-static');
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
 
-const GoogleCustomVoiceProvider = require('./tts/GoogleCustomVoiceProvider');
-const ttsProvider = new GoogleCustomVoiceProvider();
+let customVoiceProvider = null;
+const getCustomVoiceProvider = () => {
+  if (!customVoiceProvider) {
+    const GoogleCustomVoiceProvider = require('./tts/GoogleCustomVoiceProvider');
+    customVoiceProvider = new GoogleCustomVoiceProvider();
+  }
+  return customVoiceProvider;
+};
+
+const generateSingleAudioWithGTTS = (text, outputPath, langCode = 'en') => {
+  return new Promise((resolve, reject) => {
+    try {
+      const gtts = new gTTS(text, langCode);
+      if (langCode === 'en') {
+        gtts.lang = 'en-in'; // Set to Indian English accent
+      } else {
+        // gTTS supports 'ta', 'hi', 'ml', 'te', 'kn' directly
+        gtts.lang = langCode;
+      }
+      gtts.save(outputPath, function (err, result) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(outputPath);
+        }
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
 
 const generateSingleAudio = async (text, outputPath, langCode = 'en', voiceId = null) => {
+  // If no voice is selected or default computer voice is selected, DO NOT call Google TTS!
+  const isCustomVoice = voiceId && typeof voiceId === 'string' && voiceId.trim() !== '' && voiceId !== 'default' && voiceId !== 'default-computer';
+
+  if (!isCustomVoice) {
+    return await generateSingleAudioWithGTTS(text, outputPath, langCode);
+  }
+
+  // If a custom voice is selected, try using GoogleCustomVoiceProvider with fallback to default
   try {
-    await ttsProvider.generateSpeech({ text, language: langCode, voiceId, outputPath });
+    const provider = getCustomVoiceProvider();
+    await provider.generateSpeech({ text, language: langCode, voiceId, outputPath });
     return outputPath;
   } catch (error) {
-    console.error('generateSingleAudio Error:', error);
-    throw error;
+    console.warn(`[TTS] Custom voice provider failed for voice "${voiceId}" (${error.message}). Falling back to default computer voice (gTTS)...`);
+    return await generateSingleAudioWithGTTS(text, outputPath, langCode);
   }
 };
 

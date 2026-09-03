@@ -88,7 +88,8 @@ const getActiveVoiceId = () => {
 const testVoice = async (req, res) => {
   try {
     const { text, language, voiceId: reqVoiceId } = req.body;
-    const voiceId = reqVoiceId || getActiveVoiceId();
+    const isCustomVoice = reqVoiceId && typeof reqVoiceId === 'string' && reqVoiceId.trim() !== '' && reqVoiceId !== 'default' && reqVoiceId !== 'default-computer';
+    const voiceId = isCustomVoice ? reqVoiceId.trim() : null;
 
     if (!text || !language) {
       return res.status(400).json({ success: false, message: 'Text and language are required' });

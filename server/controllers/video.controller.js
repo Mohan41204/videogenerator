@@ -5,6 +5,7 @@ const audioService = require('../services/audio.service');
 const ffmpegService = require('../services/ffmpeg.service');
 const subtitleService = require('../services/subtitle.service');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const teachingEngine = require('../services/teachingEngine.service');
 
 // Robust JSON extraction and cleaning utility
 const cleanJsonString = (str) => {
@@ -79,6 +80,8 @@ const generateVideo = async (req, res) => {
       } else if (!Array.isArray(slides)) {
         if (slides.type && slides.type.toLowerCase() === 'aws') {
           slides = [slides];
+        } else if (slides.scenes && Array.isArray(slides.scenes)) {
+          slides = slides.scenes;
         } else {
           throw new Error('Expected an array of slides or an AWS lesson object');
         }
@@ -116,8 +119,8 @@ const generateVideo = async (req, res) => {
 
     const SUPPORTED_LANGUAGES = require('../config/languages');
     const translationService = require('../services/translation.service');
-    const { getActiveVoiceId } = require('./voice.controller');
-    const resolvedVoiceId = voiceId || getActiveVoiceId();
+    const isCustomVoice = voiceId && typeof voiceId === 'string' && voiceId.trim() !== '' && voiceId !== 'default-computer' && voiceId !== 'default';
+    const resolvedVoiceId = isCustomVoice ? voiceId.trim() : null;
 
     // --- STEP 1: Generate English (Ground Truth) Audio ---
     console.log(`Generating English audio for ${slides.length} slides...`);
@@ -134,6 +137,32 @@ const generateVideo = async (req, res) => {
       englishDurations.push(duration);
     }
     await audioService.mergeAudioFiles(englishAudioPaths, englishMasterPath);
+
+    // --- STEP 1b: Generate Real-World Visual Scenario Images (if present) ---
+    const imageGenService = require('../services/imageGeneration.service');
+    const imagesDir = path.join(outputDir, 'images');
+    if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
+
+    for (let i = 0; i < slides.length; i++) {
+      const slide = slides[i];
+      if (slide.realWorldVisual && slide.realWorldVisual.enabled && slide.realWorldVisual.imagePrompt && !slide.imagePath) {
+        const imageFileName = `${uniqueId}_scene_${i}_scenario.jpg`;
+        const imageFilePath = path.join(imagesDir, imageFileName);
+        try {
+          const genResult = await imageGenService.generateScenarioImage(slide.realWorldVisual.imagePrompt, imageFilePath);
+          if (genResult.success) {
+            slide.imagePath = imageFilePath;
+            slide.imageUrl = `/output/images/${imageFileName}`;
+          } else {
+            console.warn(`[VideoController] Real-world visual generation failed for scene ${i + 1}: ${genResult.error}`);
+            slide.realWorldVisual.enabled = false;
+          }
+        } catch (imgErr) {
+          console.warn(`[VideoController] Error generating real-world image for scene ${i + 1}:`, imgErr.message);
+          slide.realWorldVisual.enabled = false;
+        }
+      }
+    }
 
     // --- STEP 2: Render animated silent video ---
     console.log('Rendering video with renderer factory...');
@@ -186,7 +215,7 @@ const generateVideo = async (req, res) => {
             // Use original English narration and convert it to mixed-language conversational style
             const translatedNarration = await translationService.translateText(slides[i].narration || ' ', langConfig.name);
             const rawChunkPath = path.join(outputDir, `${uniqueId}_rawchunk_${i}_${lang}.mp3`);
-            await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, voiceId);
+            await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, resolvedVoiceId);
             
             // Adjust duration to exactly match English chunk
             const adjustedChunkPath = path.join(outputDir, `${uniqueId}_chunk_${i}_${lang}.mp3`);
@@ -263,122 +292,18 @@ const generateScript = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Topic is required' });
     }
 
-    const targetMins = parseInt(durationMinutes, 10) || 5;
-    const targetWords = targetMins * 140; // ~140 words per minute of speech
-    const slideCount = Math.max(3, Math.round(targetMins * 1.2)); // ~6 slides for 5 mins
+    const scriptResult = await teachingEngine.generateTeachingScript({
+      topic,
+      subTopic,
+      durationMinutes
+    });
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const prompt = `
-Imagine you are an experienced classroom teacher creating detailed spoken study notes for students in an online screen-share classroom.
-
-Your task is to generate a complete teaching script for the topic: "${topic}".
-The subtopic to focus on is: "${subTopic || 'General Concepts'}".
-
-TARGET LESSON DURATION: ${targetMins} MINUTES (~${targetWords} words total narration, exactly ${slideCount} slides).
-
-Requirements for the teaching style:
-- The script must teach students from beginner level to advanced understanding step by step.
-- CRITICAL: Determine if the topic and subtopic are related to programming, coding, software engineering, databases, APIs, frameworks, markup languages, styling languages, or technical computer science concepts (e.g., Python, Java, Javascript, HTML/CSS, React, SQL, Git, Loops, OOP, Algorithms, Web Development, etc.):
-  - **If the topic/subtopic is programming/coding-related, you MUST include actual, concrete example coding snippets**:
-    - Provide slide(s) with a **Basic Example Program** showing fundamental implementation.
-    - Provide slide(s) with an **Advanced Example Program** showing real-world / production-grade implementation.
-    - For slides displaying code examples, the \`bullets\` array should contain exactly one string representing the full, formatted, and indented code block. You MUST also include the expected EXECUTED OUTPUT of the code directly below the program inside the same string.
-    - Separate the code and the output using \`\\\\N\\\\N==== OUTPUT ====\\\\N\` followed by the output.
-    - Use \\N (the literal string '\\N') to represent newlines inside the code block and output so that lines and spacing are perfectly preserved on the screen. Do NOT include markdown code fences (\`\`\`) inside the bullets array. Write real, complete, professional code snippets (e.g., \`"print('Hello World')\\\\N\\\\N==== OUTPUT ====\\\\NHello World"\`).
-    - CRITICAL CODE LIMITATION: Keep code examples short, concise, and highly focused. Each code block MUST NOT exceed 6 to 10 lines of code total.
-    - The slide object MUST have "isCode": true.
-  - **If the topic/subtopic is NOT related to programming/coding**:
-    - Do NOT include any programming code blocks or example programs.
-    - Instead, generate detailed explanation slides, concrete real-world examples, analogies, practical case studies, and scenarios related to the topic and subtopic.
-    - The slide object MUST have "isCode": false.
-- Explain every concept and example in a very simple, easy-to-understand classroom teaching style.
-- Use friendly teacher-to-student communication with encouraging transition phrases.
-- Cover definitions, theory, syntax, examples, use cases, common mistakes, and practical understanding.
-- CRITICAL DURATION TARGET: You MUST generate exactly ${slideCount} slides, and the total narration across all slides combined MUST be approximately ${targetWords} words total (~${Math.round(targetWords / slideCount)} words per slide narration) so that spoken audio duration is exactly around ${targetMins} minutes.
-
-DIAGRAM SLIDES (IMPORTANT):
-- For any concept that has a clear visual flow, structure, or relationship (e.g., how a for-loop works, a class hierarchy, a sequence of API calls, a data pipeline), you SHOULD include a dedicated diagram slide.
-- A diagram slide must have "isDiagram": true and a valid "mermaid" string containing raw Mermaid.js code.
-- The Mermaid code must be simple, maximum 10 nodes, use LR or TD layout, short labels (under 25 chars), no HTML, no markdown wrappers.
-- Set "isCode": false and "isDiagram": true for diagram slides. Leave "bullets" as an empty array [].
-- For non-diagram slides, "isDiagram" must be false and "mermaid" must be an empty string "".
-
-OUTPUT FORMAT:
-You MUST output ONLY a valid JSON array of "Slide" objects. Do not include markdown formatting, headings symbols, or code block formatting outside the JSON. Just raw JSON array.
-Each Slide object must have:
-- "heading": (String) A short, professional title for the slide.
-- "subheading": (String) An optional subtitle or secondary thought. Can be empty string.
-- "bullets": (Array of Strings) 2 to 4 bullet points summarizing the visual content. Keep these brief! (Except for programming code slides where the array should contain exactly one string representing the code block, and diagram slides where it should be an empty array []).
-- "narration": (String) The spoken teaching script for this slide (~${Math.round(targetWords / slideCount)} words). Output plain narration text only for this field.
-- "isCode": (Boolean) Set to true if this slide is a code example or contains code, and false otherwise.
-- "isDiagram": (Boolean) Set to true if this slide is a diagram slide, and false otherwise.
-- "mermaid": (String) If isDiagram is true, provide valid raw Mermaid.js code. Otherwise empty string "".
-- "fileName": (String - optional) For code slides, the appropriate filename for the language (e.g. "Main.java", "main.py", "index.js", "script.sh", "Program.cs", "main.cpp").
-- "runCommand": (String - optional) For code slides, the exact shell command to execute the file (e.g. "java Main", "python main.py", "node index.js", "./script.sh", "dotnet run", "./main").
-`;
-
-    const runModelWithRetry = async (modelName) => {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                heading:    { type: 'string' },
-                subheading: { type: 'string' },
-                bullets: {
-                  type: 'array',
-                  items: { type: 'string' }
-                },
-                narration:  { type: 'string' },
-                isCode:     { type: 'boolean' },
-                isDiagram:  { type: 'boolean' },
-                mermaid:    { type: 'string' },
-                fileName:   { type: 'string' },
-                runCommand: { type: 'string' }
-              },
-              required: ['heading', 'subheading', 'bullets', 'narration', 'isCode', 'isDiagram', 'mermaid']
-            }
-          }
-        }
-      });
-      let attempts = 0;
-      const maxAttempts = 3;
-      let delay = 1000;
-
-      while (attempts < maxAttempts) {
-        try {
-          const result = await model.generateContent(prompt);
-          return result;
-        } catch (err) {
-          attempts++;
-          if (attempts >= maxAttempts) throw err;
-          console.warn(`Attempt ${attempts} with ${modelName} failed: ${err.message}. Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay *= 2;
-        }
-      }
-    };
-
-    let result;
-    try {
-      console.log('Generating script using gemini-2.5-flash...');
-      result = await runModelWithRetry('gemini-2.5-flash');
-    } catch (error) {
-      console.warn('gemini-2.5-flash failed after all retries. Falling back to gemini-flash-latest...');
-      result = await runModelWithRetry('gemini-flash-latest');
-    }
-
-    const response = await result.response;
-    let text = response.text();
-
-    // Clean and extract potential JSON formatting from Gemini
-    const cleanedText = cleanJsonString(text);
-
-    res.status(200).json({ success: true, text: cleanedText });
+    res.status(200).json({
+      success: true,
+      text: scriptResult.text,
+      plan: scriptResult.plan,
+      domain: scriptResult.domain
+    });
   } catch (error) {
     console.error('Script generation error:', error);
     res.status(500).json({ success: false, message: 'Failed to generate script', error: error.message });
@@ -637,15 +562,16 @@ const regenerateLanguageVideo = async (req, res) => {
     const masterLangAudioPath = path.join(audioDir, `${id}_${langConfig.fileName}`);
     const langChunks = [];
 
-    const { getActiveVoiceId } = require('./voice.controller');
-    const voiceId = req.body.voiceId || savedVoiceId || getActiveVoiceId();
+    const candidateVoiceId = req.body.voiceId !== undefined ? req.body.voiceId : savedVoiceId;
+    const isCustomVoice = candidateVoiceId && typeof candidateVoiceId === 'string' && candidateVoiceId.trim() !== '' && candidateVoiceId !== 'default-computer' && candidateVoiceId !== 'default';
+    const resolvedVoiceId = isCustomVoice ? candidateVoiceId.trim() : null;
 
     for (let i = 0; i < langSlides.length; i++) {
       const slide = langSlides[i];
       // Always translate original English narration to mixed-language conversational style for audio
       const translatedNarration = await translationService.translateText(originalSlides[i].narration || ' ', langConfig.name);
       const rawChunkPath = path.join(outputDir, `${id}_rawchunk_${i}_${lang}.mp3`);
-      await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, voiceId);
+      await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, resolvedVoiceId);
       
       const adjustedChunkPath = path.join(outputDir, `${id}_chunk_${i}_${lang}.mp3`);
       await audioService.adjustAudioDuration(rawChunkPath, adjustedChunkPath, englishDurations[i]);

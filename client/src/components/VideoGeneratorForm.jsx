@@ -28,13 +28,13 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
     fetchVoices();
   }, []);
 
-  const fetchVoices = async () => {
+  const fetchVoices = async (preferredVoiceId) => {
     try {
       const res = await axios.get('http://localhost:5000/api/voice/list');
       if (res.data.success) {
         setVoices(res.data.voices);
-        if (res.data.voices.length > 0) {
-          setSelectedVoiceId(res.data.voices[0].voiceId);
+        if (preferredVoiceId) {
+          setSelectedVoiceId(preferredVoiceId);
         }
       }
     } catch (e) {
@@ -430,27 +430,37 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
         </div>
 
         {/* Voice Selection */}
-        {voices.length > 0 && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-              <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-300 flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+              </svg>
               Select Teacher Voice
-            </label>
-            <select
-              value={selectedVoiceId}
-              onChange={(e) => setSelectedVoiceId(e.target.value)}
-              className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-              disabled={isGeneratingScript || isGenerating}
-            >
-              {voices.map(v => (
-                <option key={v.voiceId} value={v.voiceId}>
-                  {v.name || v.voiceId} ({new Date(v.createdAt).toLocaleString()})
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-slate-500">This voice will be used to narrate all selected languages.</p>
-          </div>
-        )}
+            </span>
+            <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium border ${selectedVoiceId ? 'bg-purple-900/30 text-purple-300 border-purple-700/50' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+              {selectedVoiceId ? 'Custom Voice' : 'Default Computer Voice'}
+            </span>
+          </label>
+          <select
+            value={selectedVoiceId}
+            onChange={(e) => setSelectedVoiceId(e.target.value)}
+            className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+            disabled={isGeneratingScript || isGenerating}
+          >
+            <option value="">Default Computer Voice (Built-in natural TTS)</option>
+            {voices.map(v => (
+              <option key={v.voiceId} value={v.voiceId}>
+                {v.name || v.voiceId} (Custom Voice{v.createdAt ? ` - ${new Date(v.createdAt).toLocaleDateString()}` : ''})
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-400">
+            {selectedVoiceId
+              ? "Custom recorded voice will be used to narrate all selected languages."
+              : "Standard computer voice will be used. No custom voice or Google Cloud setup required."}
+          </p>
+        </div>
 
         {/* Voice Test Feature */}
         <div className="bg-slate-800/30 p-5 rounded-xl border border-slate-700">
@@ -540,8 +550,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
         <h2 className="text-xl font-bold text-slate-200 mb-4 px-2">Voice Management</h2>
         <VoiceRecorder onVoiceSet={(id) => { 
           console.log('Custom voice active:', id); 
-          fetchVoices();
-          setSelectedVoiceId(id);
+          fetchVoices(id);
         }} />
       </div>
     </div>

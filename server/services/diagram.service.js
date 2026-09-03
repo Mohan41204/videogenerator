@@ -112,8 +112,8 @@ function sanitizeMermaid(mermaidCode) {
   
   let safeMermaid = `${graphType} ${orientation}\n`;
   for (const [id, label] of nodes.entries()) {
-    const escapedLabel = label.replace(/"/g, '\\"');
-    safeMermaid += `  ${id}["${escapedLabel}"]\n`;
+    const cleanLabel = label.replace(/["\\]/g, '').trim();
+    safeMermaid += `  ${id}["${cleanLabel}"]\n`;
   }
   for (const edge of edges) {
     safeMermaid += `  ${edge}\n`;
@@ -148,11 +148,10 @@ async function renderMermaidInPage(page, mermaidCode) {
           startOnLoad: false,
           theme:        'default',
           securityLevel:'loose',
-          fontFamily:   'Segoe UI, Arial, sans-serif',
-          fontSize:      20,
-          flowchart:    { curve: 'basis', padding: 30, nodeSpacing: 60, rankSpacing: 80 },
-          sequence:     { actorMargin: 80, messageMargin: 30 },
-          wrap:          true
+          fontFamily:   'Outfit, Inter, Segoe UI, Arial, sans-serif',
+          fontSize:      16,
+          flowchart:    { curve: 'basis', padding: 15, nodeSpacing: 35, rankSpacing: 45, useMaxWidth: true },
+          sequence:     { actorMargin: 50, messageMargin: 20, useMaxWidth: true }
         });
       });
       _mermaidInjected = true;
@@ -203,4 +202,4 @@ async function renderMermaidInPage(page, mermaidCode) {
   await new Promise(r => setTimeout(r, 300));
 }
 
-module.exports = { renderMermaidInPage, reset };
+module.exports = { renderMermaidInPage, reset, sanitizeMermaid };

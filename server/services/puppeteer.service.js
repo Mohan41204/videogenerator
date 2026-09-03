@@ -126,6 +126,59 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
 
       console.log(`\n[Puppeteer] Slide ${slideIdx + 1}/${slides.length}: "${slide.heading}" (${duration.toFixed(1)}s, ${slideTotalFrames} frames)`);
 
+      // Synchronize visualTiming appearAtSecond with actual TTS audio duration
+      if (slide.visualTiming && slide.visualTiming.enabled !== false && typeof slide.visualTiming.appearAtSecond === 'number') {
+        const estimatedTotal = slide.estimatedDurationSeconds || duration;
+        const ratio = Math.max(0.15, Math.min(0.75, slide.visualTiming.appearAtSecond / estimatedTotal));
+        slide.visualTiming.appearAtSecond = Math.max(2.5, Number((ratio * duration).toFixed(2)));
+        console.log(`[Puppeteer]   → Diagram scheduled to reveal at ${slide.visualTiming.appearAtSecond}s (of ${duration.toFixed(1)}s actual duration)`);
+      } else if ((slide.isDiagram && slide.mermaid) || (slide.visual && slide.visual.enabled)) {
+        // Legacy fallback: reveal after initial intro (~28% of slide duration)
+        const fallbackAppear = Math.max(2.5, Number((duration * 0.28).toFixed(2)));
+        slide.visualTiming = { enabled: true, appearAtSecond: fallbackAppear };
+        console.log(`[Puppeteer]   → Diagram (legacy) scheduled to reveal at ${fallbackAppear}s`);
+      }
+
+      // Synchronize realWorldVisualTiming appearAtSecond with actual TTS audio duration
+      if (slide.realWorldVisualTiming && slide.realWorldVisualTiming.enabled !== false && typeof slide.realWorldVisualTiming.appearAtSecond === 'number') {
+        const estimatedTotal = slide.estimatedDurationSeconds || duration;
+        const ratio = Math.max(0.15, Math.min(0.75, slide.realWorldVisualTiming.appearAtSecond / estimatedTotal));
+        slide.realWorldVisualTiming.appearAtSecond = Math.max(2.5, Number((ratio * duration).toFixed(2)));
+        console.log(`[Puppeteer]   → Real-world scenario image scheduled to reveal at ${slide.realWorldVisualTiming.appearAtSecond}s (of ${duration.toFixed(1)}s actual duration)`);
+      } else if (slide.realWorldVisual && slide.realWorldVisual.enabled) {
+        const fallbackAppear = Math.max(2.5, Number((duration * 0.28).toFixed(2)));
+        slide.realWorldVisualTiming = { enabled: true, appearAtSecond: fallbackAppear };
+        console.log(`[Puppeteer]   → Real-world visual scheduled to reveal at ${fallbackAppear}s`);
+      }
+
+      // Synchronize individual real-world annotations with actual TTS audio duration
+      if (slide.realWorldVisual && Array.isArray(slide.realWorldVisual.annotations)) {
+        const estimatedTotal = slide.estimatedDurationSeconds || duration;
+        const baseAppear = slide.realWorldVisualTiming ? slide.realWorldVisualTiming.appearAtSecond : 2.5;
+        slide.realWorldVisual.annotations.forEach((ann) => {
+          if (typeof ann.appearAtSecond === 'number') {
+            const ratio = Math.max(0.18, Math.min(0.90, ann.appearAtSecond / estimatedTotal));
+            ann.appearAtSecond = Math.max(baseAppear, Number((ratio * duration).toFixed(2)));
+          }
+        });
+      }
+
+      // Ensure real-world image asset exists before loading slide
+      if (slide.realWorldVisual && slide.realWorldVisual.enabled && slide.realWorldVisual.imagePrompt && !slide.imagePath) {
+        const imageGenService = require('./imageGeneration.service');
+        const imagesDir = path.join(__dirname, '../output/images');
+        if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
+        const fallbackPath = path.join(imagesDir, `render_scene_${slideIdx}_scenario.jpg`);
+        try {
+          const res = await imageGenService.generateScenarioImage(slide.realWorldVisual.imagePrompt, fallbackPath);
+          if (res.success) {
+            slide.imagePath = fallbackPath;
+          }
+        } catch (e) {
+          console.warn(`[Puppeteer] Fallback image generation skipped: ${e.message}`);
+        }
+      }
+
       // ── LOAD SLIDE ────────────────────────────────────────────────────────
       // Load the slide into the browser
       await page.evaluate((slideData, prevType) => {
@@ -134,9 +187,21 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       }, slide, prevIsCode);
 
       // If it is a diagram slide, render the Mermaid SVG into the container
-      if (slide.isDiagram && slide.mermaid) {
-        console.log(`[Puppeteer]   → Rendering Mermaid diagram for slide ${slideIdx + 1}...`);
-        await diagramService.renderMermaidInPage(page, slide.mermaid);
+      const hasDiagram = (slide.isDiagram && slide.mermaid) || (slide.visual && slide.visual.enabled);
+      if (hasDiagram) {
+        console.log(`[Puppeteer]   → Rendering diagram for slide ${slideIdx + 1}...`);
+        let mermaidCode = slide.mermaid;
+        if (!mermaidCode && slide.visual) {
+          const teachingEngine = require('./teachingEngine.service');
+          mermaidCode = teachingEngine.visualToMermaid(slide.visual);
+        }
+        if (mermaidCode) {
+          try {
+            await diagramService.renderMermaidInPage(page, mermaidCode);
+          } catch (diagramErr) {
+            console.warn(`[Puppeteer] Diagram rendering failed on slide ${slideIdx + 1}: ${diagramErr.message}. Continuing with normal frame capture.`);
+          }
+        }
       }
 
       // Capture frames for this slide
@@ -151,15 +216,15 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
         // Screenshot as JPEG (much smaller than PNG, fast enough for our FPS)
         const frameBuffer = await page.screenshot({
           type: 'jpeg',
-          quality: 82,
+          quality: 85,
           clip: { x: 0, y: 0, width: 1500, height: 700 }
         });
 
         // Write frame to FFmpeg stdin
-        const written = ffmpegProc.stdin.write(frameBuffer);
+        const canWrite = ffmpegProc.stdin.write(frameBuffer);
 
         // Back-pressure handling: if buffer is full, wait for drain
-        if (!written) {
+        if (!canWrite) {
           await new Promise((resolve) => ffmpegProc.stdin.once('drain', resolve));
         }
 
@@ -172,7 +237,7 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       }
 
       // Cleanup diagram if it was rendered
-      if (slide.isDiagram && slide.mermaid) {
+      if (hasDiagram) {
         await page.evaluate(() => window.hideDiagram());
       }
 

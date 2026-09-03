@@ -59,3 +59,8 @@ server.on('error', (err) => {
 server.setTimeout(1200000); // 20 minutes
 server.keepAliveTimeout = 1200000;
 server.headersTimeout = 1200000;
+
+// Prevent unhandled promise rejections from crashing the server
+process.on('unhandledRejection', (reason, promise) => {
+  console.warn('[Warning] Unhandled Rejection:', reason);
+});

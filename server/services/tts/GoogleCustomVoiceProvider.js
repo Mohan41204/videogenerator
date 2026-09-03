@@ -6,9 +6,25 @@ const TTSProvider = require('./TTSProvider');
 class GoogleCustomVoiceProvider extends TTSProvider {
   constructor() {
     super();
-    // Initialize the Google Cloud TTS client.
-    // Ensure GOOGLE_APPLICATION_CREDENTIALS or similar is set in the environment if required.
-    this.client = new textToSpeech.TextToSpeechClient();
+    this.client = null;
+  }
+
+  hasCredentials() {
+    const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (credPath && fs.existsSync(credPath)) {
+      return true;
+    }
+    return false;
+  }
+
+  getClient() {
+    if (!this.client) {
+      if (!this.hasCredentials()) {
+        throw new Error('Google Cloud credentials not configured. Please set GOOGLE_APPLICATION_CREDENTIALS in your environment to use Google TTS.');
+      }
+      this.client = new textToSpeech.TextToSpeechClient();
+    }
+    return this.client;
   }
 
   /**
@@ -56,7 +72,8 @@ class GoogleCustomVoiceProvider extends TTSProvider {
     }
 
     try {
-      const [response] = await this.client.synthesizeSpeech(request);
+      const client = this.getClient();
+      const [response] = await client.synthesizeSpeech(request);
       const writeFile = util.promisify(fs.writeFile);
       await writeFile(outputPath, response.audioContent, 'binary');
       return outputPath;
