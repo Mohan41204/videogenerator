@@ -28,6 +28,39 @@ const FPS = 5;
  * @param {string} videoPath  - Output path for the silent screen-recording .mp4
  * @returns {Promise<string>} - Resolves with videoPath when done
  */
+const findChromeInCache = () => {
+  const searchDirs = [
+    path.join(__dirname, '../.cache'),
+    path.join(process.cwd(), '.cache'),
+    '/opt/render/project/src/server/.cache'
+  ];
+
+  for (const baseDir of searchDirs) {
+    if (fs.existsSync(baseDir)) {
+      const findChromeRecursive = (dir) => {
+        try {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+              const found = findChromeRecursive(fullPath);
+              if (found) return found;
+            } else if (entry.name === 'chrome' || entry.name === 'chrome.exe') {
+              return fullPath;
+            }
+          }
+        } catch (e) {
+          // Ignore read errors
+        }
+        return null;
+      };
+      const found = findChromeRecursive(baseDir);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
 const renderScreenShareVideo = async (slides, durations, videoPath) => {
   let puppeteer;
   try {
@@ -68,6 +101,14 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
         launchOptions.executablePath = chromePath;
         console.log(`[Puppeteer] Using system Chrome binary at ${chromePath}`);
         break;
+      }
+    }
+
+    if (!launchOptions.executablePath) {
+      const cachedChrome = findChromeInCache();
+      if (cachedChrome) {
+        launchOptions.executablePath = cachedChrome;
+        console.log(`[Puppeteer] Found Chrome binary in project cache at ${cachedChrome}`);
       }
     }
   }
