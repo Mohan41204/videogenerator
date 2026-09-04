@@ -84,9 +84,13 @@ module.exports = {
  */
 function mergeVideoAndAudio(videoPath, audioPath, outputPath) {
   return new Promise((resolve, reject) => {
+    const absVideoPath = path.resolve(videoPath);
+    const absAudioPath = path.resolve(audioPath);
+    const absOutputPath = path.resolve(outputPath);
+
     ffmpeg()
-      .input(videoPath)
-      .input(audioPath)
+      .input(absVideoPath)
+      .input(absAudioPath)
       .outputOptions([
         '-c:v copy',      // copy video stream as-is (no re-encode)
         '-c:a aac',
@@ -101,12 +105,12 @@ function mergeVideoAndAudio(videoPath, audioPath, outputPath) {
       })
       .on('end', () => {
         console.log('[FFmpeg Merge] Video + Audio merged successfully.');
-        resolve(outputPath);
+        resolve(absOutputPath);
       })
       .on('error', (err) => {
         console.error('[FFmpeg Merge] Error:', err.message);
         reject(err);
       })
-      .save(outputPath);
+      .save(absOutputPath);
   });
 }

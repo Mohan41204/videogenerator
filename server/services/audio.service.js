@@ -192,14 +192,15 @@ const mergeAudioFiles = (inputPaths, outputPath) => {
   return new Promise((resolve, reject) => {
     if (inputPaths.length === 0) return resolve(outputPath);
 
-    // Manually create concat file to avoid fluent-ffmpeg spawning 150+ ffprobe processes
-    const listPath = outputPath + '.txt';
-    const listContent = inputPaths.map(p => `file '${p.replace(/\\/g, '/')}'`).join('\n');
+    // Manually create concat file using resolved absolute paths
+    const absOutputPath = path.resolve(outputPath);
+    const listPath = absOutputPath + '.txt';
+    const listContent = inputPaths.map(p => `file '${path.resolve(p).replace(/\\/g, '/')}'`).join('\n');
     fs.writeFileSync(listPath, listContent, 'utf8');
 
     ffmpeg()
       .input(listPath)
-      .inputOptions(['-f concat', '-safe 0'])
+      .inputOptions(['-f', 'concat', '-safe', '0'])
       .outputOptions(['-c copy'])
       .on('error', err => {
         console.error('Error merging audio:', err);
@@ -208,9 +209,9 @@ const mergeAudioFiles = (inputPaths, outputPath) => {
       })
       .on('end', () => {
         fs.unlink(listPath, () => { });
-        resolve(outputPath);
+        resolve(absOutputPath);
       })
-      .save(outputPath);
+      .save(absOutputPath);
   });
 };
 
