@@ -125,6 +125,8 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
   const browser = await puppeteer.launch(launchOptions);
 
   const page = await browser.newPage();
+  page.setDefaultNavigationTimeout(90000);
+  page.setDefaultTimeout(90000);
   await page.setViewport({ width: 1500, height: 700, deviceScaleFactor: 1 });
 
   // Load the screen-share HTML template
