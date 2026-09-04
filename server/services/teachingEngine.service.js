@@ -1374,14 +1374,23 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
   } catch (parseErr) {
     console.warn('[TeachingEngine] Initial JSON parse failed:', parseErr.message, 'Attempting auto-repair...');
     try {
-      const repaired = cleaned
+      let repaired = cleaned
+        // 1. Remove literal control characters (like unescaped tabs or newlines inside strings)
         .replace(/[\u0000-\u0009\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, ' ')
-        .replace(/\\'/g, "'")
-        .replace(/\\([^"\\/bfnrtu])/g, '$1');
+        // 2. Remove invalid backslashes (any backslash not followed by a valid JSON escape character)
+        .replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '');
+        
       rawParsed = JSON.parse(repaired);
     } catch (retryErr) {
-      console.error('[TeachingEngine] JSON parse failed on raw text:', parseErr.message);
-      throw new Error(`Failed to parse AI-generated script JSON: ${parseErr.message}`);
+      console.error('[TeachingEngine] JSON parse auto-repair failed:', retryErr.message);
+      // Log some context around the error position to help debugging
+      const match = retryErr.message.match(/position (\d+)/);
+      if (match && match[1]) {
+         const pos = parseInt(match[1], 10);
+         const snippet = cleaned.substring(Math.max(0, pos - 30), Math.min(cleaned.length, pos + 30));
+         console.error(`[TeachingEngine] Error context near pos ${pos}: "${snippet}"`);
+      }
+      throw new Error(`Failed to parse AI-generated script JSON: ${parseErr.message} (Repair error: ${retryErr.message})`);
     }
   }
 
