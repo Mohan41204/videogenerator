@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const audioService = require('../services/audio.service');
 const ffmpegService = require('../services/ffmpeg.service');
 const subtitleService = require('../services/subtitle.service');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 const teachingEngine = require('../services/teachingEngine.service');
 
 // Robust JSON extraction and cleaning utility
@@ -320,7 +320,12 @@ const generateAwsScript = async (req, res) => {
     const targetMins = parseInt(durationMinutes, 10) || 5;
     const targetWords = targetMins * 140;
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const client = new GoogleGenAI({
+      vertexai: process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true',
+      project: process.env.GOOGLE_CLOUD_PROJECT,
+      location: process.env.GOOGLE_CLOUD_LOCATION || 'global',
+    });
+
     const prompt = `
 Imagine you are an experienced AWS instructor creating an automated screen-recording tutorial.
 
@@ -347,56 +352,22 @@ Your JSON will be executed by a Puppeteer-based recording engine. Optimize the r
    This is the ONLY valid format:
    { "action": "scroll", "direction": "down", "distance": 300 }
 6. "direction" must be the literal string "up" or "down". "distance" must be an integer number of pixels (typically 250–500), estimated based on how far the target element likely is from the current viewport.
-7. NEVER emit two or more scroll actions back-to-back to reach the same target. Combine them into ONE scroll action with a larger "distance" instead. For example, do NOT do this:
-   { "action": "scroll", "direction": "down", "distance": 150 },
-   { "action": "scroll", "direction": "down", "distance": 150 }
-   Instead, use a single scroll, interact, and then scroll again if needed. Here is a perfect example of a valid scroll sequence:
-   {
-     "action": "scroll",
-     "direction": "down",
-     "distance": 300
-   },
-   {
-     "action": "highlight",
-     "target": {
-       "label": "Block all public access",
-       "context": "checkbox option under the Block Public Access settings section of the create bucket form",
-       "type": "checkbox"
-     }
-   },
-   {
-     "action": "scroll",
-     "direction": "down",
-     "distance": 400
-   },
-   {
-     "action": "highlight",
-     "target": {
-       "label": "Create bucket",
-       "context": "primary submission button located at the bottom of the create bucket form",
-       "type": "button"
-     }
-   }
-8. Only insert a scroll action when the next target is very likely off-screen (e.g. deep in a long form, below the fold). Do not scroll "just in case" or scroll toward elements already likely visible.
-9. NEVER scroll to, or place the cursor near, the very top of the viewport (roughly y < 60px). That area contains the browser-level breadcrumb/toolbar strip, and repeated cursor presence there causes the AWS Console's auto-hide toolbar to toggle show/hide rapidly, which is a major source of jitter.
-10. Do not immediately follow a scroll with another action targeting an element near the top of the viewport (y < 60px) since scrolling often triggers the AWS auto-hide header to appear, displacing the element you were aiming for.
-11. Do not chain unrelated \`highlight\`/\`click\` pairs back-to-back without a navigation or wait action in between when the page layout is still settling (e.g., right after a page load or a panel expand/collapse).
-
-Before finalizing your output, review every scroll action and verify: (a) it uses "direction" + "distance" only, and (b) no two scroll actions appear consecutively.
+7. NEVER emit two or more scroll actions back-to-back to reach the same target. Combine them into ONE scroll action with a larger "distance" instead.
+8. Only insert a scroll action when the next target is very likely off-screen.
+9. NEVER scroll to, or place the cursor near, the very top of the viewport (roughly y < 60px).
+10. Do not immediately follow a scroll with another action targeting an element near the top of the viewport (y < 60px).
+11. Do not chain unrelated \`highlight\`/\`click\` pairs back-to-back without a navigation or wait action in between.
 
 **CRITICAL ELEMENT TARGETING RULES — VIOLATION = SCRIPT FAILURE:**
-- The \`target.label\` MUST always be the **visible text label on the UI element itself** (e.g., a button label, input field label, heading, or link text visible on screen).
-- **NEVER output a \`target\` with an empty or blank \`label\` field.** This will CRASH the engine.
-- NEVER use a value you are about to type as a \`target.label\`. For example, if you want to type a bucket name into a "Bucket name" textbox, the target label is \`"Bucket name"\`, NOT \`"demo-s3-bucket-789012"\`.
-- NEVER use a dynamic value (bucket name, resource name, ARN, ID) as a \`target.label\` unless that exact text is visibly rendered as a link or button on the screen AFTER the resource has been created.
-- After creating a resource, use \`waitForNetworkIdle\` first, then \`click\` the resource by its exact name (since the listing renders it as a link).
-- For the global search bar, use action \`search\` with just a \`value\` field (no \`target\` needed).
+- The \`target.label\` MUST always be the **visible text label on the UI element itself**.
+- **NEVER output a \`target\` with an empty or blank \`label\` field.**
+- NEVER use a value you are about to type as a \`target.label\`.
+- NEVER use a dynamic value unless that exact text is visibly rendered.
+- After creating a resource, use \`waitForNetworkIdle\` first, then \`click\` the resource by its exact name.
+- For the global search bar, use action \`search\` with just a \`value\` field.
 
-**TARGET DISAMBIGUATION — \`target.context\` (CRITICAL, REQUIRED ON EVERY \`target\`):**
-- Many AWS Console pages render the SAME text in more than one place at once — most commonly the service/page name appears both in the top breadcrumb trail AND as an actual clickable link or button in the main content area. If you only give a \`label\`, the engine cannot tell which one you mean, and it will frequently mis-click the breadcrumb instead of the real element. This has caused real failures.
-- Every \`target\` object MUST include a \`context\` string field, in addition to \`label\` and \`type\`, describing WHERE on the page the element is located and how to tell it apart from lookalikes. Examples of good context: \`"the primary blue button inside the main form, not the breadcrumb link at the top of the page"\`, \`"row in the resource list table, not the page title"\`, \`"left-hand sidebar navigation menu"\`, \`"inside the modal dialog"\`.
-- If the element you are targeting is itself part of the breadcrumb trail and that is genuinely intended (rare), say so explicitly in \`context\` (e.g. \`"breadcrumb link used to navigate back up one level"\`) so it's clear this was deliberate rather than a mistake.
-- Never leave \`context\` empty when \`label\` could plausibly match more than one element on the page.
+**TARGET DISAMBIGUATION — \`target.context\`:**
+- Every \`target\` object MUST include a \`context\` string field describing WHERE on the page the element is located.
 
 The JSON MUST follow this exact structure:
 {
@@ -409,105 +380,74 @@ The JSON MUST follow this exact structure:
     { "action": "waitForNetworkIdle" },
     { "action": "search", "value": "${topic}" },
     { "action": "waitForNetworkIdle" },
-    { "action": "click", "target": { "label": "Amazon ${topic}", "type": "link", "context": "search results dropdown item, not the breadcrumb" } },
-    { "action": "waitForNetworkIdle" },
-    { "action": "highlight", "target": { "label": "Create bucket", "type": "button", "context": "primary action button in the main content area, top-right of the bucket list" } },
-    { "action": "click", "target": { "label": "Create bucket", "type": "button", "context": "primary action button in the main content area, top-right of the bucket list" } },
-    { "action": "waitForNetworkIdle" },
-    {
-      "action": "type",
-      "target": { "label": "Bucket name", "type": "textbox", "context": "text input field inside the General configuration section of the create-bucket form" },
-      "value": "demo-videogen-001"
-    },
-    { "action": "scroll", "direction": "down", "distance": 300 },
-    { "action": "highlight", "target": { "label": "Block all public access", "type": "checkbox", "context": "checkbox inside the Block Public Access settings section" } },
-    { "action": "scroll", "direction": "down", "distance": 300 },
-    { "action": "highlight", "target": { "label": "Create bucket", "type": "button", "context": "submit button at the bottom of the create-bucket form, not the top button used earlier" } },
-    { "action": "click", "target": { "label": "Create bucket", "type": "button", "context": "submit button at the bottom of the create-bucket form, not the top button used earlier" } },
-    { "action": "waitForNetworkIdle" },
-    { "action": "click", "target": { "label": "demo-videogen-001", "type": "link", "context": "row in the S3 bucket listing table, not any breadcrumb text" } }
+    { "action": "click", "target": { "label": "Amazon ${topic}", "type": "link", "context": "search results dropdown item, not the breadcrumb" } }
   ]
 }
-
-Available actions for steps:
-- goto (requires 'url')
-- waitForNetworkIdle (optional 'timeout')
-- search (requires 'value' - types into the global AWS search bar)
-- click (requires 'target' object with 'label', 'type', and 'context')
-- doubleClick (requires 'target' object with 'label', 'type', and 'context')
-- type (requires 'target' object with 'label', 'type', and 'context' to focus the field, plus 'value' to type)
-- select (requires 'target' object with 'label', 'type', and 'context', plus 'value')
-- check / uncheck (requires 'target' object with 'label', 'type', and 'context')
-- hover (requires 'target' object with 'label', 'type', and 'context')
-- scroll (requires 'direction': "up"/"down" and 'distance' in pixels — NEVER a 'target' or 'duration')
-- highlight (requires 'target' object with 'label', 'type', and 'context' - draws a visual box around the element)
-- wait (requires 'duration' in ms - AVOID IF POSSIBLE)
-
-Ensure the steps logically flow like a real human navigating the console. Do NOT use CSS selectors. Use ONLY semantic labels and types (e.g., type: "button", "link", "textbox", "checkbox", "dropdown", "tab", "section"), and always pair them with a disambiguating "context" string.
 `;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-flash-latest',
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'object',
-          properties: {
-            type: { type: 'string' },
-            service: { type: 'string' },
-            title: { type: 'string' },
-            narration: { type: 'string' },
-            steps: {
-              type: 'array',
-              items: {
+    const jsonSchema = {
+      type: 'object',
+      properties: {
+        type: { type: 'string' },
+        service: { type: 'string' },
+        title: { type: 'string' },
+        narration: { type: 'string' },
+        steps: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              action: { type: 'string' },
+              url: { type: 'string' },
+              value: { type: 'string' },
+              duration: { type: 'integer' },
+              target: {
                 type: 'object',
                 properties: {
-                  action: { type: 'string' },
-                  url: { type: 'string' },
-                  value: { type: 'string' },
-                  duration: { type: 'integer' },
-                  target: {
-                    type: 'object',
-                    properties: {
-                      label: { type: 'string' },
-                      type: { type: 'string' },
-                      context: { type: 'string' }
-                    },
-                    required: ['label', 'context']
-                  }
+                  label: { type: 'string' },
+                  type: { type: 'string' },
+                  context: { type: 'string' }
                 },
-                required: ['action']
+                required: ['label', 'context']
               }
-            }
-          },
-          required: ['type', 'service', 'title', 'narration', 'steps']
+            },
+            required: ['action']
+          }
         }
-      }
-    });
+      },
+      required: ['type', 'service', 'title', 'narration', 'steps']
+    };
 
     let result;
     let attempts = 0;
     const maxAttempts = 3;
-    let delay = 15000; // start with 15s delay for 429 errors
+    let delay = 15000;
 
     while (attempts < maxAttempts) {
       try {
-        result = await model.generateContent(prompt);
+        result = await client.models.generateContent({
+          model: 'gemini-3.7-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: jsonSchema
+          }
+        });
+        if (result.usageMetadata) {
+          console.log(`[Token Usage] Provider: vertex-ai, Model: gemini-3.7-flash, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
+        }
         break;
       } catch (err) {
         attempts++;
         if (attempts >= maxAttempts) throw err;
 
         console.warn(`[AWS Script Gen] Attempt ${attempts} failed: ${err.message}. Retrying in ${delay}ms...`);
-        // If there is a specific retry delay from the API, we could parse it, but a static backoff is safe.
         await new Promise(resolve => setTimeout(resolve, delay));
         delay *= 1.5;
       }
     }
 
-    const response = await result.response;
-    let text = response.text();
-
+    let text = result.text;
     const cleanedText = cleanJsonString(text);
     res.status(200).json({ success: true, text: cleanedText });
   } catch (error) {

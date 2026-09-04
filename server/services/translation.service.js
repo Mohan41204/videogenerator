@@ -1,4 +1,4 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 
 const translateText = async (text, targetLanguageName) => {
   if (!text || text.trim() === '') return text;
@@ -8,7 +8,11 @@ const translateText = async (text, targetLanguageName) => {
     return text;
   }
 
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const client = new GoogleGenAI({
+    vertexai: process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true',
+    project: process.env.GOOGLE_CLOUD_PROJECT,
+    location: process.env.GOOGLE_CLOUD_LOCATION || 'global',
+  });
   
   let styleInstruction = `Convert the English educational narration into natural conversational speech for ${targetLanguageName}.`;
   const lowerLang = targetLanguageName.toLowerCase();
@@ -57,14 +61,19 @@ Narration to translate:
   `.trim();
 
   const runModelWithRetry = async (modelName) => {
-    const model = genAI.getGenerativeModel({ model: modelName });
     let attempts = 0;
     const maxAttempts = 3;
     let delay = 1000;
 
     while (attempts < maxAttempts) {
       try {
-        const result = await model.generateContent(prompt);
+        const result = await client.models.generateContent({
+          model: modelName,
+          contents: prompt,
+        });
+        if (result.usageMetadata) {
+          console.log(`[Token Usage] Provider: vertex-ai, Model: ${modelName}, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
+        }
         return result;
       } catch (err) {
         attempts++;
@@ -81,22 +90,15 @@ Narration to translate:
     try {
       let result;
       try {
-        result = await runModelWithRetry('gemini-2.5-flash');
+        result = await runModelWithRetry('gemini-3.7-flash');
       } catch (error) {
-        console.warn('gemini-2.5-flash failed for translation. Falling back to gemini-flash-latest...');
-        result = await runModelWithRetry('gemini-flash-latest');
+        console.warn('gemini-3.7-flash failed for translation. Falling back to gemini-2.5-flash...');
+        result = await runModelWithRetry('gemini-2.5-flash');
       }
-      const response = await result.response;
-      translatedText = response.text().trim();
+      translatedText = result.text?.trim() || '';
     } catch (geminiError) {
-      console.warn('Primary Gemini translation attempts failed. Falling back to gemini-1.5-pro...', geminiError.message);
-      try {
-        const result = await runModelWithRetry('gemini-1.5-pro');
-        const response = await result.response;
-        translatedText = response.text().trim();
-      } catch (proError) {
-        throw new Error('All Gemini API translation attempts (including pro fallback) failed.');
-      }
+      console.error('All Gemini translation attempts failed:', geminiError.message);
+      throw new Error('All Gemini API translation attempts failed.');
     }
     
     // Clean any accidental quotes
@@ -115,10 +117,14 @@ const translateSlides = async (slides, targetLanguageName) => {
   if (!slides || !slides.length) return slides;
   
   if (targetLanguageName.toLowerCase() === 'english') {
-    return slides; // Deep clone if strictly necessary, but returning slides is fine if not mutated further
+    return slides;
   }
 
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const client = new GoogleGenAI({
+    vertexai: process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true',
+    project: process.env.GOOGLE_CLOUD_PROJECT,
+    location: process.env.GOOGLE_CLOUD_LOCATION || 'global',
+  });
   
   const prompt = `
 You are an expert technical translator. Translate the human-readable content of this educational slide array into ${targetLanguageName}.
@@ -139,17 +145,20 @@ ${JSON.stringify(slides, null, 2)}
   `.trim();
 
   const runModelWithRetry = async (modelName) => {
-    const model = genAI.getGenerativeModel({ 
-      model: modelName,
-      generationConfig: { responseMimeType: "application/json" }
-    });
     let attempts = 0;
     const maxAttempts = 3;
     let delay = 1000;
 
     while (attempts < maxAttempts) {
       try {
-        const result = await model.generateContent(prompt);
+        const result = await client.models.generateContent({
+          model: modelName,
+          contents: prompt,
+          config: { responseMimeType: "application/json" }
+        });
+        if (result.usageMetadata) {
+          console.log(`[Token Usage] Provider: vertex-ai, Model: ${modelName}, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
+        }
         return result;
       } catch (err) {
         attempts++;
@@ -166,22 +175,15 @@ ${JSON.stringify(slides, null, 2)}
     try {
       let result;
       try {
-        result = await runModelWithRetry('gemini-2.5-flash');
+        result = await runModelWithRetry('gemini-3.7-flash');
       } catch (error) {
-        console.warn('gemini-2.5-flash failed for slide translation. Falling back to gemini-flash-latest...');
-        result = await runModelWithRetry('gemini-flash-latest');
+        console.warn('gemini-3.7-flash failed for slide translation. Falling back to gemini-2.5-flash...');
+        result = await runModelWithRetry('gemini-2.5-flash');
       }
-      const response = await result.response;
-      translatedJsonText = response.text().trim();
+      translatedJsonText = result.text?.trim() || '';
     } catch (geminiError) {
-      console.warn('Primary Gemini slide translation attempts failed. Falling back to gemini-1.5-pro...', geminiError.message);
-      try {
-        const result = await runModelWithRetry('gemini-1.5-pro');
-        const response = await result.response;
-        translatedJsonText = response.text().trim();
-      } catch (proError) {
-        throw new Error('All Gemini API slide translation attempts (including pro fallback) failed.');
-      }
+      console.error('All Gemini slide translation attempts failed:', geminiError.message);
+      throw new Error('All Gemini API slide translation attempts failed.');
     }
     
     // Clean JSON response if wrapped in markdown

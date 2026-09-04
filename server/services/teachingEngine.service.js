@@ -22,10 +22,10 @@
  */
 
 const path = require('path');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 const diagramService = require('./diagram.service');
 
-if (!process.env.GEMINI_API_KEY) {
+if (!process.env.GOOGLE_CLOUD_PROJECT) {
   require('dotenv').config({ path: path.join(__dirname, '../../../.env') });
   require('dotenv').config({ path: path.join(__dirname, '../../.env') });
   require('dotenv').config();
@@ -1153,7 +1153,11 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
   console.log(`[TeachingEngine] Planning lesson: Topic="${topic}", SubTopic="${subTopic}", Duration=${plan.mins}m, Domain=${domain}, Scenes=${plan.sceneCount}, TargetWords=~${plan.totalTargetWords}`);
 
   const prompt = buildPedagogicalPrompt(topic, subTopic, plan, domain);
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const client = new GoogleGenAI({
+    vertexai: process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true',
+    project: process.env.GOOGLE_CLOUD_PROJECT,
+    location: process.env.GOOGLE_CLOUD_LOCATION || 'global',
+  });
 
   const jsonSchema = {
     type: 'array',
@@ -1308,12 +1312,8 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
   };
 
   const candidateModels = [
-    'gemini-2.5-flash',
-    'gemini-3.6-flash',
     'gemini-3.7-flash',
-    'gemini-3.5-flash',
-    'gemini-flash-latest',
-    'gemini-3.1-flash-lite'
+    'gemini-2.5-flash'
   ];
 
   let result = null;
@@ -1321,26 +1321,31 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
 
   for (const modelName of candidateModels) {
     try {
-      console.log(`[TeachingEngine] Attempting script generation with ${modelName}...`);
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: jsonSchema
-        }
-      });
+      console.log(`[TeachingEngine] Attempting script generation with ${modelName} on Vertex AI...`);
 
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error(`Timeout: ${modelName} exceeded 60 seconds`)), 60000)
       );
 
+      const generatePromise = client.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: jsonSchema
+        }
+      });
+
       result = await Promise.race([
-        model.generateContent(prompt),
+        generatePromise,
         timeoutPromise
       ]);
 
-      if (result && result.response) {
+      if (result) {
         console.log(`[TeachingEngine] Successfully received response from ${modelName}`);
+        if (result.usageMetadata) {
+          console.log(`[Token Usage] Provider: vertex-ai, Model: ${modelName}, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
+        }
         break;
       }
     } catch (err) {
@@ -1349,12 +1354,11 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
     }
   }
 
-  if (!result || !result.response) {
+  if (!result) {
     throw new Error(`All candidate Gemini models failed. Last error: ${lastError ? lastError.message : 'Unknown'}`);
   }
 
-  const response = await result.response;
-  const rawText = response.text();
+  const rawText = result.text;
   const cleaned = extractJson(rawText);
 
   let rawParsed;

@@ -6,7 +6,7 @@ const fs = require('fs');
 
 // Initialize env
 dotenv.config();
-if (!process.env.GEMINI_API_KEY) {
+if (!process.env.GOOGLE_CLOUD_PROJECT) {
   dotenv.config({ path: path.join(__dirname, '../../.env') });
 }
 

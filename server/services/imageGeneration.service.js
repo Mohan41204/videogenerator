@@ -84,18 +84,19 @@ class ImageGenerationService {
    * Attempts generation using Google Gemini / Imagen.
    */
   async _tryGeminiImageGen(prompt, outputPath) {
-    if (!process.env.GEMINI_API_KEY) return null;
+    if (!process.env.GOOGLE_CLOUD_PROJECT) return null;
     
     try {
       const { GoogleGenAI } = require('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({
+        vertexai: process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true',
+        project: process.env.GOOGLE_CLOUD_PROJECT,
+        location: process.env.GOOGLE_CLOUD_LOCATION || 'global',
+      });
       
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'imagen-3.0-generate-002',
         contents: prompt,
-        config: {
-          responseModalities: ['IMAGE']
-        }
       });
 
       const parts = response.candidates?.[0]?.content?.parts;
@@ -109,7 +110,7 @@ class ImageGenerationService {
         }
       }
     } catch (err) {
-      // Pass error to fallback
+      // Pass error to fallback (Tier 2: Pollinations AI)
       throw err;
     }
     return null;
