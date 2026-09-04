@@ -1317,18 +1317,21 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
 
   const candidateModels = [
     'gemini-3.7-flash',
-    'gemini-2.5-flash'
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
   ];
 
   let result = null;
   let lastError = null;
+  const timeoutMs = Math.max(120000, (plan?.mins || 5) * 10000); // 120s base, scales with duration
 
   for (const modelName of candidateModels) {
     try {
-      console.log(`[TeachingEngine] Attempting script generation with ${modelName} on Vertex AI...`);
+      console.log(`[TeachingEngine] Attempting script generation with ${modelName} on Vertex AI (timeout: ${Math.round(timeoutMs/1000)}s)...`);
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`Timeout: ${modelName} exceeded 60 seconds`)), 60000)
+        setTimeout(() => reject(new Error(`Timeout: ${modelName} exceeded ${Math.round(timeoutMs/1000)} seconds`)), timeoutMs)
       );
 
       const generatePromise = client.models.generateContent({
