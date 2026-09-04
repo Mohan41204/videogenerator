@@ -132,10 +132,10 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
   // Load the screen-share HTML template
   const templatePath = path.join(__dirname, '../templates/screen_share.html');
   const templateUrl = 'file:///' + templatePath.replace(/\\/g, '/');
-  await page.goto(templateUrl, { waitUntil: 'networkidle0' });
+  await page.goto(templateUrl, { waitUntil: 'domcontentloaded', timeout: 90000 });
 
   // Make sure the animation API is ready
-  await page.waitForFunction(() => typeof window.loadSlide === 'function' && typeof window.renderFrame === 'function');
+  await page.waitForFunction(() => typeof window.loadSlide === 'function' && typeof window.renderFrame === 'function', { timeout: 90000 });
   console.log('[Puppeteer] Template loaded, animation engine ready.');
 
   // Reset diagram injection flag for this new session
