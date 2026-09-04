@@ -90,15 +90,15 @@ function getDurationPlan(durationMinutes) {
     depthTier = 'STANDARD_LESSON';
     depthDescription = 'Standard lesson: Introduction → Core Concept Explanation → Technical Diagram / Code → Diagram Explanation → Real-World Annotated Scenario → Final Recap.';
     stagePlan = ['introduction', 'concept_explanation', 'technical_visual', 'diagram_explanation', 'real_world_application', 'recap'];
-  } else if (mins <= 12) {
-    sceneCount = Math.max(8, Math.min(10, Math.round(mins * 0.9)));
+  } else if (mins <= 20) {
+    sceneCount = Math.max(8, Math.min(14, Math.round(mins * 0.8)));
     depthTier = 'COMPREHENSIVE_DEEP_DIVE';
     depthDescription = 'In-depth mastery: Introduction → Core Concept → Technical Visual → Diagram Explanation → Concrete Example → Real-World Application → Concept Mapping → Recap.';
     stagePlan = ['introduction', 'concept_explanation', 'technical_visual', 'diagram_explanation', 'example', 'real_world_application', 'concept_mapping', 'recap'];
   } else {
-    sceneCount = Math.max(10, Math.min(14, Math.round(mins * 0.8)));
-    depthTier = 'MASTERCLASS';
-    depthDescription = 'Masterclass tier: Full conceptual exploration, technical visuals, real-world reinforcement, and end-to-end synthesis.';
+    sceneCount = Math.max(14, Math.min(25, Math.round(mins * 0.5)));
+    depthTier = 'MASTERCLASS_COURSE';
+    depthDescription = 'Full Masterclass Course tier: Exhaustive step-by-step topic breakdown, technical visuals, real-world scenarios, and end-to-end synthesis.';
     stagePlan = ['introduction', 'concept_explanation', 'technical_visual', 'diagram_explanation', 'example', 'real_world_application', 'real_world_annotation', 'concept_mapping', 'recap'];
   }
 
@@ -1324,7 +1324,7 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
 
   let result = null;
   let lastError = null;
-  const timeoutMs = Math.max(120000, (plan?.mins || 5) * 10000); // 120s base, scales with duration
+  const timeoutMs = Math.max(180000, (plan?.mins || 5) * 15000); // 180s base, scales up to 15m for 60m scripts
 
   for (const modelName of candidateModels) {
     try {
