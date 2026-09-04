@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { API_BASE_URL } from '../config';
 
 const VoiceRecorder = ({ onVoiceSet }) => {
   const [isRecording, setIsRecording] = useState(false);
@@ -85,7 +86,7 @@ const VoiceRecorder = ({ onVoiceSet }) => {
     formData.append('name', voiceName || 'My Custom Voice');
 
     try {
-      const response = await fetch('http://localhost:5000/api/voice/setup', {
+      const response = await fetch(`${API_BASE_URL}/api/voice/setup`, {
         method: 'POST',
         body: formData
       });

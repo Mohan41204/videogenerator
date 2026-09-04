@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Download, Video, Presentation, AlertCircle, RefreshCw, Archive } from 'lucide-react';
 import pptxgen from "pptxgenjs";
 import JSZip from 'jszip'; // Added JSZip
+import { API_BASE_URL, getFullUrl } from '../config';
 
 const LANGUAGE_NAMES = {
   en: 'English',
@@ -55,7 +56,7 @@ const VideoPlayer = ({ videoData, script }) => {
   const handleDownloadVideo = (e) => {
     e.preventDefault();
     if (isDownloadingMP4) return;
-    handleDownloadFile(`http://localhost:5000${localVideoData.videoUrl}`, 'generated-video.mp4', setIsDownloadingMP4);
+    handleDownloadFile(getFullUrl(localVideoData.videoUrl), 'generated-video.mp4', setIsDownloadingMP4);
   };
 
   const handleDownloadLanguageVideo = (langCode, e) => {
@@ -63,7 +64,7 @@ const VideoPlayer = ({ videoData, script }) => {
     if (isDownloadingVideoLang) return;
     const url = localVideoData.videos[langCode]?.url;
     if (url) {
-      handleDownloadFile(`http://localhost:5000${url}`, `video_${LANGUAGE_NAMES[langCode]}.mp4`, setIsDownloadingVideoLang);
+      handleDownloadFile(getFullUrl(url), `video_${LANGUAGE_NAMES[langCode]}.mp4`, setIsDownloadingVideoLang);
     }
   };
 
@@ -76,7 +77,7 @@ const VideoPlayer = ({ videoData, script }) => {
       const tracks = localVideoData.videos || {};
       for (const [lang, videoObj] of Object.entries(tracks)) {
         if (!videoObj || !videoObj.url) continue;
-        const response = await fetch(`http://localhost:5000${videoObj.url}`);
+        const response = await fetch(getFullUrl(videoObj.url));
         const blob = await response.blob();
         zip.file(`video_${LANGUAGE_NAMES[lang]}.mp4`, blob);
       }
@@ -143,7 +144,7 @@ const VideoPlayer = ({ videoData, script }) => {
   const handleRetryLanguage = async (lang) => {
     setRetryStatus(prev => ({ ...prev, [lang]: 'loading' }));
     try {
-      const response = await fetch(`http://localhost:5000/api/videos/${localVideoData.id}/video/${lang}/regenerate`, {
+      const response = await fetch(`${API_BASE_URL}/api/videos/${localVideoData.id}/video/${lang}/regenerate`, {
         method: 'POST'
       });
       const result = await response.json();
@@ -213,7 +214,7 @@ const VideoPlayer = ({ videoData, script }) => {
           ref={videoRef}
           controls
           className="w-full h-auto max-h-[60vh] object-contain rounded-xl bg-black relative z-10"
-          src={`http://localhost:5000${currentVideoUrl}`}
+          src={getFullUrl(currentVideoUrl)}
         >
           Your browser does not support the video tag.
         </video>

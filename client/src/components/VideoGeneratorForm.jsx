@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { UploadCloud, Wand2, MonitorPlay, Smartphone, Download } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [topic, setTopic] = useState('');
@@ -60,8 +61,8 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
 
     try {
       const endpoint = tutorialType === 'aws' 
-        ? 'http://localhost:5000/api/videos/generate-aws-script'
-        : 'http://localhost:5000/api/videos/generate-script';
+        ? `${API_BASE_URL}/api/videos/generate-aws-script`
+        : `${API_BASE_URL}/api/videos/generate-script`;
         
       const response = await axios.post(endpoint, {
         topic,
@@ -128,7 +129,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/videos/generate', formData);
+      const response = await axios.post(`${API_BASE_URL}/api/videos/generate`, formData);
 
       clearInterval(progressInterval);
       setProgress(100);
