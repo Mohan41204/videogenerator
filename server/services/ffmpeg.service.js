@@ -1,3 +1,6 @@
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 
@@ -19,19 +22,21 @@ const generateVideo = (audioPath, backgroundPath, assFilePath, outputPath, forma
     let command = ffmpeg();
 
     if (!backgroundPath) {
-      // Generate modern VS Code dark background canvas (#1e1e2e)
-      command = command
-        .input(`color=c=0x1e1e2e:s=${resolution}:r=1`)
-        .inputOptions(['-f', 'lavfi']);
-    } else {
-      const isVideo = backgroundPath.toLowerCase().endsWith('.mp4') || backgroundPath.toLowerCase().endsWith('.mov');
-      if (isVideo) {
-        // Loop the video background at reduced framerate
-        command = command.input(backgroundPath).inputOptions(['-stream_loop -1', '-r 15']);
-      } else {
-        // Loop the image background at low framerate for presentation style
-        command = command.input(backgroundPath).inputOptions(['-loop 1', '-r 1']);
+      const defaultBg = path.join(os.tmpdir(), 'default_dark_bg.png');
+      if (!fs.existsSync(defaultBg)) {
+        const darkPngBuffer = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwEC7W8/8wAAAABJRU5ErkJggg==', 'base64');
+        fs.writeFileSync(defaultBg, darkPngBuffer);
       }
+      backgroundPath = defaultBg;
+    }
+
+    const isVideo = backgroundPath.toLowerCase().endsWith('.mp4') || backgroundPath.toLowerCase().endsWith('.mov');
+    if (isVideo) {
+      // Loop the video background at reduced framerate
+      command = command.input(backgroundPath).inputOptions(['-stream_loop -1', '-r 15']);
+    } else {
+      // Loop the image background at low framerate for presentation style
+      command = command.input(backgroundPath).inputOptions(['-loop 1', '-r 1']);
     }
 
     const subPathFormatted = formatSubtitlePath(assFilePath);

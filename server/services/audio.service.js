@@ -65,18 +65,42 @@ const generateSingleAudio = async (text, outputPath, langCode = 'en', voiceId = 
 
 const generateSilence = (duration, outputPath) => {
   return new Promise((resolve, reject) => {
-    ffmpeg()
-      .input('anullsrc=r=24000:cl=mono')
-      .inputOptions(['-f', 'lavfi'])
-      .duration(duration)
-      .audioCodec('libmp3lame')
-      .audioBitrate('64k')
-      .on('error', (err) => {
-        console.error('Error generating silence:', err);
-        reject(err);
-      })
-      .on('end', () => resolve(outputPath))
-      .save(outputPath);
+    try {
+      const sampleRate = 24000;
+      const numChannels = 1;
+      const bitsPerSample = 16;
+      const bytesPerSample = bitsPerSample / 8;
+      const blockAlign = numChannels * bytesPerSample;
+      const byteRate = sampleRate * blockAlign;
+      const numSamples = Math.max(1, Math.ceil(sampleRate * (duration || 0.5)));
+      const dataSize = numSamples * blockAlign;
+      const buffer = Buffer.alloc(44 + dataSize);
+
+      // RIFF header
+      buffer.write('RIFF', 0);
+      buffer.writeUInt32LE(36 + dataSize, 4);
+      buffer.write('WAVE', 8);
+
+      // fmt chunk
+      buffer.write('fmt ', 12);
+      buffer.writeUInt32LE(16, 16);
+      buffer.writeUInt16LE(1, 20);
+      buffer.writeUInt16LE(numChannels, 22);
+      buffer.writeUInt32LE(sampleRate, 24);
+      buffer.writeUInt32LE(byteRate, 28);
+      buffer.writeUInt16LE(blockAlign, 32);
+      buffer.writeUInt16LE(bitsPerSample, 34);
+
+      // data chunk
+      buffer.write('data', 36);
+      buffer.writeUInt32LE(dataSize, 40);
+
+      fs.writeFileSync(outputPath, buffer);
+      resolve(outputPath);
+    } catch (err) {
+      console.error('Error generating silence:', err);
+      reject(err);
+    }
   });
 };
 
