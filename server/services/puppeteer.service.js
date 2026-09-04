@@ -90,25 +90,34 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
   } else {
-    const possiblePaths = [
-      '/usr/bin/google-chrome-stable',
-      '/usr/bin/google-chrome',
-      '/usr/bin/chromium-browser',
-      '/usr/bin/chromium'
-    ];
-    for (const chromePath of possiblePaths) {
-      if (fs.existsSync(chromePath)) {
-        launchOptions.executablePath = chromePath;
-        console.log(`[Puppeteer] Using system Chrome binary at ${chromePath}`);
-        break;
+    try {
+      const chromium = require('@sparticuz/chromium');
+      launchOptions.executablePath = await chromium.executablePath();
+      if (chromium.args) {
+        launchOptions.args = [...new Set([...launchOptions.args, ...chromium.args])];
       }
-    }
+      console.log(`[Puppeteer] Using @sparticuz/chromium binary at ${launchOptions.executablePath}`);
+    } catch (e) {
+      const possiblePaths = [
+        '/usr/bin/google-chrome-stable',
+        '/usr/bin/google-chrome',
+        '/usr/bin/chromium-browser',
+        '/usr/bin/chromium'
+      ];
+      for (const chromePath of possiblePaths) {
+        if (fs.existsSync(chromePath)) {
+          launchOptions.executablePath = chromePath;
+          console.log(`[Puppeteer] Using system Chrome binary at ${chromePath}`);
+          break;
+        }
+      }
 
-    if (!launchOptions.executablePath) {
-      const cachedChrome = findChromeInCache();
-      if (cachedChrome) {
-        launchOptions.executablePath = cachedChrome;
-        console.log(`[Puppeteer] Found Chrome binary in project cache at ${cachedChrome}`);
+      if (!launchOptions.executablePath) {
+        const cachedChrome = findChromeInCache();
+        if (cachedChrome) {
+          launchOptions.executablePath = cachedChrome;
+          console.log(`[Puppeteer] Found Chrome binary in project cache at ${cachedChrome}`);
+        }
       }
     }
   }
