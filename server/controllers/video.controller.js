@@ -320,11 +320,15 @@ const generateAwsScript = async (req, res) => {
     const targetMins = parseInt(durationMinutes, 10) || 5;
     const targetWords = targetMins * 140;
 
-    const client = new GoogleGenAI({
-      vertexai: process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true',
-      project: process.env.GOOGLE_CLOUD_PROJECT,
-      location: process.env.GOOGLE_CLOUD_LOCATION || 'global',
-    });
+    const clientConfig = {};
+    if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
+      clientConfig.apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    } else {
+      clientConfig.vertexai = process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true';
+      clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT;
+      clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+    }
+    const client = new GoogleGenAI(clientConfig);
 
     const prompt = `
 Imagine you are an experienced AWS instructor creating an automated screen-recording tutorial.

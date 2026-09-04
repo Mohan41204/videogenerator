@@ -8,11 +8,15 @@ const translateText = async (text, targetLanguageName) => {
     return text;
   }
 
-  const client = new GoogleGenAI({
-    vertexai: process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true',
-    project: process.env.GOOGLE_CLOUD_PROJECT,
-    location: process.env.GOOGLE_CLOUD_LOCATION || 'global',
-  });
+  const clientConfig = {};
+  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
+    clientConfig.apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  } else {
+    clientConfig.vertexai = process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true';
+    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT;
+    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+  }
+  const client = new GoogleGenAI(clientConfig);
   
   let styleInstruction = `Convert the English educational narration into natural conversational speech for ${targetLanguageName}.`;
   const lowerLang = targetLanguageName.toLowerCase();
@@ -120,11 +124,15 @@ const translateSlides = async (slides, targetLanguageName) => {
     return slides;
   }
 
-  const client = new GoogleGenAI({
-    vertexai: process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true',
-    project: process.env.GOOGLE_CLOUD_PROJECT,
-    location: process.env.GOOGLE_CLOUD_LOCATION || 'global',
-  });
+  const clientConfig = {};
+  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
+    clientConfig.apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  } else {
+    clientConfig.vertexai = process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true';
+    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT;
+    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+  }
+  const client = new GoogleGenAI(clientConfig);
   
   const prompt = `
 You are an expert technical translator. Translate the human-readable content of this educational slide array into ${targetLanguageName}.

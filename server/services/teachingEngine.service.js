@@ -1153,11 +1153,15 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
   console.log(`[TeachingEngine] Planning lesson: Topic="${topic}", SubTopic="${subTopic}", Duration=${plan.mins}m, Domain=${domain}, Scenes=${plan.sceneCount}, TargetWords=~${plan.totalTargetWords}`);
 
   const prompt = buildPedagogicalPrompt(topic, subTopic, plan, domain);
-  const client = new GoogleGenAI({
-    vertexai: process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true',
-    project: process.env.GOOGLE_CLOUD_PROJECT,
-    location: process.env.GOOGLE_CLOUD_LOCATION || 'global',
-  });
+  const clientConfig = {};
+  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
+    clientConfig.apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  } else {
+    clientConfig.vertexai = process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true';
+    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT;
+    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+  }
+  const client = new GoogleGenAI(clientConfig);
 
   const jsonSchema = {
     type: 'array',

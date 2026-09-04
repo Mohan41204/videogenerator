@@ -88,11 +88,15 @@ class ImageGenerationService {
     
     try {
       const { GoogleGenAI } = require('@google/genai');
-      const ai = new GoogleGenAI({
-        vertexai: process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true',
-        project: process.env.GOOGLE_CLOUD_PROJECT,
-        location: process.env.GOOGLE_CLOUD_LOCATION || 'global',
-      });
+      const clientConfig = {};
+      if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
+        clientConfig.apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+      } else {
+        clientConfig.vertexai = process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true';
+        clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT;
+        clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+      }
+      const ai = new GoogleGenAI(clientConfig);
       
       const response = await ai.models.generateContent({
         model: 'imagen-3.0-generate-002',
