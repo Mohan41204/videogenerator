@@ -40,7 +40,7 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
 
   console.log('[Puppeteer] Launching headless browser...');
 
-  const browser = await puppeteer.launch({
+  const launchOptions = {
     headless: 'new',
     args: [
       '--no-sandbox',
@@ -51,7 +51,27 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       '--disable-gpu',
       '--window-size=1500,700'
     ]
-  });
+  };
+
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  } else {
+    const possiblePaths = [
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/google-chrome',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium'
+    ];
+    for (const chromePath of possiblePaths) {
+      if (fs.existsSync(chromePath)) {
+        launchOptions.executablePath = chromePath;
+        console.log(`[Puppeteer] Using system Chrome binary at ${chromePath}`);
+        break;
+      }
+    }
+  }
+
+  const browser = await puppeteer.launch(launchOptions);
 
   const page = await browser.newPage();
   await page.setViewport({ width: 1500, height: 700, deviceScaleFactor: 1 });
