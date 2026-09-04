@@ -22,7 +22,7 @@ const generateVideo = (audioPath, backgroundPath, assFilePath, outputPath, forma
       // Generate modern VS Code dark background canvas (#1e1e2e)
       command = command
         .input(`color=c=0x1e1e2e:s=${resolution}:r=1`)
-        .inputFormat('lavfi');
+        .inputOptions(['-f', 'lavfi']);
     } else {
       const isVideo = backgroundPath.toLowerCase().endsWith('.mp4') || backgroundPath.toLowerCase().endsWith('.mov');
       if (isVideo) {

@@ -67,7 +67,7 @@ const generateSilence = (duration, outputPath) => {
   return new Promise((resolve, reject) => {
     ffmpeg()
       .input('anullsrc=r=24000:cl=mono')
-      .inputFormat('lavfi')
+      .inputOptions(['-f', 'lavfi'])
       .duration(duration)
       .audioCodec('libmp3lame')
       .audioBitrate('64k')
