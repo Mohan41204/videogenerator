@@ -10,6 +10,21 @@ if (!process.env.GOOGLE_CLOUD_PROJECT) {
   dotenv.config({ path: path.join(__dirname, '../../.env') });
 }
 
+// Auto-detect Google Cloud Credentials in Cloud Environments (Render, Vercel, Heroku, etc.)
+if (process.env.GOOGLE_CREDENTIALS_JSON && (!process.env.GOOGLE_APPLICATION_CREDENTIALS || !fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS))) {
+  try {
+    const credPath = path.join(require('os').tmpdir(), 'google-credentials.json');
+    fs.writeFileSync(credPath, process.env.GOOGLE_CREDENTIALS_JSON);
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = credPath;
+    console.log(`[Init] Extracted GOOGLE_CREDENTIALS_JSON to ${credPath}`);
+  } catch (e) {
+    console.error('[Init] Error writing GOOGLE_CREDENTIALS_JSON:', e);
+  }
+} else if ((!process.env.GOOGLE_APPLICATION_CREDENTIALS || !fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) && fs.existsSync('/etc/secrets/google-credentials.json')) {
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = '/etc/secrets/google-credentials.json';
+  console.log('[Init] Using Render secret file at /etc/secrets/google-credentials.json');
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
