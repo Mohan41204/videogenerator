@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'https://videogenerator-5hfk.onrender.com';
+export const API_BASE_URL = 'https://videogenerator-backend-ws81.onrender.com';
 
 export const getFullUrl = (path) => {
   if (!path) return '';
