@@ -7,6 +7,10 @@ const subtitleService = require('../services/subtitle.service');
 const { GoogleGenAI } = require('@google/genai');
 const teachingEngine = require('../services/teachingEngine.service');
 
+// Store background jobs
+const jobs = new Map();
+
+
 // Robust JSON extraction and cleaning utility
 const cleanJsonString = (str) => {
   if (!str) return '';
@@ -52,15 +56,23 @@ const generateVideo = async (req, res) => {
     }
 
     const uniqueId = uuidv4();
-    const outputDir = path.join(__dirname, '../output');
-    // Ensure output directory exists for audio and video
-    const videoDir = path.join(outputDir, 'video');
-    const audioDir = path.join(outputDir, 'audio');
-    if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir, { recursive: true });
-    if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
+    jobs.set(uniqueId, { status: 'processing', progress: 0, message: 'Initializing...' });
 
-    const finalVideoPath = path.join(videoDir, `${uniqueId}.mp4`);
-    const screenVideoPath = path.join(outputDir, `${uniqueId}_screen.mp4`);
+    // Respond immediately to avoid browser timeout
+    res.status(202).json({ success: true, processing: true, jobId: uniqueId });
+
+    // Run the heavy video generation process in the background
+    (async () => {
+      try {
+        const outputDir = path.join(__dirname, '../output');
+        // Ensure output directory exists for audio and video
+        const videoDir = path.join(outputDir, 'video');
+        const audioDir = path.join(outputDir, 'audio');
+        if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir, { recursive: true });
+        if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
+
+        const finalVideoPath = path.join(videoDir, `${uniqueId}.mp4`);
+        const screenVideoPath = path.join(outputDir, `${uniqueId}_screen.mp4`);
 
     // --- Parse slides JSON ---
     console.log('Parsing script as JSON slides...');
@@ -114,7 +126,8 @@ const generateVideo = async (req, res) => {
       });
     } catch (e) {
       console.error('JSON parsing error:', e.message);
-      return res.status(400).json({ success: false, message: `Invalid script JSON: ${e.message}` });
+      jobs.set(uniqueId, { status: 'failed', error: `Invalid script JSON: ${e.message}` });
+      return; // Stop background job
     }
 
     const SUPPORTED_LANGUAGES = require('../config/languages');
@@ -266,9 +279,8 @@ const generateVideo = async (req, res) => {
     englishAudioPaths.forEach(p => fs.unlink(p, () => {}));
     fs.unlink(englishMasterPath, () => {}); // we can clean the master english audio too
 
-    res.status(200).json({
-      success: true,
-      status: status,
+    jobs.set(uniqueId, {
+      status: 'completed',
       message: status === 'partial' ? 'Video generated with some language failures' : 'Video generated successfully',
       failedLanguages: failedLanguages.length > 0 ? failedLanguages : undefined,
       data: { 
@@ -278,10 +290,27 @@ const generateVideo = async (req, res) => {
       }
     });
 
-  } catch (error) {
-    console.error('Video generation error:', error);
-    res.status(500).json({ success: false, message: 'Failed to generate video', error: error.message });
+  } catch (backgroundError) {
+    console.error('Background video generation error:', backgroundError);
+    jobs.set(uniqueId, { status: 'failed', error: backgroundError.message });
   }
+})();
+
+  } catch (error) {
+    console.error('Video generation init error:', error);
+    res.status(500).json({ success: false, message: 'Failed to start video generation', error: error.message });
+  }
+};
+
+const getJobStatus = (req, res) => {
+  const { jobId } = req.params;
+  const job = jobs.get(jobId);
+  
+  if (!job) {
+    return res.status(404).json({ success: false, message: 'Job not found or expired' });
+  }
+  
+  res.json({ success: true, ...job });
 };
 
 
@@ -506,7 +535,7 @@ const regenerateLanguageVideo = async (req, res) => {
     const masterLangAudioPath = path.join(audioDir, `${id}_${langConfig.fileName}`);
     const langChunks = [];
 
-    const candidateVoiceId = req.body.voiceId !== undefined ? req.body.voiceId : savedVoiceId;
+    const candidateVoiceId = (req.body && req.body.voiceId !== undefined) ? req.body.voiceId : savedVoiceId;
     const isCustomVoice = candidateVoiceId && typeof candidateVoiceId === 'string' && candidateVoiceId.trim() !== '' && candidateVoiceId !== 'default-computer' && candidateVoiceId !== 'default';
     const resolvedVoiceId = isCustomVoice ? candidateVoiceId.trim() : null;
 
@@ -553,5 +582,6 @@ module.exports = {
   generateVideo,
   generateScript,
   generateAwsScript,
-  regenerateLanguageVideo
+  regenerateLanguageVideo,
+  getJobStatus
 };

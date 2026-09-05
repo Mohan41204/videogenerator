@@ -131,21 +131,68 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/videos/generate`, formData);
 
-      clearInterval(progressInterval);
-      setProgress(100);
+      // Async backend polling logic
+      if (response.data.processing && response.data.jobId) {
+        toast('Video is generating in the background. Please wait...', { icon: '⏳', duration: 5000 });
+        
+        const jobId = response.data.jobId;
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusRes = await axios.get(`${API_BASE_URL}/api/videos/status/${jobId}`);
+            const jobData = statusRes.data;
+            
+            if (jobData.status === 'completed') {
+              clearInterval(pollInterval);
+              clearInterval(progressInterval);
+              setProgress(100);
+              toast.success(jobData.message || 'Video generated successfully!');
+              onVideoGenerated(jobData.data, text);
+              setTimeout(() => setIsGenerating(false), 500);
+            } else if (jobData.status === 'failed') {
+              clearInterval(pollInterval);
+              clearInterval(progressInterval);
+              toast.error(jobData.error || 'Failed to generate video.');
+              setTimeout(() => setIsGenerating(false), 500);
+            }
+            // If processing, just wait for the next interval
+          } catch (pollErr) {
+            console.error('Polling error:', pollErr);
+            if (pollErr.response?.status === 404) {
+              clearInterval(pollInterval);
+              clearInterval(progressInterval);
+              toast.error('Video generation job lost on server.');
+              setTimeout(() => setIsGenerating(false), 500);
+            }
+          }
+        }, 10000); // Poll every 10 seconds
 
-      if (response.data.success) {
-        toast.success(response.data.message || 'Video generated successfully!');
-        onVideoGenerated(response.data.data, text);
       } else {
-        toast.error(response.data.message || 'Failed to generate video.');
+        // Fallback for older synchronous backend
+        clearInterval(progressInterval);
+        setProgress(100);
+
+        if (response.data.success) {
+          toast.success(response.data.message || 'Video generated successfully!');
+          onVideoGenerated(response.data.data, text);
+        } else {
+          toast.error(response.data.message || 'Failed to generate video.');
+        }
+        setTimeout(() => setIsGenerating(false), 500);
       }
+
     } catch (error) {
       clearInterval(progressInterval);
       console.error(error);
-      toast.error(error.response?.data?.message || 'An error occurred during generation.');
-    } finally {
-      setTimeout(() => setIsGenerating(false), 500);
+      
+      const isAxiosError = error.isAxiosError || error.response;
+      const isTimeout = isAxiosError && (error.message === 'Network Error' || error.code === 'ECONNABORTED');
+      
+      if (isTimeout) {
+        toast.success('Long video is rendering in the background. Please check the server terminal and output folder.');
+      } else {
+        toast.error(error.response?.data?.message || error.message || 'An error occurred during generation.');
+        setTimeout(() => setIsGenerating(false), 500);
+      }
     }
   };
 

@@ -15,4 +15,7 @@ router.post('/generate-aws-script', videoController.generateAwsScript);
 // Regenerate language video endpoint
 router.post('/:id/video/:lang/regenerate', videoController.regenerateLanguageVideo);
 
+// Get job status endpoint
+router.get('/status/:jobId', videoController.getJobStatus);
+
 module.exports = router;

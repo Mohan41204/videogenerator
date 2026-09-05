@@ -19,46 +19,44 @@ const translateText = async (text, targetLanguageName) => {
   const client = new GoogleGenAI(clientConfig);
   
   let styleInstruction = `Convert the English educational narration into natural conversational speech for ${targetLanguageName}.`;
-  const lowerLang = targetLanguageName.toLowerCase();
-  if (lowerLang === 'tamil') {
-    styleInstruction = `Convert the English educational narration into natural conversational Tanglish.`;
-  } else if (lowerLang === 'hindi') {
-    styleInstruction = `Convert the English educational narration into natural conversational Hinglish.`;
-  } else if (lowerLang === 'telugu') {
-    styleInstruction = `Convert the English educational narration into natural conversational Tenglish.`;
-  } else if (lowerLang === 'malayalam') {
-    styleInstruction = `Convert the English educational narration into natural conversational Manglish.`;
-  } else if (lowerLang === 'kannada') {
-    styleInstruction = `Convert the English educational narration into natural conversational Kanglish.`;
-  }
 
   const prompt = `
 You are an Indian classroom teacher.
 
 ${styleInstruction}
 
-Do NOT translate word-for-word.
+CRITICAL REQUIREMENT:
+ALWAYS use the native Unicode script of the target language.
+NEVER use Romanized, transliterated, or mixed-script versions of the target language.
+
+For Tamil:
+"idhuku" is WRONG.
+"இதற்கு" is CORRECT.
+
+For Hindi:
+"kyun" is WRONG.
+"क्यों" is CORRECT.
+
+For Telugu:
+"enduku" is WRONG.
+"ఎందుకు" is CORRECT.
+
+For Kannada:
+"yaake" is WRONG.
+"ಯಾಕೆ" is CORRECT.
+
+For Malayalam:
+"enthinu" is WRONG.
+"എന്തിന്" is CORRECT.
 
 Rules:
-1. Preserve the original educational meaning.
-2. Use natural Indian classroom speech.
-3. Keep technical terminology in English when appropriate.
-4. Use the target language naturally around technical terms.
-5. Do not use formal literary language.
-6. Do not create unnatural machine translation.
-7. Do not translate programming code.
-8. Do not translate AWS commands.
-9. Do not translate URLs.
-10. Do not translate filenames.
-11. Do not translate API names.
-12. Do not change variable/function names.
-13. Keep technical accuracy.
-14. Keep narration concise enough for the slide duration.
-15. Do not introduce unrelated information.
-16. Make it sound like a teacher talking directly to students.
-17. Use natural transitions.
-18. Avoid repetitive phrases.
-19. Do NOT add any extra markdown formatting, quotes, or notes to your response. Just return the raw translated text.
+1. Output natural conversational Indian language suitable for an AI classroom teacher.
+2. Ensure it is easy for students to understand and natural for Text-to-Speech.
+3. The normal conversational words must be written in the target language's native Unicode script.
+4. Keep technical terminology in English when appropriate (e.g., AWS S3, EC2, Lambda, React, Node.js, JavaScript, Python, Docker, API, OOP, Arrays, Functions, Variables).
+5. Do not translate programming code, AWS commands, URLs, filenames, package names, variable names, or API names.
+6. Make it sound like a teacher talking directly to students, but DO NOT use overly formal or literary language.
+7. Do NOT add any extra markdown formatting, quotes, or notes to your response. Just return the raw translated text.
 
 Narration to translate:
 "${text}"
@@ -139,14 +137,20 @@ You are an expert technical translator. Translate the human-readable content of 
 
 CRITICAL REQUIREMENTS:
 - Translate human-readable fields: heading, subheading, bullets, narration, title, description, buttonText, labels, etc.
-- Preserve technical terminology in English where appropriate (e.g., AWS S3, EC2, Lambda, React, Node.js, JavaScript, Python, npm, Docker, OOPs, Arrays). Do NOT translate these words.
+- ALWAYS use the native Unicode script of the target language.
+- NEVER use Romanized, transliterated, or mixed-script versions of the target language (e.g., NO Tanglish, NO Hinglish).
+- For Tamil: "idhuku" is WRONG, "இதற்கு" is CORRECT.
+- For Hindi: "kyun" is WRONG, "क्यों" is CORRECT.
+- For Telugu: "enduku" is WRONG, "ఎందుకు" is CORRECT.
+- For Kannada: "yaake" is WRONG, "ಯಾಕೆ" is CORRECT.
+- For Malayalam: "enthinu" is WRONG, "എന്തിന്" is CORRECT.
+- Preserve technical terminology strictly in English (e.g., AWS S3, EC2, Lambda, React, Node.js, JavaScript, Python, npm, Docker, OOPs, Arrays). Do NOT translate these words.
 - NEVER translate executable code. If isCode is true, the code in bullets MUST remain completely unchanged.
 - NEVER modify URLs, commands, file paths, package names or identifiers.
 - Preserve JSON structure EXACTLY. Return an array of objects with the same structure, just translated text.
 - Do not add or remove slide fields.
 - Keep the exact meaning and tone accurate.
 - Keep narration and visible instructions semantically consistent.
-- For Tamil, use a natural Tamil/Tanglish classroom style where appropriate.
 
 Slides JSON to translate:
 ${JSON.stringify(slides, null, 2)}
@@ -194,8 +198,12 @@ ${JSON.stringify(slides, null, 2)}
       throw new Error('All Gemini API slide translation attempts failed.');
     }
     
-    // Clean JSON response if wrapped in markdown
-    const cleanedText = translatedJsonText.replace(/^\`\`\`json\s*/gi, '').replace(/\s*\`\`\`$/gi, '');
+    // Clean JSON response if wrapped in markdown and remove trailing commas
+    let cleanedText = translatedJsonText.replace(/^\`\`\`json\s*/gi, '').replace(/\s*\`\`\`$/gi, '');
+    
+    // Fix trailing commas before closing braces/brackets (common LLM JSON error)
+    cleanedText = cleanedText.replace(/,\s*([}\]])/g, '$1');
+    
     const translatedSlides = JSON.parse(cleanedText);
     
     return translatedSlides;
