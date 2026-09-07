@@ -1,0 +1,18 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-south1-docker.pkg.dev/sky-meet-01/video-generator/video-generator-backend:$COMMIT_SHA'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-south1-docker.pkg.dev/sky-meet-01/video-generator/video-generator-backend:$COMMIT_SHA'
+
+images:
+  - 'asia-south1-docker.pkg.dev/sky-meet-01/video-generator/video-generator-backend:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
