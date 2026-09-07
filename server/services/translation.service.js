@@ -8,13 +8,14 @@ const translateText = async (text, targetLanguageName) => {
     return text;
   }
 
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const clientConfig = {};
-  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
-    clientConfig.apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (apiKey && apiKey.trim()) {
+    clientConfig.apiKey = apiKey.trim();
   } else {
-    clientConfig.vertexai = process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true';
-    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT;
-    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+    clientConfig.vertexai = true;
+    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT || 'sky-meet-01';
+    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'asia-south1';
   }
   const client = new GoogleGenAI(clientConfig);
   
@@ -122,13 +123,14 @@ const translateSlides = async (slides, targetLanguageName) => {
     return slides;
   }
 
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const clientConfig = {};
-  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
-    clientConfig.apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (apiKey && apiKey.trim()) {
+    clientConfig.apiKey = apiKey.trim();
   } else {
-    clientConfig.vertexai = process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true';
-    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT;
-    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+    clientConfig.vertexai = true;
+    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT || 'sky-meet-01';
+    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'asia-south1';
   }
   const client = new GoogleGenAI(clientConfig);
   

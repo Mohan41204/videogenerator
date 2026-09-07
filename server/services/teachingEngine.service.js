@@ -1153,13 +1153,14 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
   console.log(`[TeachingEngine] Planning lesson: Topic="${topic}", SubTopic="${subTopic}", Duration=${plan.mins}m, Domain=${domain}, Scenes=${plan.sceneCount}, TargetWords=~${plan.totalTargetWords}`);
 
   const prompt = buildPedagogicalPrompt(topic, subTopic, plan, domain);
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const clientConfig = {};
-  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
-    clientConfig.apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (apiKey && apiKey.trim()) {
+    clientConfig.apiKey = apiKey.trim();
   } else {
-    clientConfig.vertexai = process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true';
-    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT;
-    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+    clientConfig.vertexai = true;
+    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT || 'sky-meet-01';
+    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'asia-south1';
   }
   const client = new GoogleGenAI(clientConfig);
 
