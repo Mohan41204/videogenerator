@@ -116,12 +116,23 @@ const testVoice = async (req, res) => {
       fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     }
 
+    const storageService = require('../services/storage.service');
+
     await audioService.generateAudio(translatedText, outputPath, langConfig.code, voiceId);
+
+    let audioUrl = `/output/audio/${testAudioName}`;
+    if (storageService.isStorageConfigured()) {
+      const uploadRes = await storageService.uploadFile(outputPath, `voices/test/${testAudioName}`);
+      if (uploadRes) {
+        audioUrl = uploadRes.url;
+        if (fs.existsSync(outputPath)) fs.unlink(outputPath, () => {});
+      }
+    }
 
     res.status(200).json({
       success: true,
       translatedText,
-      audioUrl: `/output/audio/${testAudioName}`
+      audioUrl
     });
   } catch (error) {
     console.error('Test voice error:', error);

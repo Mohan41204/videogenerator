@@ -6,33 +6,26 @@ const ffmpegService = require('../services/ffmpeg.service');
 const subtitleService = require('../services/subtitle.service');
 const { GoogleGenAI } = require('@google/genai');
 const teachingEngine = require('../services/teachingEngine.service');
+const storageService = require('../services/storage.service');
 
 // Store background jobs
 const jobs = new Map();
-
 
 // Robust JSON extraction and cleaning utility
 const cleanJsonString = (str) => {
   if (!str) return '';
 
-  // Try to find JSON array block [ ... ]
   const arrayMatch = str.match(/\[\s*\{[\s\S]*\}\s*\]/);
   if (arrayMatch) {
     str = arrayMatch[0];
   } else {
-    // Try to find JSON block { ... } if single object
     const objectMatch = str.match(/\{[\s\S]*\}/);
     if (objectMatch) {
       str = objectMatch[0];
     }
   }
 
-  // Remove any potential markdown markers
   str = str.replace(/^```json\s*/gi, '').replace(/\s*```$/gi, '');
-
-  // Fix invalid backslash escapes (e.g., \N, \s, \d, \user) by escaping the backslash.
-  // Valid JSON escapes are: \", \\, \/, \b, \f, \n, \r, \t, and \uXXXX.
-  // Note: We MUST NOT use case-insensitive matching here so that uppercase letters (like \N) are correctly doubled!
   str = str.replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '\\\\');
 
   return str.trim();
@@ -65,7 +58,6 @@ const generateVideo = async (req, res) => {
     (async () => {
       try {
         const outputDir = path.join(__dirname, '../output');
-        // Ensure output directory exists for audio and video
         const videoDir = path.join(outputDir, 'video');
         const audioDir = path.join(outputDir, 'audio');
         if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir, { recursive: true });
@@ -74,227 +66,276 @@ const generateVideo = async (req, res) => {
         const finalVideoPath = path.join(videoDir, `${uniqueId}.mp4`);
         const screenVideoPath = path.join(outputDir, `${uniqueId}_screen.mp4`);
 
-    // --- Parse slides JSON ---
-    console.log('Parsing script as JSON slides...');
-    let slides;
-    try {
-      const cleaned = cleanJsonString(text);
-      slides = JSON.parse(cleaned);
-
-      if (Array.isArray(slides) && slides.length > 0 && slides[0].action) {
-        slides = [{
-          type: 'aws',
-          service: 'AWS Service',
-          title: 'AWS Tutorial',
-          narration: 'Please follow along with the screen recording to learn how to use this AWS service.',
-          steps: slides
-        }];
-      } else if (!Array.isArray(slides)) {
-        if (slides.type && slides.type.toLowerCase() === 'aws') {
-          slides = [slides];
-        } else if (slides.scenes && Array.isArray(slides.scenes)) {
-          slides = slides.scenes;
-        } else {
-          throw new Error('Expected an array of slides or an AWS lesson object');
-        }
-      }
-
-      slides = slides.map(slide => {
-        if (slide.type && slide.type.toLowerCase() === 'aws') return slide;
-
-        if (slide.code && (!slide.bullets || !slide.bullets.length)) {
-          slide.bullets = [slide.code];
-        }
-        if (slide.isCode === undefined) {
-          slide.isCode = /code|program|example|syntax/i.test(slide.heading || slide.subheading || '') ||
-            (slide.bullets && slide.bullets.length === 1 && (slide.bullets[0].includes('\\N') || slide.bullets[0].includes('\n')));
-        }
-        if (slide.isCode) {
-          const codeText = (slide.bullets && slide.bullets[0]) ? slide.bullets[0] : '';
-          if (!slide.fileName || !slide.runCommand) {
-            let fn = 'main.py';
-            let cmd = 'python main.py';
-            if (/public\s+class|System\.out\.print/i.test(codeText)) fn = 'Main.java', cmd = 'java Main';
-            else if (/#include|std::/i.test(codeText)) fn = 'main.cpp', cmd = 'g++ main.cpp -o main && ./main';
-            else if (/console\.log|const\s+|let\s+|function\s+/i.test(codeText)) fn = 'index.js', cmd = 'node index.js';
-            else if (/using\s+System|Console\.WriteLine/i.test(codeText)) fn = 'Program.cs', cmd = 'dotnet run';
-            if (!slide.fileName) slide.fileName = fn;
-            if (!slide.runCommand) slide.runCommand = cmd;
-          }
-        }
-        return slide;
-      });
-    } catch (e) {
-      console.error('JSON parsing error:', e.message);
-      jobs.set(uniqueId, { status: 'failed', error: `Invalid script JSON: ${e.message}` });
-      return; // Stop background job
-    }
-
-    const SUPPORTED_LANGUAGES = require('../config/languages');
-    const translationService = require('../services/translation.service');
-    const isCustomVoice = voiceId && typeof voiceId === 'string' && voiceId.trim() !== '' && voiceId !== 'default-computer' && voiceId !== 'default';
-    const resolvedVoiceId = isCustomVoice ? voiceId.trim() : null;
-
-    // --- STEP 1: Generate English (Ground Truth) Audio ---
-    console.log(`Generating English audio for ${slides.length} slides...`);
-    const englishAudioPaths = [];
-    const englishDurations = [];
-    const englishMasterPath = path.join(audioDir, `${uniqueId}_english.mp3`);
-
-    for (let i = 0; i < slides.length; i++) {
-      const slide = slides[i];
-      const chunkPath = path.join(outputDir, `${uniqueId}_chunk_${i}_en.mp3`);
-      await audioService.generateAudio(slide.narration || ' ', chunkPath, 'en', resolvedVoiceId);
-      const duration = await audioService.getAudioDuration(chunkPath);
-      englishAudioPaths.push(chunkPath);
-      englishDurations.push(duration);
-    }
-    await audioService.mergeAudioFiles(englishAudioPaths, englishMasterPath);
-
-    // --- STEP 1b: Generate Real-World Visual Scenario Images (if present) ---
-    const imageGenService = require('../services/imageGeneration.service');
-    const imagesDir = path.join(outputDir, 'images');
-    if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
-
-    for (let i = 0; i < slides.length; i++) {
-      const slide = slides[i];
-      if (slide.realWorldVisual && slide.realWorldVisual.enabled && slide.realWorldVisual.imagePrompt && !slide.imagePath) {
-        const imageFileName = `${uniqueId}_scene_${i}_scenario.jpg`;
-        const imageFilePath = path.join(imagesDir, imageFileName);
+        // --- Parse slides JSON ---
+        console.log('Parsing script as JSON slides...');
+        let slides;
         try {
-          const genResult = await imageGenService.generateScenarioImage(slide.realWorldVisual.imagePrompt, imageFilePath);
-          if (genResult.success) {
-            slide.imagePath = imageFilePath;
-            slide.imageUrl = `/output/images/${imageFileName}`;
-          } else {
-            console.warn(`[VideoController] Real-world visual generation failed for scene ${i + 1}: ${genResult.error}`);
-            slide.realWorldVisual.enabled = false;
+          const cleaned = cleanJsonString(text);
+          slides = JSON.parse(cleaned);
+
+          if (Array.isArray(slides) && slides.length > 0 && slides[0].action) {
+            slides = [{
+              type: 'aws',
+              service: 'AWS Service',
+              title: 'AWS Tutorial',
+              narration: 'Please follow along with the screen recording to learn how to use this AWS service.',
+              steps: slides
+            }];
+          } else if (!Array.isArray(slides)) {
+            if (slides.type && slides.type.toLowerCase() === 'aws') {
+              slides = [slides];
+            } else if (slides.scenes && Array.isArray(slides.scenes)) {
+              slides = slides.scenes;
+            } else {
+              throw new Error('Expected an array of slides or an AWS lesson object');
+            }
           }
-        } catch (imgErr) {
-          console.warn(`[VideoController] Error generating real-world image for scene ${i + 1}:`, imgErr.message);
-          slide.realWorldVisual.enabled = false;
+
+          slides = slides.map(slide => {
+            if (slide.type && slide.type.toLowerCase() === 'aws') return slide;
+
+            if (slide.code && (!slide.bullets || !slide.bullets.length)) {
+              slide.bullets = [slide.code];
+            }
+            if (slide.isCode === undefined) {
+              slide.isCode = /code|program|example|syntax/i.test(slide.heading || slide.subheading || '') ||
+                (slide.bullets && slide.bullets.length === 1 && (slide.bullets[0].includes('\\N') || slide.bullets[0].includes('\n')));
+            }
+            if (slide.isCode) {
+              const codeText = (slide.bullets && slide.bullets[0]) ? slide.bullets[0] : '';
+              if (!slide.fileName || !slide.runCommand) {
+                let fn = 'main.py';
+                let cmd = 'python main.py';
+                if (/public\s+class|System\.out\.print/i.test(codeText)) fn = 'Main.java', cmd = 'java Main';
+                else if (/#include|std::/i.test(codeText)) fn = 'main.cpp', cmd = 'g++ main.cpp -o main && ./main';
+                else if (/console\.log|const\s+|let\s+|function\s+/i.test(codeText)) fn = 'index.js', cmd = 'node index.js';
+                else if (/using\s+System|Console\.WriteLine/i.test(codeText)) fn = 'Program.cs', cmd = 'dotnet run';
+                if (!slide.fileName) slide.fileName = fn;
+                if (!slide.runCommand) slide.runCommand = cmd;
+              }
+            }
+            return slide;
+          });
+        } catch (e) {
+          console.error('JSON parsing error:', e.message);
+          jobs.set(uniqueId, { status: 'failed', error: `Invalid script JSON: ${e.message}` });
+          return;
         }
-      }
-    }
 
-    // --- STEP 2: Render animated silent video ---
-    console.log('Rendering video with renderer factory...');
-    const rendererFactory = require('../renderer/rendererFactory');
-    const type = (slides.length > 0 && slides[0].type) ? slides[0].type : 'programming';
-    const renderer = rendererFactory.getRenderer(type);
-    await renderer.renderVideo(slides, englishDurations, screenVideoPath);
+        const SUPPORTED_LANGUAGES = require('../config/languages');
+        const translationService = require('../services/translation.service');
+        const isCustomVoice = voiceId && typeof voiceId === 'string' && voiceId.trim() !== '' && voiceId !== 'default-computer' && voiceId !== 'default';
+        const resolvedVoiceId = isCustomVoice ? voiceId.trim() : null;
 
-    // --- STEP 3: Merge silent video + English audio for master MP4 ---
-    console.log('Merging screen video with English audio...');
-    await ffmpegService.mergeVideoAndAudio(screenVideoPath, englishMasterPath, finalVideoPath);
+        // --- STEP 1: Generate English Audio ---
+        console.log(`Generating English audio for ${slides.length} slides...`);
+        const englishAudioPaths = [];
+        const englishDurations = [];
+        const englishMasterPath = path.join(audioDir, `${uniqueId}_english.mp3`);
 
-    // --- STEP 4: Generate Multilingual Videos (Concurrent) ---
-    const enableMultilingual = process.env.ENABLE_MULTILINGUAL_AUDIO === 'true';
-    const videos = {
-      en: {
-        url: `/output/video/${uniqueId}.mp4`,
-        language: 'English',
-        code: 'en',
-        slides: slides
-      }
-    };
-    const failedLanguages = [];
-    let status = 'success';
+        for (let i = 0; i < slides.length; i++) {
+          const slide = slides[i];
+          const chunkPath = path.join(outputDir, `${uniqueId}_chunk_${i}_en.mp3`);
+          await audioService.generateAudio(slide.narration || ' ', chunkPath, 'en', resolvedVoiceId);
+          const duration = await audioService.getAudioDuration(chunkPath);
+          englishAudioPaths.push(chunkPath);
+          englishDurations.push(duration);
+        }
+        await audioService.mergeAudioFiles(englishAudioPaths, englishMasterPath);
 
-    if (enableMultilingual) {
-      console.log('Generating multilingual videos...');
-      let langCodes = Object.keys(SUPPORTED_LANGUAGES).filter(k => k !== 'en');
-      if (selectedLanguages && Array.isArray(selectedLanguages)) {
-        langCodes = langCodes.filter(k => selectedLanguages.includes(k));
-      }
-      
-      for (const lang of langCodes) {
-        const langConfig = SUPPORTED_LANGUAGES[lang];
-        // Ensure language specific name
-        const langVideoFileName = `${uniqueId}_${langConfig.code}.mp4`;
-        const langVideoPath = path.join(videoDir, langVideoFileName);
-        const masterLangAudioPath = path.join(audioDir, `${uniqueId}_${langConfig.fileName}`);
-        const langScreenVideoPath = path.join(outputDir, `${uniqueId}_screen_${lang}.mp4`);
-        
-        try {
-          // 1. Translate the entire slide deck
-          console.log(`Translating slides for ${langConfig.name}...`);
-          const langSlides = await translationService.translateSlides(slides, langConfig.name);
-          
-          // 2. Generate target language audio chunks using the translated narration
-          const langChunks = [];
-          for (let i = 0; i < langSlides.length; i++) {
-            const slide = langSlides[i];
-            // Use original English narration and convert it to mixed-language conversational style
-            const translatedNarration = await translationService.translateText(slides[i].narration || ' ', langConfig.name);
-            const rawChunkPath = path.join(outputDir, `${uniqueId}_rawchunk_${i}_${lang}.mp3`);
-            await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, resolvedVoiceId);
-            
-            // Adjust duration to exactly match English chunk
-            const adjustedChunkPath = path.join(outputDir, `${uniqueId}_chunk_${i}_${lang}.mp3`);
-            await audioService.adjustAudioDuration(rawChunkPath, adjustedChunkPath, englishDurations[i]);
-            langChunks.push(adjustedChunkPath);
-            fs.unlink(rawChunkPath, () => {});
+        // --- STEP 1b: Generate Real-World Visual Scenario Images ---
+        const imageGenService = require('../services/imageGeneration.service');
+        const imagesDir = path.join(outputDir, 'images');
+        if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
+        const createdImagePaths = [];
+
+        for (let i = 0; i < slides.length; i++) {
+          const slide = slides[i];
+          if (slide.realWorldVisual && slide.realWorldVisual.enabled && slide.realWorldVisual.imagePrompt && !slide.imagePath) {
+            const imageFileName = `${uniqueId}_scene_${i}_scenario.jpg`;
+            const imageFilePath = path.join(imagesDir, imageFileName);
+            try {
+              const genResult = await imageGenService.generateScenarioImage(slide.realWorldVisual.imagePrompt, imageFilePath);
+              if (genResult.success) {
+                slide.imagePath = imageFilePath;
+                slide.imageUrl = `/output/images/${imageFileName}`;
+                createdImagePaths.push({ i, imageFileName, imageFilePath });
+              } else {
+                console.warn(`[VideoController] Real-world visual generation failed for scene ${i + 1}: ${genResult.error}`);
+                slide.realWorldVisual.enabled = false;
+              }
+            } catch (imgErr) {
+              console.warn(`[VideoController] Error generating real-world image for scene ${i + 1}:`, imgErr.message);
+              slide.realWorldVisual.enabled = false;
+            }
           }
-          await audioService.mergeAudioFiles(langChunks, masterLangAudioPath);
-          
-          // 3. Render animated silent video for this specific language
-          console.log(`Rendering localized video for ${langConfig.name}...`);
-          await renderer.renderVideo(langSlides, englishDurations, langScreenVideoPath);
-          
-          // 4. Merge localized video + localized audio
-          await ffmpegService.mergeVideoAndAudio(langScreenVideoPath, masterLangAudioPath, langVideoPath);
-          
-          videos[lang] = {
-            url: `/output/video/${langVideoFileName}`,
-            language: langConfig.name,
-            code: langConfig.code,
-            slides: langSlides
-          };
-          
-          // Cleanup chunks and intermediate files
-          langChunks.forEach(p => fs.unlink(p, () => {}));
-          fs.unlink(masterLangAudioPath, () => {});
-          fs.unlink(langScreenVideoPath, () => {});
-        } catch (err) {
-          console.error(`Failed to generate localized video for ${lang}:`, err);
-          status = 'partial';
-          failedLanguages.push({ code: lang, error: err.message });
         }
+
+        // --- STEP 2: Render animated silent video ---
+        console.log('Rendering video with renderer factory...');
+        const rendererFactory = require('../renderer/rendererFactory');
+        const type = (slides.length > 0 && slides[0].type) ? slides[0].type : 'programming';
+        const renderer = rendererFactory.getRenderer(type);
+        await renderer.renderVideo(slides, englishDurations, screenVideoPath);
+
+        // --- STEP 3: Merge silent video + English audio for master MP4 ---
+        console.log('Merging screen video with English audio...');
+        await ffmpegService.mergeVideoAndAudio(screenVideoPath, englishMasterPath, finalVideoPath);
+
+        // --- GCS Upload for English Video & Images ---
+        let masterVideoUrl = `/output/video/${uniqueId}.mp4`;
+        let masterVideoObject = `videos/${uniqueId}/english.mp4`;
+
+        if (storageService.isStorageConfigured()) {
+          console.log(`[Storage] Uploading master English video to GCS...`);
+          const uploadRes = await storageService.uploadFile(finalVideoPath, masterVideoObject);
+          if (uploadRes) {
+            masterVideoUrl = uploadRes.url;
+            masterVideoObject = uploadRes.objectName;
+          }
+
+          // Upload scenario images to GCS
+          for (const item of createdImagePaths) {
+            const imgGcsObject = `videos/${uniqueId}/images/${item.imageFileName}`;
+            const imgUpload = await storageService.uploadFile(item.imageFilePath, imgGcsObject);
+            if (imgUpload) {
+              slides[item.i].imageObject = imgUpload.objectName;
+              slides[item.i].imageUrl = imgUpload.url;
+            }
+          }
+        }
+
+        // --- STEP 4: Generate Multilingual Videos ---
+        const enableMultilingual = process.env.ENABLE_MULTILINGUAL_AUDIO === 'true';
+        const videos = {
+          en: {
+            url: masterVideoUrl,
+            objectName: masterVideoObject,
+            language: 'English',
+            code: 'en',
+            slides: slides
+          }
+        };
+        const failedLanguages = [];
+        let status = 'success';
+
+        if (enableMultilingual) {
+          console.log('Generating multilingual videos...');
+          let langCodes = Object.keys(SUPPORTED_LANGUAGES).filter(k => k !== 'en');
+          if (selectedLanguages && Array.isArray(selectedLanguages)) {
+            langCodes = langCodes.filter(k => selectedLanguages.includes(k));
+          }
+
+          for (const lang of langCodes) {
+            const langConfig = SUPPORTED_LANGUAGES[lang];
+            const langVideoFileName = `${uniqueId}_${langConfig.code}.mp4`;
+            const langVideoPath = path.join(videoDir, langVideoFileName);
+            const masterLangAudioPath = path.join(audioDir, `${uniqueId}_${langConfig.fileName}`);
+            const langScreenVideoPath = path.join(outputDir, `${uniqueId}_screen_${lang}.mp4`);
+
+            try {
+              console.log(`Translating slides for ${langConfig.name}...`);
+              const langSlides = await translationService.translateSlides(slides, langConfig.name);
+
+              const langChunks = [];
+              for (let i = 0; i < langSlides.length; i++) {
+                const translatedNarration = await translationService.translateText(slides[i].narration || ' ', langConfig.name);
+                const rawChunkPath = path.join(outputDir, `${uniqueId}_rawchunk_${i}_${lang}.mp3`);
+                await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, resolvedVoiceId);
+
+                const adjustedChunkPath = path.join(outputDir, `${uniqueId}_chunk_${i}_${lang}.mp3`);
+                await audioService.adjustAudioDuration(rawChunkPath, adjustedChunkPath, englishDurations[i]);
+                langChunks.push(adjustedChunkPath);
+                if (fs.existsSync(rawChunkPath)) fs.unlink(rawChunkPath, () => {});
+              }
+              await audioService.mergeAudioFiles(langChunks, masterLangAudioPath);
+
+              console.log(`Rendering localized video for ${langConfig.name}...`);
+              await renderer.renderVideo(langSlides, englishDurations, langScreenVideoPath);
+
+              await ffmpegService.mergeVideoAndAudio(langScreenVideoPath, masterLangAudioPath, langVideoPath);
+
+              let langVideoUrl = `/output/video/${langVideoFileName}`;
+              let langVideoObject = `videos/${uniqueId}/languages/${langConfig.code}.mp4`;
+
+              if (storageService.isStorageConfigured()) {
+                const langUpload = await storageService.uploadFile(langVideoPath, langVideoObject);
+                if (langUpload) {
+                  langVideoUrl = langUpload.url;
+                  langVideoObject = langUpload.objectName;
+                }
+              }
+
+              videos[lang] = {
+                url: langVideoUrl,
+                objectName: langVideoObject,
+                language: langConfig.name,
+                code: langConfig.code,
+                slides: langSlides
+              };
+
+              // Cleanup chunks and intermediate files
+              langChunks.forEach(p => { if (fs.existsSync(p)) fs.unlink(p, () => {}); });
+              if (fs.existsSync(masterLangAudioPath)) fs.unlink(masterLangAudioPath, () => {});
+              if (fs.existsSync(langScreenVideoPath)) fs.unlink(langScreenVideoPath, () => {});
+              if (storageService.isStorageConfigured() && fs.existsSync(langVideoPath)) {
+                fs.unlink(langVideoPath, () => {});
+              }
+            } catch (err) {
+              console.error(`Failed to generate localized video for ${lang}:`, err);
+              status = 'partial';
+              failedLanguages.push({ code: lang, error: err.message });
+            }
+          }
+        }
+
+        // Save metadata
+        const metadataPath = path.join(outputDir, `${uniqueId}_metadata.json`);
+        const metadataContent = JSON.stringify({
+          id: uniqueId,
+          slides,
+          englishDurations,
+          languages: videos,
+          voiceId: resolvedVoiceId
+        }, null, 2);
+        fs.writeFileSync(metadataPath, metadataContent);
+
+        if (storageService.isStorageConfigured()) {
+          console.log(`[Storage] Uploading metadata JSON to GCS...`);
+          await storageService.uploadFile(metadataPath, `videos/${uniqueId}/metadata.json`);
+        }
+
+        // Clean up temporary files
+        if (backgroundPath && req.file && fs.existsSync(backgroundPath)) fs.unlink(backgroundPath, () => {});
+        if (fs.existsSync(screenVideoPath)) fs.unlink(screenVideoPath, () => {});
+        englishAudioPaths.forEach(p => { if (fs.existsSync(p)) fs.unlink(p, () => {}); });
+        if (fs.existsSync(englishMasterPath)) fs.unlink(englishMasterPath, () => {});
+
+        if (storageService.isStorageConfigured()) {
+          if (fs.existsSync(finalVideoPath)) fs.unlink(finalVideoPath, () => {});
+          if (fs.existsSync(metadataPath)) fs.unlink(metadataPath, () => {});
+          createdImagePaths.forEach(item => {
+            if (fs.existsSync(item.imageFilePath)) fs.unlink(item.imageFilePath, () => {});
+          });
+        }
+
+        jobs.set(uniqueId, {
+          status: 'completed',
+          message: status === 'partial' ? 'Video generated with some language failures' : 'Video generated successfully',
+          failedLanguages: failedLanguages.length > 0 ? failedLanguages : undefined,
+          data: {
+            videoUrl: videos.en.url,
+            videoObject: videos.en.objectName || `videos/${uniqueId}/english.mp4`,
+            id: uniqueId,
+            videos
+          }
+        });
+
+      } catch (backgroundError) {
+        console.error('Background video generation error:', backgroundError);
+        jobs.set(uniqueId, { status: 'failed', error: backgroundError.message });
       }
-    }
-
-    // Save metadata for potential regeneration
-    const metadataPath = path.join(outputDir, `${uniqueId}_metadata.json`);
-    fs.writeFileSync(metadataPath, JSON.stringify({
-      slides,
-      englishDurations,
-      languages: videos,
-      voiceId: resolvedVoiceId
-    }, null, 2));
-
-    // --- STEP 5: Clean up temporary files ---
-    if (backgroundPath && req.file) fs.unlink(backgroundPath, () => {});
-    fs.unlink(screenVideoPath, () => {});
-    englishAudioPaths.forEach(p => fs.unlink(p, () => {}));
-    fs.unlink(englishMasterPath, () => {}); // we can clean the master english audio too
-
-    jobs.set(uniqueId, {
-      status: 'completed',
-      message: status === 'partial' ? 'Video generated with some language failures' : 'Video generated successfully',
-      failedLanguages: failedLanguages.length > 0 ? failedLanguages : undefined,
-      data: { 
-        videoUrl: `/output/video/${uniqueId}.mp4`,
-        id: uniqueId,
-        videos 
-      }
-    });
-
-  } catch (backgroundError) {
-    console.error('Background video generation error:', backgroundError);
-    jobs.set(uniqueId, { status: 'failed', error: backgroundError.message });
-  }
-})();
+    })();
 
   } catch (error) {
     console.error('Video generation init error:', error);
@@ -305,14 +346,13 @@ const generateVideo = async (req, res) => {
 const getJobStatus = (req, res) => {
   const { jobId } = req.params;
   const job = jobs.get(jobId);
-  
+
   if (!job) {
     return res.status(404).json({ success: false, message: 'Job not found or expired' });
   }
-  
+
   res.json({ success: true, ...job });
 };
-
 
 const generateScript = async (req, res) => {
   try {
@@ -494,7 +534,19 @@ const regenerateLanguageVideo = async (req, res) => {
     const { id, lang } = req.params;
     const outputDir = path.join(__dirname, '../output');
     const metadataPath = path.join(outputDir, `${id}_metadata.json`);
-    
+    const gcsMetadataObject = `videos/${id}/metadata.json`;
+
+    // Retrieve metadata from local filesystem or GCS
+    if (!fs.existsSync(metadataPath)) {
+      if (storageService.isStorageConfigured()) {
+        const exists = await storageService.fileExists(gcsMetadataObject);
+        if (exists) {
+          console.log(`[Storage] Metadata not found locally, downloading from gs://${process.env.GCS_BUCKET_NAME}/${gcsMetadataObject}...`);
+          await storageService.downloadFile(gcsMetadataObject, metadataPath);
+        }
+      }
+    }
+
     if (!fs.existsSync(metadataPath)) {
       return res.status(404).json({ success: false, message: 'Metadata not found for this video' });
     }
@@ -507,12 +559,32 @@ const regenerateLanguageVideo = async (req, res) => {
 
     const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
     const { englishDurations, languages, voiceId: savedVoiceId } = metadata;
-    
-    // Fallback to original slides if languages data is missing this language
     const originalSlides = metadata.slides;
     const langSlides = languages && languages[lang] && languages[lang].slides 
                        ? languages[lang].slides 
-                       : originalSlides; // fallback
+                       : originalSlides;
+
+    // Ensure real-world scenario images are downloaded locally for Puppeteer rendering
+    const imagesDir = path.join(outputDir, 'images');
+    for (let i = 0; i < langSlides.length; i++) {
+      const slide = langSlides[i];
+      if (slide.realWorldVisual && slide.realWorldVisual.enabled) {
+        const imageFileName = `${id}_scene_${i}_scenario.jpg`;
+        const localImgPath = slide.imagePath || path.join(imagesDir, imageFileName);
+        slide.imagePath = localImgPath;
+        if (!fs.existsSync(localImgPath) && storageService.isStorageConfigured()) {
+          const gcsImgObject = slide.imageObject || `videos/${id}/images/${imageFileName}`;
+          try {
+            if (await storageService.fileExists(gcsImgObject)) {
+              console.log(`[Storage] Downloading scenario image gs://${process.env.GCS_BUCKET_NAME}/${gcsImgObject} for Puppeteer...`);
+              await storageService.downloadFile(gcsImgObject, localImgPath);
+            }
+          } catch (imgErr) {
+            console.warn(`[Storage] Warning: Failed to download scenario image ${gcsImgObject}: ${imgErr.message}`);
+          }
+        }
+      }
+    }
 
     const translationService = require('../services/translation.service');
     const audioService = require('../services/audio.service');
@@ -540,8 +612,6 @@ const regenerateLanguageVideo = async (req, res) => {
     const resolvedVoiceId = isCustomVoice ? candidateVoiceId.trim() : null;
 
     for (let i = 0; i < langSlides.length; i++) {
-      const slide = langSlides[i];
-      // Always translate original English narration to mixed-language conversational style for audio
       const translatedNarration = await translationService.translateText(originalSlides[i].narration || ' ', langConfig.name);
       const rawChunkPath = path.join(outputDir, `${id}_rawchunk_${i}_${lang}.mp3`);
       await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, resolvedVoiceId);
@@ -549,7 +619,7 @@ const regenerateLanguageVideo = async (req, res) => {
       const adjustedChunkPath = path.join(outputDir, `${id}_chunk_${i}_${lang}.mp3`);
       await audioService.adjustAudioDuration(rawChunkPath, adjustedChunkPath, englishDurations[i]);
       langChunks.push(adjustedChunkPath);
-      fs.unlink(rawChunkPath, () => {});
+      if (fs.existsSync(rawChunkPath)) fs.unlink(rawChunkPath, () => {});
     }
 
     await audioService.mergeAudioFiles(langChunks, masterLangAudioPath);
@@ -561,15 +631,48 @@ const regenerateLanguageVideo = async (req, res) => {
     console.log(`Merging regenerated video for ${lang}...`);
     await ffmpegService.mergeVideoAndAudio(screenVideoPath, masterLangAudioPath, langVideoPath);
 
-    // Cleanup
-    langChunks.forEach(p => fs.unlink(p, () => {}));
-    fs.unlink(screenVideoPath, () => {});
-    fs.unlink(masterLangAudioPath, () => {});
+    let finalLangUrl = `/output/video/${langVideoFileName}`;
+    let finalLangObject = `videos/${id}/languages/${langConfig.code}.mp4`;
+
+    if (storageService.isStorageConfigured()) {
+      console.log(`[Storage] Uploading regenerated ${langConfig.name} video to GCS...`);
+      const uploadRes = await storageService.uploadFile(langVideoPath, finalLangObject);
+      if (uploadRes) {
+        finalLangUrl = uploadRes.url;
+        finalLangObject = uploadRes.objectName;
+      }
+
+      // Update metadata and re-upload to GCS
+      if (!metadata.languages) metadata.languages = {};
+      metadata.languages[lang] = {
+        url: finalLangUrl,
+        objectName: finalLangObject,
+        language: langConfig.name,
+        code: langConfig.code,
+        slides: langSlides
+      };
+
+      fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+      await storageService.uploadFile(metadataPath, gcsMetadataObject);
+    }
+
+    // Cleanup temporary local files
+    langChunks.forEach(p => { if (fs.existsSync(p)) fs.unlink(p, () => {}); });
+    if (fs.existsSync(screenVideoPath)) fs.unlink(screenVideoPath, () => {});
+    if (fs.existsSync(masterLangAudioPath)) fs.unlink(masterLangAudioPath, () => {});
+
+    if (storageService.isStorageConfigured()) {
+      if (fs.existsSync(langVideoPath)) fs.unlink(langVideoPath, () => {});
+      if (fs.existsSync(metadataPath)) fs.unlink(metadataPath, () => {});
+    }
 
     res.status(200).json({
       success: true,
       message: `${langConfig.name} video regenerated successfully`,
-      data: { url: `/output/video/${langVideoFileName}` }
+      data: {
+        url: finalLangUrl,
+        objectName: finalLangObject
+      }
     });
 
   } catch (error) {

@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const audioService = require('../services/audio.service');
 const ffmpegService = require('../services/ffmpeg.service');
 const teachingEngine = require('../services/teachingEngine.service');
+const storageService = require('../services/storage.service');
 
 // Robust JSON extraction (same as video.controller.js)
 const cleanJsonString = (str) => {
@@ -159,6 +160,7 @@ const generateOneShot = async (req, res) => {
     const imageGenService = require('../services/imageGeneration.service');
     const imagesDir = path.join(outputDir, 'images');
     if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
+    const createdImagePaths = [];
 
     for (let i = 0; i < slides.length; i++) {
       const slide = slides[i];
@@ -170,6 +172,7 @@ const generateOneShot = async (req, res) => {
           if (genResult.success) {
             slide.imagePath = imageFilePath;
             slide.imageUrl = `/output/images/${imageFileName}`;
+            createdImagePaths.push({ i, imageFileName, imageFilePath });
           } else {
             slide.realWorldVisual.enabled = false;
           }
@@ -190,13 +193,36 @@ const generateOneShot = async (req, res) => {
     console.log('[ONE-SHOT] Phase 3c: Merging video + audio...');
     await ffmpegService.mergeVideoAndAudio(screenVideoPath, englishMasterPath, finalVideoPath);
 
+    // GCS Upload for master video & images
+    let masterVideoUrl = `/output/video/${uniqueId}.mp4`;
+    let masterVideoObject = `videos/${uniqueId}/english.mp4`;
+
+    if (storageService.isStorageConfigured()) {
+      console.log(`[ONE-SHOT] [Storage] Uploading master English video to GCS...`);
+      const uploadRes = await storageService.uploadFile(finalVideoPath, masterVideoObject);
+      if (uploadRes) {
+        masterVideoUrl = uploadRes.url;
+        masterVideoObject = uploadRes.objectName;
+      }
+
+      for (const item of createdImagePaths) {
+        const imgGcsObject = `videos/${uniqueId}/images/${item.imageFileName}`;
+        const imgUpload = await storageService.uploadFile(item.imageFilePath, imgGcsObject);
+        if (imgUpload) {
+          slides[item.i].imageObject = imgUpload.objectName;
+          slides[item.i].imageUrl = imgUpload.url;
+        }
+      }
+    }
+
     // STEP 4: Generate multilingual videos
     const SUPPORTED_LANGUAGES = require('../config/languages');
     const translationService = require('../services/translation.service');
     const enableMultilingual = process.env.ENABLE_MULTILINGUAL_AUDIO === 'true';
     const videos = {
       en: {
-        url: `/output/video/${uniqueId}.mp4`,
+        url: masterVideoUrl,
+        objectName: masterVideoObject,
         language: 'English',
         code: 'en',
         slides: slides
@@ -232,7 +258,7 @@ const generateOneShot = async (req, res) => {
             const adjustedChunkPath = path.join(outputDir, `${uniqueId}_chunk_${i}_${lang}.mp3`);
             await audioService.adjustAudioDuration(rawChunkPath, adjustedChunkPath, englishDurations[i]);
             langChunks.push(adjustedChunkPath);
-            fs.unlink(rawChunkPath, () => {});
+            if (fs.existsSync(rawChunkPath)) fs.unlink(rawChunkPath, () => {});
           }
           await audioService.mergeAudioFiles(langChunks, masterLangAudioPath);
 
@@ -241,16 +267,31 @@ const generateOneShot = async (req, res) => {
 
           await ffmpegService.mergeVideoAndAudio(langScreenVideoPath, masterLangAudioPath, langVideoPath);
 
+          let langVideoUrl = `/output/video/${langVideoFileName}`;
+          let langVideoObject = `videos/${uniqueId}/languages/${langConfig.code}.mp4`;
+
+          if (storageService.isStorageConfigured()) {
+            const langUpload = await storageService.uploadFile(langVideoPath, langVideoObject);
+            if (langUpload) {
+              langVideoUrl = langUpload.url;
+              langVideoObject = langUpload.objectName;
+            }
+          }
+
           videos[lang] = {
-            url: `/output/video/${langVideoFileName}`,
+            url: langVideoUrl,
+            objectName: langVideoObject,
             language: langConfig.name,
             code: langConfig.code,
             slides: langSlides
           };
 
-          langChunks.forEach(p => fs.unlink(p, () => {}));
-          fs.unlink(masterLangAudioPath, () => {});
-          fs.unlink(langScreenVideoPath, () => {});
+          langChunks.forEach(p => { if (fs.existsSync(p)) fs.unlink(p, () => {}); });
+          if (fs.existsSync(masterLangAudioPath)) fs.unlink(masterLangAudioPath, () => {});
+          if (fs.existsSync(langScreenVideoPath)) fs.unlink(langScreenVideoPath, () => {});
+          if (storageService.isStorageConfigured() && fs.existsSync(langVideoPath)) {
+            fs.unlink(langVideoPath, () => {});
+          }
         } catch (err) {
           console.error(`[ONE-SHOT] Failed for ${lang}:`, err);
           status = 'partial';
@@ -261,17 +302,32 @@ const generateOneShot = async (req, res) => {
 
     // Save metadata
     const metadataPath = path.join(outputDir, `${uniqueId}_metadata.json`);
-    fs.writeFileSync(metadataPath, JSON.stringify({
+    const metadataContent = JSON.stringify({
+      id: uniqueId,
       slides,
       englishDurations,
       languages: videos,
       voiceId: resolvedVoiceId
-    }, null, 2));
+    }, null, 2);
+    fs.writeFileSync(metadataPath, metadataContent);
+
+    if (storageService.isStorageConfigured()) {
+      console.log(`[ONE-SHOT] [Storage] Uploading metadata JSON to GCS...`);
+      await storageService.uploadFile(metadataPath, `videos/${uniqueId}/metadata.json`);
+    }
 
     // Cleanup temp files
-    fs.unlink(screenVideoPath, () => {});
-    englishAudioPaths.forEach(p => fs.unlink(p, () => {}));
-    fs.unlink(englishMasterPath, () => {});
+    if (fs.existsSync(screenVideoPath)) fs.unlink(screenVideoPath, () => {});
+    englishAudioPaths.forEach(p => { if (fs.existsSync(p)) fs.unlink(p, () => {}); });
+    if (fs.existsSync(englishMasterPath)) fs.unlink(englishMasterPath, () => {});
+
+    if (storageService.isStorageConfigured()) {
+      if (fs.existsSync(finalVideoPath)) fs.unlink(finalVideoPath, () => {});
+      if (fs.existsSync(metadataPath)) fs.unlink(metadataPath, () => {});
+      createdImagePaths.forEach(item => {
+        if (fs.existsSync(item.imageFilePath)) fs.unlink(item.imageFilePath, () => {});
+      });
+    }
 
     console.log(`[ONE-SHOT] ✅ Complete! Video ID: ${uniqueId}`);
 
@@ -281,7 +337,8 @@ const generateOneShot = async (req, res) => {
       message: status === 'partial' ? 'Video generated with some language failures' : 'Video generated successfully',
       failedLanguages: failedLanguages.length > 0 ? failedLanguages : undefined,
       data: {
-        videoUrl: `/output/video/${uniqueId}.mp4`,
+        videoUrl: videos.en.url,
+        videoObject: videos.en.objectName || `videos/${uniqueId}/english.mp4`,
         id: uniqueId,
         videos
       }
