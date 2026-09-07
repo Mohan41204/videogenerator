@@ -49,7 +49,7 @@ const generateVideo = async (req, res) => {
     }
 
     const uniqueId = uuidv4();
-    jobs.set(uniqueId, { status: 'processing', progress: 0, message: 'Initializing...' });
+    await storageService.saveJob(uniqueId, { status: 'processing', progress: 0, message: 'Initializing...' });
 
     // Respond immediately to avoid browser timeout
     res.status(202).json({ success: true, processing: true, jobId: uniqueId });
@@ -118,7 +118,7 @@ const generateVideo = async (req, res) => {
           });
         } catch (e) {
           console.error('JSON parsing error:', e.message);
-          jobs.set(uniqueId, { status: 'failed', error: `Invalid script JSON: ${e.message}` });
+          await storageService.saveJob(uniqueId, { status: 'failed', error: `Invalid script JSON: ${e.message}` });
           return;
         }
 
@@ -319,7 +319,7 @@ const generateVideo = async (req, res) => {
           });
         }
 
-        jobs.set(uniqueId, {
+        await storageService.saveJob(uniqueId, {
           status: 'completed',
           message: status === 'partial' ? 'Video generated with some language failures' : 'Video generated successfully',
           failedLanguages: failedLanguages.length > 0 ? failedLanguages : undefined,
@@ -333,7 +333,7 @@ const generateVideo = async (req, res) => {
 
       } catch (backgroundError) {
         console.error('Background video generation error:', backgroundError);
-        jobs.set(uniqueId, { status: 'failed', error: backgroundError.message });
+        await storageService.saveJob(uniqueId, { status: 'failed', error: backgroundError.message });
       }
     })();
 
@@ -343,15 +343,20 @@ const generateVideo = async (req, res) => {
   }
 };
 
-const getJobStatus = (req, res) => {
-  const { jobId } = req.params;
-  const job = jobs.get(jobId);
+const getJobStatus = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const job = await storageService.getJob(jobId);
 
-  if (!job) {
-    return res.status(404).json({ success: false, message: 'Job not found or expired' });
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found or expired' });
+    }
+
+    res.json({ success: true, ...job });
+  } catch (err) {
+    console.error(`Error retrieving job status for ${req.params.jobId}:`, err);
+    res.status(500).json({ success: false, message: 'Failed to retrieve job status', error: err.message });
   }
-
-  res.json({ success: true, ...job });
 };
 
 const generateScript = async (req, res) => {
