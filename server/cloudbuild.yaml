@@ -33,6 +33,7 @@ steps:
       - '--min=0'
       - '--max=5'
       - '--cpu-boost'
+      - '--service-account=video-generator-run@sky-meet-01.iam.gserviceaccount.com'
       - '--allow-unauthenticated'
 
 images:

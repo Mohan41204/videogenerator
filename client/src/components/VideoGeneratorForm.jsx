@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { UploadCloud, Wand2, MonitorPlay, Smartphone, Download } from 'lucide-react';
@@ -18,6 +18,16 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [scriptProgress, setScriptProgress] = useState(0);
   const [tutorialType, setTutorialType] = useState('programming');
   const [selectedVoiceId, setSelectedVoiceId] = useState('google-cloud-tts-female');
+
+  const pollIntervalRef = useRef(null);
+  const progressIntervalRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
+  }, []);
 
 
 
@@ -109,11 +119,13 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
     setProgress(0);
     onVideoGenerated(null);
 
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+
     // Slow progress for long jobs
-    const progressInterval = setInterval(() => {
+    progressIntervalRef.current = setInterval(() => {
       setProgress(prev => {
         if (prev >= 99) return prev;
-        // Slower increment for very long scripts
         const increment = text.length > 500 ? 1 : 5;
         return prev + increment;
       });
@@ -136,39 +148,38 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
         toast('Video is generating in the background. Please wait...', { icon: '⏳', duration: 5000 });
         
         const jobId = response.data.jobId;
-        const pollInterval = setInterval(async () => {
+        pollIntervalRef.current = setInterval(async () => {
           try {
             const statusRes = await axios.get(`${API_BASE_URL}/api/videos/status/${jobId}`);
             const jobData = statusRes.data;
             
             if (jobData.status === 'completed') {
-              clearInterval(pollInterval);
-              clearInterval(progressInterval);
+              if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+              if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
               setProgress(100);
               toast.success(jobData.message || 'Video generated successfully!');
               onVideoGenerated(jobData.data, text);
               setTimeout(() => setIsGenerating(false), 500);
             } else if (jobData.status === 'failed') {
-              clearInterval(pollInterval);
-              clearInterval(progressInterval);
+              if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+              if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
               toast.error(jobData.error || 'Failed to generate video.');
               setTimeout(() => setIsGenerating(false), 500);
             }
-            // If processing, just wait for the next interval
           } catch (pollErr) {
             console.error('Polling error:', pollErr);
             if (pollErr.response?.status === 404) {
-              clearInterval(pollInterval);
-              clearInterval(progressInterval);
+              if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+              if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
               toast.error('Video generation job lost on server.');
               setTimeout(() => setIsGenerating(false), 500);
             }
           }
-        }, 10000); // Poll every 10 seconds
+        }, 4000); // Poll every 4 seconds
 
       } else {
         // Fallback for older synchronous backend
-        clearInterval(progressInterval);
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
         setProgress(100);
 
         if (response.data.success) {
@@ -181,7 +192,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
       }
 
     } catch (error) {
-      clearInterval(progressInterval);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       console.error(error);
       
       const isAxiosError = error.isAxiosError || error.response;
