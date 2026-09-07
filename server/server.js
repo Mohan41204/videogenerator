@@ -64,6 +64,15 @@ app.use('/api/videos', videoRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/generate', generateRoutes);
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Video Generator Backend is running',
+    environment: process.env.NODE_ENV || 'production'
+  });
+});
+
 // Error Middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
