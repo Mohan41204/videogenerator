@@ -10,7 +10,7 @@
 
 const path = require('path');
 const { spawn } = require('child_process');
-const ffmpegPath = require('ffmpeg-static');
+const ffmpegPath = require('../utils/ffmpegPath');
 
 class BaseRenderer {
   /**

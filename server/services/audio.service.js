@@ -3,7 +3,7 @@ const fs = require('fs');
 const gTTS = require('gtts');
 const ffmpeg = require('fluent-ffmpeg');
 const ffprobePath = require('ffprobe-static').path;
-const ffmpegPath = require('ffmpeg-static');
+const ffmpegPath = require('../utils/ffmpegPath');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);

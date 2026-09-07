@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('ffmpeg-static');
+const ffmpegPath = require('../utils/ffmpegPath');
 
 // Set ffmpeg path
 ffmpeg.setFfmpegPath(ffmpegPath);

@@ -14,7 +14,7 @@
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
-const ffmpegPath = require('ffmpeg-static');
+const ffmpegPath = require('../utils/ffmpegPath');
 const diagramService = require('./diagram.service');
 
 // FPS for the rendered video. 5fps is ideal for screen-share/typing content —

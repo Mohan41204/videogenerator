@@ -2,6 +2,7 @@ FROM node:22-slim
 
 # Install system libraries required by Chromium/headless Puppeteer and FFmpeg
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
     ca-certificates \
     fonts-liberation \
     libasound2 \
@@ -39,8 +40,8 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 # Copy package management files for layer caching
 COPY package*.json ./
 
-# Install production dependencies skipping postinstall scripts
-RUN npm install --omit=dev --ignore-scripts
+# Install production dependencies skipping postinstall scripts, then install ffmpeg-static binary explicitly
+RUN npm install --omit=dev --ignore-scripts && (node node_modules/ffmpeg-static/install.js || true)
 
 # Copy remaining application source code
 COPY . .

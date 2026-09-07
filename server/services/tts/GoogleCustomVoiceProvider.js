@@ -10,6 +10,10 @@ class GoogleCustomVoiceProvider extends TTSProvider {
   }
 
   hasCredentials() {
+    // Return true if running on Cloud Run / GCP (ADC available) or if explicit credential env is present
+    if (process.env.K_SERVICE || process.env.GOOGLE_CLOUD_PROJECT) {
+      return true;
+    }
     const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
     if (process.env.GOOGLE_CREDENTIALS_JSON) {
       return true;
@@ -25,11 +29,9 @@ class GoogleCustomVoiceProvider extends TTSProvider {
 
   getClient() {
     if (!this.client) {
-      if (!this.hasCredentials()) {
-        throw new Error('Google Cloud credentials not configured. Please set GOOGLE_APPLICATION_CREDENTIALS in your environment to use Google TTS.');
-      }
       let ttsOptions = {};
       const credsEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
       if (process.env.GOOGLE_CREDENTIALS_JSON) {
         try {
           ttsOptions.credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
@@ -42,7 +44,15 @@ class GoogleCustomVoiceProvider extends TTSProvider {
         } catch (err) {
           console.error("❌ Error parsing GOOGLE_APPLICATION_CREDENTIALS as JSON:", err.message);
         }
+      } else if (credsEnv && fs.existsSync(credsEnv)) {
+        ttsOptions.keyFilename = credsEnv;
       }
+
+      if (process.env.GOOGLE_CLOUD_PROJECT) {
+        ttsOptions.projectId = process.env.GOOGLE_CLOUD_PROJECT;
+      }
+
+      // Initialize TextToSpeechClient — automatically resolves Application Default Credentials (ADC) on Cloud Run
       this.client = new textToSpeech.TextToSpeechClient(ttsOptions);
     }
     return this.client;
@@ -88,11 +98,7 @@ class GoogleCustomVoiceProvider extends TTSProvider {
 
     // If using a custom voice ID (e.g. Chirp 3 Custom Voice)
     if (voiceId) {
-      // Typically, custom voice is specified via customVoiceParams or setting the name
-      // Assuming the voiceId corresponds to the model name in GCP
       request.voice.name = voiceId;
-      // For real custom voice, there might be 'customVoice' configuration object.
-      // e.g. request.voice.customVoice = { model: voiceId, reportedUsage: 'REALTIME' }
     }
 
     try {
