@@ -15,7 +15,7 @@ steps:
       - 'push'
       - 'asia-south1-docker.pkg.dev/sky-meet-01/video-generator/video-generator-backend:$COMMIT_SHA'
 
-  # 3. Deploy/Update API Cloud Run Service
+  # 3. Deploy/Update Cloud Run API Service
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -33,10 +33,10 @@ steps:
       - '--min=0'
       - '--max=5'
       - '--service-account=video-generator-run@sky-meet-01.iam.gserviceaccount.com'
-      - '--set-env-vars=GOOGLE_CLOUD_PROJECT=sky-meet-01,GOOGLE_CLOUD_LOCATION=global,CLOUD_RUN_JOB_NAME=video-generator-job,CLOUD_RUN_JOB_REGION=asia-south1,GCS_BUCKET_NAME=sky-meet-01-video-generator,ENABLE_MULTILINGUAL_AUDIO=true,GOOGLE_GENAI_USE_VERTEXAI=true'
+      - '--set-env-vars=NODE_ENV=production,GOOGLE_CLOUD_PROJECT=sky-meet-01,GOOGLE_CLOUD_LOCATION=global,CLOUD_RUN_JOB_NAME=video-generator-job,CLOUD_RUN_JOB_REGION=asia-south1,GCS_BUCKET_NAME=sky-meet-01-video-generator,ENABLE_MULTILINGUAL_AUDIO=true,GOOGLE_GENAI_USE_VERTEXAI=true,VIDEO_RENDER_FPS=3'
       - '--allow-unauthenticated'
 
-  # 4. Create or Update Cloud Run Job (specifying worker entrypoint command)
+  # 4. Deploy/Update Cloud Run Job
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -54,7 +54,7 @@ steps:
       - '--memory=8Gi'
       - '--task-timeout=3600s'
       - '--service-account=video-generator-run@sky-meet-01.iam.gserviceaccount.com'
-      - '--set-env-vars=GOOGLE_CLOUD_PROJECT=sky-meet-01,GOOGLE_CLOUD_LOCATION=global,GCS_BUCKET_NAME=sky-meet-01-video-generator,ENABLE_MULTILINGUAL_AUDIO=true,GOOGLE_GENAI_USE_VERTEXAI=true,VIDEO_RENDER_FPS=3'
+      - '--set-env-vars=NODE_ENV=production,GOOGLE_CLOUD_PROJECT=sky-meet-01,GOOGLE_CLOUD_LOCATION=global,CLOUD_RUN_JOB_NAME=video-generator-job,CLOUD_RUN_JOB_REGION=asia-south1,GCS_BUCKET_NAME=sky-meet-01-video-generator,ENABLE_MULTILINGUAL_AUDIO=true,GOOGLE_GENAI_USE_VERTEXAI=true,VIDEO_RENDER_FPS=3'
 
 images:
   - 'asia-south1-docker.pkg.dev/sky-meet-01/video-generator/video-generator-backend:$COMMIT_SHA'
