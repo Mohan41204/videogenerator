@@ -1153,16 +1153,39 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
   console.log(`[TeachingEngine] Planning lesson: Topic="${topic}", SubTopic="${subTopic}", Duration=${plan.mins}m, Domain=${domain}, Scenes=${plan.sceneCount}, TargetWords=~${plan.totalTargetWords}`);
 
   const prompt = buildPedagogicalPrompt(topic, subTopic, plan, domain);
+
+  // Initialize @google/genai client with proper Vertex AI / API Key precedence
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const useVertexAi = process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true' || !apiKey;
   const clientConfig = {};
-  if (apiKey && apiKey.trim()) {
-    clientConfig.apiKey = apiKey.trim();
-  } else {
+
+  if (useVertexAi) {
     clientConfig.vertexai = true;
     clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT || 'sky-meet-01';
-    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'asia-south1';
+    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+  } else {
+    clientConfig.apiKey = apiKey.trim();
   }
+
   const client = new GoogleGenAI(clientConfig);
+
+  const primaryModel = process.env.GEMINI_SCRIPT_MODEL || 'gemini-2.5-flash';
+  const envFallbacks = process.env.GEMINI_FALLBACK_MODELS 
+    ? process.env.GEMINI_FALLBACK_MODELS.split(',').map(m => m.trim())
+    : ['gemini-2.5-flash', 'gemini-2.0-flash-001'];
+  
+  const candidateModels = [...new Set([primaryModel, ...envFallbacks])];
+
+  const defaultTimeoutMs = Math.max(60000, (plan?.mins || 5) * 15000);
+  const timeoutMs = process.env.GEMINI_SCRIPT_TIMEOUT_MS 
+    ? parseInt(process.env.GEMINI_SCRIPT_TIMEOUT_MS, 10) 
+    : defaultTimeoutMs;
+
+  console.log(`[TeachingEngine] Gemini provider: ${useVertexAi ? 'vertex-ai' : 'api-key'}`);
+  if (useVertexAi) {
+    console.log(`[TeachingEngine] Project: ${clientConfig.project} | Location: ${clientConfig.location}`);
+  }
+  console.log(`[TeachingEngine] Candidate models: [${candidateModels.join(', ')}] | Timeout: ${Math.round(timeoutMs / 1000)}s`);
 
   const jsonSchema = {
     type: 'array',
@@ -1316,53 +1339,54 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
     }
   };
 
-  const candidateModels = [
-    'gemini-3.7-flash',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash'
-  ];
-
   let result = null;
   let lastError = null;
-  const timeoutMs = Math.max(180000, (plan?.mins || 5) * 15000); // 180s base, scales up to 15m for 60m scripts
 
   for (const modelName of candidateModels) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
-      console.log(`[TeachingEngine] Attempting script generation with ${modelName} on Vertex AI (timeout: ${Math.round(timeoutMs/1000)}s)...`);
+      console.log(`[TeachingEngine] Attempting script generation with ${modelName}...`);
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`Timeout: ${modelName} exceeded ${Math.round(timeoutMs/1000)} seconds`)), timeoutMs)
-      );
-
-      const generatePromise = client.models.generateContent({
+      result = await client.models.generateContent({
         model: modelName,
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
-          responseSchema: jsonSchema
+          responseSchema: jsonSchema,
+          abortSignal: controller.signal
         }
       });
 
-      result = await Promise.race([
-        generatePromise,
-        timeoutPromise
-      ]);
+      clearTimeout(timer);
 
       if (result) {
         console.log(`[TeachingEngine] Successfully received response from ${modelName}`);
         if (result.usageMetadata) {
-          console.log(`[Token Usage] Provider: vertex-ai, Model: ${modelName}, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
+          console.log(`[Token Usage] Provider: ${useVertexAi ? 'vertex-ai' : 'api-key'}, Model: ${modelName}, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
         }
         break;
       }
     } catch (err) {
+      clearTimeout(timer);
       lastError = err;
-      console.warn(`[TeachingEngine] Model ${modelName} failed (${err.message}). Trying next candidate...`);
+      const errMsg = err.message || String(err);
+      const is404 = /404|not found|Publisher model/i.test(errMsg);
+      const isAbort = controller.signal.aborted || /abort/i.test(errMsg);
+
+      if (is404) {
+        console.warn(`[TeachingEngine] Model ${modelName} unavailable in ${useVertexAi ? 'Vertex AI location ' + clientConfig.location : 'API key mode'} (404 Not Found). Skipping immediately.`);
+      } else if (isAbort) {
+        console.warn(`[TeachingEngine] Model ${modelName} request timed out after ${Math.round(timeoutMs / 1000)}s. Aborted.`);
+      } else {
+        console.warn(`[TeachingEngine] Model ${modelName} failed (${errMsg}). Trying next candidate...`);
+      }
     }
   }
 
   if (!result) {
+    console.error('[TeachingEngine] All configured Gemini models failed.');
     throw new Error(`All candidate Gemini models failed. Last error: ${lastError ? lastError.message : 'Unknown'}`);
   }
 
