@@ -74,7 +74,7 @@ class GoogleCustomVoiceProvider extends TTSProvider {
     switch (language) {
       case 'ta': languageCode = 'ta-IN'; defaultName = voiceGender === 'male' ? 'ta-IN-Wavenet-B' : 'ta-IN-Wavenet-A'; break;
       case 'hi': languageCode = 'hi-IN'; defaultName = voiceGender === 'male' ? 'hi-IN-Wavenet-B' : 'hi-IN-Wavenet-A'; break;
-      case 'te': languageCode = 'te-IN'; defaultName = voiceGender === 'male' ? 'te-IN-Wavenet-B' : 'te-IN-Wavenet-A'; break;
+      case 'te': languageCode = 'te-IN'; defaultName = voiceGender === 'male' ? 'te-IN-Standard-B' : 'te-IN-Standard-A'; break;
       case 'kn': languageCode = 'kn-IN'; defaultName = voiceGender === 'male' ? 'kn-IN-Wavenet-B' : 'kn-IN-Wavenet-A'; break;
       case 'ml': languageCode = 'ml-IN'; defaultName = voiceGender === 'male' ? 'ml-IN-Wavenet-B' : 'ml-IN-Wavenet-A'; break;
       case 'en':
@@ -84,22 +84,20 @@ class GoogleCustomVoiceProvider extends TTSProvider {
         break;
     }
 
+    const voiceName = voiceId || defaultName;
+    console.log(`[TTS] Generating ${language === 'te' ? 'Telugu' : language} audio using Google Cloud TTS voice ${voiceName} (${languageCode})`);
+
     const request = {
       input: { text },
       voice: {
         languageCode,
-        name: voiceId ? undefined : defaultName
+        name: voiceName
       },
       audioConfig: {
         audioEncoding: 'MP3',
         speakingRate: 0.85 // Exceptionally slow speaking rate for teaching (1.0 is default)
       },
     };
-
-    // If using a custom voice ID (e.g. Chirp 3 Custom Voice)
-    if (voiceId) {
-      request.voice.name = voiceId;
-    }
 
     try {
       const client = this.getClient();
@@ -108,7 +106,18 @@ class GoogleCustomVoiceProvider extends TTSProvider {
       await writeFile(outputPath, response.audioContent, 'binary');
       return outputPath;
     } catch (error) {
-      console.error(`Google TTS Error for language ${language}:`, error);
+      console.error(`Google TTS Error for language ${language} using voice ${voiceName}:`, error.message);
+      
+      // Safe language-level fallback for Telugu if voice synthesis fails with requested voice
+      if (language === 'te' && voiceName !== 'te-IN-Standard-A') {
+        console.warn(`[TTS] Retrying Telugu TTS with fallback voice te-IN-Standard-A...`);
+        request.voice.name = 'te-IN-Standard-A';
+        const client = this.getClient();
+        const [response] = await client.synthesizeSpeech(request);
+        const writeFile = util.promisify(fs.writeFile);
+        await writeFile(outputPath, response.audioContent, 'binary');
+        return outputPath;
+      }
       throw error;
     }
   }

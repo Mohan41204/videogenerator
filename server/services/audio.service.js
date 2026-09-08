@@ -17,14 +17,18 @@ const getCustomVoiceProvider = () => {
   return customVoiceProvider;
 };
 
+const GTTS_SUPPORTED_LANGUAGES = ['en', 'ta', 'hi', 'ml', 'kn'];
+
 const generateSingleAudioWithGTTS = (text, outputPath, langCode = 'en') => {
   return new Promise((resolve, reject) => {
     try {
+      if (!GTTS_SUPPORTED_LANGUAGES.includes(langCode)) {
+        return reject(new Error(`[gTTS] Language '${langCode}' is not supported by gTTS.`));
+      }
       const gtts = new gTTS(text, langCode);
       if (langCode === 'en') {
         gtts.lang = 'en-in'; // Set to Indian English accent
       } else {
-        // gTTS supports 'ta', 'hi', 'ml', 'te', 'kn' directly
         gtts.lang = langCode;
       }
       gtts.save(outputPath, function (err, result) {
@@ -41,25 +45,30 @@ const generateSingleAudioWithGTTS = (text, outputPath, langCode = 'en') => {
 };
 
 const generateSingleAudio = async (text, outputPath, langCode = 'en', voiceId = null) => {
-  // If no voice is selected or default computer voice is selected, DO NOT call Google TTS!
+  // If voice is 'default-computer' or omitted, but language is NOT supported by gTTS (such as 'te'), force Google Cloud TTS!
   const isCustomVoice = voiceId && typeof voiceId === 'string' && voiceId.trim() !== '' && voiceId !== 'default' && voiceId !== 'default-computer';
+  const forceGoogleTTS = !GTTS_SUPPORTED_LANGUAGES.includes(langCode);
 
-  if (!isCustomVoice) {
+  if (!isCustomVoice && !forceGoogleTTS) {
     return await generateSingleAudioWithGTTS(text, outputPath, langCode);
   }
 
-  // If a custom voice is selected, try using GoogleCustomVoiceProvider with fallback to default
+  // Use GoogleCustomVoiceProvider
   try {
     const provider = getCustomVoiceProvider();
     const isGoogleCloud = voiceId && typeof voiceId === 'string' && voiceId.startsWith('google-cloud-tts');
-    const passedVoiceId = isGoogleCloud ? null : voiceId;
+    const passedVoiceId = isGoogleCloud ? null : (isCustomVoice ? voiceId : null);
     const voiceGender = isGoogleCloud && voiceId.includes('male') && !voiceId.includes('female') ? 'male' : 'female';
     
     await provider.generateSpeech({ text, language: langCode, voiceId: passedVoiceId, voiceGender, outputPath });
     return outputPath;
   } catch (error) {
-    console.warn(`[TTS] Custom voice provider failed for voice "${voiceId}" (${error.message}). Falling back to default computer voice (gTTS)...`);
-    return await generateSingleAudioWithGTTS(text, outputPath, langCode);
+    console.warn(`[TTS] Google Cloud TTS provider error for language "${langCode}" (${error.message}). Checking gTTS fallback...`);
+    if (GTTS_SUPPORTED_LANGUAGES.includes(langCode)) {
+      console.warn(`[TTS] Falling back to default computer voice (gTTS) for supported language "${langCode}"...`);
+      return await generateSingleAudioWithGTTS(text, outputPath, langCode);
+    }
+    throw error;
   }
 };
 

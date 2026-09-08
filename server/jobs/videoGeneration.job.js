@@ -3,14 +3,12 @@
  *
  * Cloud Run Job Entrypoint for Long-Running Video Generation.
  *
- * Execution Flow:
- * 1. Read VIDEO_JOB_ID from environment variable process.env.VIDEO_JOB_ID or process.argv
- * 2. Retrieve job request record from GCS / Persistent Storage
- * 3. Update job status to 'processing'
- * 4. Execute video generation pipeline (Gemini script parsing / TTS audio / visuals / Puppeteer / FFmpeg / GCS upload)
- * 5. Update job status to 'completed' with final output URLs
- * 6. Gracefully cleanup isolated temporary directory (/tmp/video-jobs/<jobId>/)
- * 7. Exit process with code 0 on success, code 1 on fatal error
+ * Features:
+ * - Controlled concurrency for Translation, TTS, Image Gen, and Puppeteer Rendering.
+ * - Stage-level caching/checkpointing via GCS job state.
+ * - Detailed performance timing instrumentation ([PERF]).
+ * - Language-level fault isolation.
+ * - Isolated temporary directories per language.
  */
 
 const path = require('path');
@@ -42,8 +40,15 @@ const imageGenService = require('../services/imageGeneration.service');
 const rendererFactory = require('../renderer/rendererFactory');
 const translationService = require('../services/translation.service');
 const SUPPORTED_LANGUAGES = require('../config/languages');
+const { mapConcurrent } = require('../utils/promisePool');
 
-// Robust JSON extraction and cleaning utility
+// Concurrency Controls with sensible defaults
+const TRANSLATION_CONCURRENCY = parseInt(process.env.TRANSLATION_CONCURRENCY, 10) || 3;
+const TTS_CONCURRENCY = parseInt(process.env.TTS_CONCURRENCY, 10) || 2;
+const IMAGE_GENERATION_CONCURRENCY = parseInt(process.env.IMAGE_GENERATION_CONCURRENCY, 10) || 2;
+const RENDER_CONCURRENCY = parseInt(process.env.RENDER_CONCURRENCY, 10) || 2;
+
+// Robust JSON extraction utility
 const cleanJsonString = (str) => {
   if (!str) return '';
   const arrayMatch = str.match(/\[\s*\{[\s\S]*\}\s*\]/);
@@ -101,6 +106,7 @@ process.on('SIGINT', async () => {
 });
 
 async function main() {
+  const jobStartTime = Date.now();
   const jobId = process.env.VIDEO_JOB_ID || process.argv[2];
   if (!jobId) {
     console.error('[VideoJob] ERROR: VIDEO_JOB_ID environment variable or CLI argument is missing.');
@@ -109,6 +115,10 @@ async function main() {
 
   currentJobId = jobId;
   console.log(`[VideoJob] Starting execution for jobId: ${jobId}`);
+  console.log(`[PERF] Translation concurrency: ${TRANSLATION_CONCURRENCY}`);
+  console.log(`[PERF] TTS concurrency: ${TTS_CONCURRENCY}`);
+  console.log(`[PERF] Image concurrency: ${IMAGE_GENERATION_CONCURRENCY}`);
+  console.log(`[PERF] Render concurrency: ${RENDER_CONCURRENCY}`);
 
   // Retrieve job record from GCS / memory storage
   const jobRecord = await storageService.getJob(jobId);
@@ -117,7 +127,7 @@ async function main() {
     process.exit(1);
   }
 
-  // Idempotency check: If job is already completed, exit safely with 0
+  // Idempotency check: If job is already completed, exit safely
   if (jobRecord.status === 'completed') {
     console.log(`[VideoJob] Job ${jobId} is already marked as 'completed'. Exiting idempotently.`);
     process.exit(0);
@@ -156,6 +166,7 @@ async function main() {
 
   try {
     // --- STAGE 1: Parse slides JSON ---
+    const scriptStartTime = Date.now();
     console.log(`[VideoJob] [${jobId}] Stage: Parsing script JSON...`);
     let slides;
     try {
@@ -210,13 +221,15 @@ async function main() {
       await cleanupAndExit(1, `Invalid script JSON: ${e.message}`);
       return;
     }
+    console.log(`[PERF] Script generation: ${((Date.now() - scriptStartTime) / 1000).toFixed(1)}s`);
 
     const isCustomVoice = voiceId && typeof voiceId === 'string' && voiceId.trim() !== '' && voiceId !== 'default-computer' && voiceId !== 'default';
     const resolvedVoiceId = isCustomVoice ? voiceId.trim() : null;
 
-    // --- STAGE 2: Audio Generation ---
+    // --- STAGE 2: Master English Audio Generation ---
+    const englishAudioStartTime = Date.now();
     console.log(`[VideoJob] [${jobId}] Stage: Generating English audio for ${slides.length} slides...`);
-    await storageService.saveJob(jobId, { status: 'processing', stage: 'audio_generating', progress: 20 });
+    await storageService.saveJob(jobId, { status: 'processing', stage: 'audio_generating', progress: 15 });
 
     const englishAudioPaths = [];
     const englishDurations = [];
@@ -231,15 +244,24 @@ async function main() {
       englishDurations.push(duration);
     }
     await audioService.mergeAudioFiles(englishAudioPaths, englishMasterPath);
+    console.log(`[PERF] English TTS total: ${((Date.now() - englishAudioStartTime) / 1000).toFixed(1)}s`);
 
-    // --- STAGE 3: Real-World Scenario Image Generation ---
+    // --- STAGE 3: Real-World Visual Scenario Image Generation ---
+    const imageGenStartTime = Date.now();
     console.log(`[VideoJob] [${jobId}] Stage: Visual scenario generation...`);
-    await storageService.saveJob(jobId, { status: 'processing', stage: 'visual_generating', progress: 40 });
+    await storageService.saveJob(jobId, { status: 'processing', stage: 'visual_generating', progress: 30 });
 
-    const createdImagePaths = [];
+    const slidesNeedingImages = [];
     for (let i = 0; i < slides.length; i++) {
       const slide = slides[i];
       if (slide.realWorldVisual && slide.realWorldVisual.enabled && slide.realWorldVisual.imagePrompt && !slide.imagePath) {
+        slidesNeedingImages.push({ slide, i });
+      }
+    }
+
+    const createdImagePaths = [];
+    if (slidesNeedingImages.length > 0) {
+      await mapConcurrent(slidesNeedingImages, IMAGE_GENERATION_CONCURRENCY, async ({ slide, i }) => {
         const imageFileName = `${jobId}_scene_${i}_scenario.jpg`;
         const imageFilePath = path.join(imagesDir, imageFileName);
         try {
@@ -256,25 +278,25 @@ async function main() {
           console.warn(`[VideoJob] Error generating real-world image for scene ${i + 1}:`, imgErr.message);
           slide.realWorldVisual.enabled = false;
         }
-      }
+      });
     }
+    console.log(`[PERF] Image generation total: ${((Date.now() - imageGenStartTime) / 1000).toFixed(1)}s`);
 
-    // --- STAGE 4: Puppeteer Video Rendering ---
-    console.log(`[VideoJob] [${jobId}] Stage: Puppeteer screen rendering...`);
-    await storageService.saveJob(jobId, { status: 'processing', stage: 'rendering', progress: 60 });
+    // --- STAGE 4: Master English Puppeteer Video Rendering ---
+    const englishRenderStartTime = Date.now();
+    console.log(`[VideoJob] [${jobId}] Stage: Master English video rendering...`);
+    await storageService.saveJob(jobId, { status: 'processing', stage: 'rendering', progress: 45 });
 
     const type = (slides.length > 0 && slides[0].type) ? slides[0].type : 'programming';
     const renderer = rendererFactory.getRenderer(type);
     await renderer.renderVideo(slides, englishDurations, screenVideoPath);
+    console.log(`[PERF] Rendering - en: ${((Date.now() - englishRenderStartTime) / 1000).toFixed(1)}s`);
 
-    // --- STAGE 5: FFmpeg Audio/Video Merge ---
-    console.log(`[VideoJob] [${jobId}] Stage: Merging video and audio with FFmpeg...`);
+    // --- STAGE 5: FFmpeg Audio/Video Merge (Master English) ---
+    console.log(`[VideoJob] [${jobId}] Stage: Merging master English video and audio...`);
     await ffmpegService.mergeVideoAndAudio(screenVideoPath, englishMasterPath, finalVideoPath);
 
-    // --- STAGE 6: GCS Upload ---
-    console.log(`[VideoJob] [${jobId}] Stage: Uploading output to GCS...`);
-    await storageService.saveJob(jobId, { status: 'processing', stage: 'uploading', progress: 80 });
-
+    // --- STAGE 6: Master English GCS Upload ---
     let masterVideoUrl = `/output/video/${jobId}.mp4`;
     let masterVideoObject = `videos/${jobId}/english.mp4`;
 
@@ -285,7 +307,6 @@ async function main() {
         masterVideoObject = uploadRes.objectName;
       }
 
-      // Upload scenario images to GCS
       for (const item of createdImagePaths) {
         const imgGcsObject = `videos/${jobId}/images/${item.imageFileName}`;
         const imgUpload = await storageService.uploadFile(item.imageFilePath, imgGcsObject);
@@ -296,82 +317,152 @@ async function main() {
       }
     }
 
-    // --- STAGE 7: Multilingual Video Generation ---
-    const enableMultilingual = process.env.ENABLE_MULTILINGUAL_AUDIO === 'true';
+    // Existing languages state from storage (checkpoint support)
+    const existingJobData = jobRecord.data || {};
+    const existingVideos = (existingJobData.videos) || (jobRecord.languages) || {};
+    
     const videos = {
+      ...existingVideos,
       en: {
         url: masterVideoUrl,
         objectName: masterVideoObject,
         language: 'English',
         code: 'en',
-        slides: slides
+        slides: slides,
+        stages: { translation: 'completed', tts: 'completed', rendering: 'completed', upload: 'completed' }
       }
     };
+
+    // --- STAGE 7: Parallel Multilingual Processing & Rendering ---
+    const enableMultilingual = process.env.ENABLE_MULTILINGUAL_AUDIO === 'true';
     const failedLanguages = [];
     let jobResultStatus = 'success';
 
     if (enableMultilingual) {
-      console.log(`[VideoJob] [${jobId}] Stage: Generating multilingual videos...`);
+      const multilingualStartTime = Date.now();
+      console.log(`[VideoJob] [${jobId}] Stage: Parallel Multilingual pipeline initialization...`);
       let langCodes = Object.keys(SUPPORTED_LANGUAGES).filter(k => k !== 'en');
       if (selectedLanguages && Array.isArray(selectedLanguages)) {
         langCodes = langCodes.filter(k => selectedLanguages.includes(k));
       }
 
-      for (const lang of langCodes) {
-        const langConfig = SUPPORTED_LANGUAGES[lang];
-        const langVideoFileName = `${jobId}_${langConfig.code}.mp4`;
-        const langVideoPath = path.join(videoDir, langVideoFileName);
-        const masterLangAudioPath = path.join(audioDir, `${jobId}_${langConfig.fileName}`);
-        const langScreenVideoPath = path.join(currentTempDir, `${jobId}_screen_${lang}.mp4`);
-
-        try {
-          console.log(`[VideoJob] Translating slides for ${langConfig.name}...`);
-          const langSlides = await translationService.translateSlides(slides, langConfig.name);
-
-          const langChunks = [];
-          for (let i = 0; i < langSlides.length; i++) {
-            const translatedNarration = await translationService.translateText(slides[i].narration || ' ', langConfig.name);
-            const rawChunkPath = path.join(currentTempDir, `${jobId}_rawchunk_${i}_${lang}.mp3`);
-            await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, resolvedVoiceId);
-
-            const adjustedChunkPath = path.join(currentTempDir, `${jobId}_chunk_${i}_${lang}.mp3`);
-            await audioService.adjustAudioDuration(rawChunkPath, adjustedChunkPath, englishDurations[i]);
-            langChunks.push(adjustedChunkPath);
-            if (fs.existsSync(rawChunkPath)) fs.unlinkSync(rawChunkPath);
-          }
-          await audioService.mergeAudioFiles(langChunks, masterLangAudioPath);
-
-          console.log(`[VideoJob] Rendering localized video for ${langConfig.name}...`);
-          await renderer.renderVideo(langSlides, englishDurations, langScreenVideoPath);
-          await ffmpegService.mergeVideoAndAudio(langScreenVideoPath, masterLangAudioPath, langVideoPath);
-
-          let langVideoUrl = `/output/video/${langVideoFileName}`;
-          let langVideoObject = `videos/${jobId}/languages/${langConfig.code}.mp4`;
-
-          if (storageService.isStorageConfigured()) {
-            const langUpload = await storageService.uploadFile(langVideoPath, langVideoObject);
-            if (langUpload) {
-              langVideoUrl = langUpload.url;
-              langVideoObject = langUpload.objectName;
-            }
-          }
-
-          videos[lang] = {
-            url: langVideoUrl,
-            objectName: langVideoObject,
-            language: langConfig.name,
-            code: langConfig.code,
-            slides: langSlides
-          };
-        } catch (err) {
-          console.error(`[VideoJob] Failed to generate localized video for ${lang}:`, err.message);
-          jobResultStatus = 'partial';
-          failedLanguages.push({ code: lang, error: err.message });
+      // Checkpoint check: Filter out already completed languages
+      const langsToProcess = langCodes.filter(lang => {
+        const existingLang = videos[lang];
+        if (existingLang && existingLang.stages && existingLang.stages.upload === 'completed' && existingLang.url) {
+          console.log(`[Cache] ${SUPPORTED_LANGUAGES[lang]?.name || lang} video already fully completed. Skipping.`);
+          return false;
         }
+        return true;
+      });
+
+      if (langsToProcess.length > 0) {
+        await storageService.saveJob(jobId, { status: 'processing', stage: 'multilingual_processing', progress: 60 });
+
+        // Execute controlled parallel language pipelines
+        await mapConcurrent(langsToProcess, RENDER_CONCURRENCY, async (lang) => {
+          const langStartTime = Date.now();
+          const langConfig = SUPPORTED_LANGUAGES[lang];
+          const langName = langConfig.name;
+          const langDir = path.join(currentTempDir, 'languages', lang);
+          fs.mkdirSync(langDir, { recursive: true });
+
+          const langVideoFileName = `${jobId}_${langConfig.code}.mp4`;
+          const langVideoPath = path.join(videoDir, langVideoFileName);
+          const masterLangAudioPath = path.join(audioDir, `${jobId}_${langConfig.fileName}`);
+          const langScreenVideoPath = path.join(langDir, `${jobId}_screen_${lang}.mp4`);
+
+          try {
+            // Step A: Translation (Parallelized)
+            const transStartTime = Date.now();
+            console.log(`[VideoJob] Translating slides for ${langName}...`);
+            const langSlides = await translationService.translateSlides(slides, langName);
+            console.log(`[PERF] Translation - ${lang}: ${((Date.now() - transStartTime) / 1000).toFixed(1)}s`);
+
+            // Step B: TTS Generation
+            const ttsStartTime = Date.now();
+            console.log(`[VideoJob] Generating TTS for ${langName}...`);
+            const langChunks = [];
+
+            // Perform controlled concurrent chunk TTS generation for this language
+            await mapConcurrent(langSlides, TTS_CONCURRENCY, async (slide, i) => {
+              const translatedNarration = await translationService.translateText(slide.narration || ' ', langName);
+              const rawChunkPath = path.join(langDir, `${jobId}_rawchunk_${i}_${lang}.mp3`);
+              await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, resolvedVoiceId);
+
+              const adjustedChunkPath = path.join(langDir, `${jobId}_chunk_${i}_${lang}.mp3`);
+              await audioService.adjustAudioDuration(rawChunkPath, adjustedChunkPath, englishDurations[i]);
+              langChunks[i] = adjustedChunkPath;
+              if (fs.existsSync(rawChunkPath)) fs.unlinkSync(rawChunkPath);
+            });
+
+            await audioService.mergeAudioFiles(langChunks, masterLangAudioPath);
+            console.log(`[PERF] TTS - ${lang}: ${((Date.now() - ttsStartTime) / 1000).toFixed(1)}s`);
+
+            // Step C: Isolated Puppeteer Video Rendering
+            const renderStartTime = Date.now();
+            console.log(`[VideoJob] Rendering localized video for ${langName}...`);
+            await renderer.renderVideo(langSlides, englishDurations, langScreenVideoPath);
+            console.log(`[PERF] Rendering - ${lang}: ${((Date.now() - renderStartTime) / 1000).toFixed(1)}s`);
+
+            // Step D: FFmpeg Merge
+            await ffmpegService.mergeVideoAndAudio(langScreenVideoPath, masterLangAudioPath, langVideoPath);
+
+            // Step E: GCS Upload
+            const uploadStartTime = Date.now();
+            let langVideoUrl = `/output/video/${langVideoFileName}`;
+            let langVideoObject = `videos/${jobId}/languages/${langConfig.code}.mp4`;
+
+            if (storageService.isStorageConfigured()) {
+              const langUpload = await storageService.uploadFile(langVideoPath, langVideoObject);
+              if (langUpload) {
+                langVideoUrl = langUpload.url;
+                langVideoObject = langUpload.objectName;
+              }
+            }
+            console.log(`[PERF] GCS upload - ${lang}: ${((Date.now() - uploadStartTime) / 1000).toFixed(1)}s`);
+
+            // Store successful language entry
+            videos[lang] = {
+              url: langVideoUrl,
+              objectName: langVideoObject,
+              language: langName,
+              code: langConfig.code,
+              slides: langSlides,
+              stages: { translation: 'completed', tts: 'completed', rendering: 'completed', upload: 'completed' }
+            };
+
+            const langTotalSec = ((Date.now() - langStartTime) / 1000).toFixed(1);
+            console.log(`[PERF] Language generation - ${lang}: ${langTotalSec}s`);
+
+            // Checkpoint intermediate success to storage
+            await storageService.saveJob(jobId, {
+              status: 'processing',
+              data: {
+                videoUrl: videos.en.url,
+                videoObject: videos.en.objectName,
+                id: jobId,
+                videos
+              }
+            });
+
+          } catch (err) {
+            console.error(`[VideoJob] Failed localized video pipeline for ${lang}:`, err.message);
+            jobResultStatus = 'partial';
+            failedLanguages.push({ code: lang, error: err.message });
+            videos[lang] = {
+              code: langConfig.code,
+              language: langName,
+              stages: { translation: 'failed', tts: 'failed', rendering: 'failed', upload: 'failed' },
+              error: err.message
+            };
+          }
+        });
       }
+      console.log(`[PERF] Multilingual total: ${((Date.now() - multilingualStartTime) / 1000).toFixed(1)}s`);
     }
 
-    // --- STAGE 8: Save Metadata JSON & Update Job Record ---
+    // --- STAGE 8: Save Metadata JSON & Finalize Job ---
     const metadataPath = path.join(currentTempDir, `${jobId}_metadata.json`);
     const metadataContent = JSON.stringify({
       id: jobId,
@@ -386,6 +477,9 @@ async function main() {
       await storageService.uploadFile(metadataPath, `videos/${jobId}/metadata.json`);
     }
 
+    const totalJobSec = ((Date.now() - jobStartTime) / 1000).toFixed(1);
+    console.log(`[PERF] Total job duration: ${totalJobSec}s`);
+
     await storageService.saveJob(jobId, {
       status: 'completed',
       progress: 100,
@@ -399,7 +493,7 @@ async function main() {
       }
     });
 
-    console.log(`[VideoJob] Video generation job ${jobId} completed successfully!`);
+    console.log(`[VideoJob] Video generation job ${jobId} completed successfully in ${totalJobSec}s!`);
     await cleanupAndExit(0);
   } catch (error) {
     console.error(`[VideoJob] Fatal error in video generation job ${jobId}:`, error);
