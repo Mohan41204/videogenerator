@@ -19,7 +19,7 @@ const diagramService = require('./diagram.service');
 
 // FPS for the rendered video. 3fps is ideal for screen-share/typing content —
 // smooth enough visually, fast enough to render quickly.
-const FPS = 3;
+const FPS = parseInt(process.env.VIDEO_RENDER_FPS, 10) || 3;
 
 /**
  * Render all slides into a silent screen-share MP4 video.
@@ -81,8 +81,7 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       '--disable-setuid-sandbox',
       '--disable-web-security',
       '--allow-file-access-from-files',
-      '--disable-features=VizDisplayCompositor',
-      '--disable-gpu',
+      '--disable-dev-shm-usage',
       '--window-size=1280,720'
     ]
   };
@@ -206,6 +205,12 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
   // Prevent UnhandledPromiseRejection if FFmpeg crashes while we're not awaiting it:
   ffmpegFinished.catch(() => {});
 
+  // Metrics collection
+  const renderStartTime = Date.now();
+  const screenshotTimes = [];
+  const evaluateTimes = [];
+  const ffmpegWriteTimes = [];
+
   // --- Render each slide frame by frame ---
   try {
     let prevIsCode = null;
@@ -302,7 +307,6 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       // Capture frames for this slide
       for (let f = 0; f < slideTotalFrames; f++) {
         globalFrameCounter++;
-        const frameStart = Date.now();
         const elapsedSecs = f / FPS;
 
         // Tell the browser to render this point in time
@@ -311,6 +315,7 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
           window.renderFrame(elapsed, total);
         }, elapsedSecs, duration);
         const evaluateTime = Date.now() - evaluateStart;
+        evaluateTimes.push(evaluateTime);
 
         // Screenshot as JPEG (much smaller than PNG, fast enough for our FPS)
         const screenshotStart = Date.now();
@@ -321,6 +326,7 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
           clip: { x: 0, y: 0, width: 1280, height: 720 }
         });
         const screenshotTime = Date.now() - screenshotStart;
+        screenshotTimes.push(screenshotTime);
 
         // Write frame to FFmpeg stdin with back-pressure handling
         const ffmpegStart = Date.now();
@@ -332,16 +338,12 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
           });
         }
         const ffmpegWriteTime = Date.now() - ffmpegStart;
-        const totalTime = Date.now() - frameStart;
+        ffmpegWriteTimes.push(ffmpegWriteTime);
 
-        console.log(
-          `[Frame ${globalFrameCounter}/${totalFrames}] ` +
-          `evaluate=${evaluateTime}ms | ` +
-          `screenshot=${screenshotTime}ms | ` +
-          `ffmpegWrite=${ffmpegWriteTime}ms | ` +
-          `total=${totalTime}ms | ` +
-          `size=${Math.round(frameBuffer.length / 1024)}KB`
-        );
+        if (globalFrameCounter % 25 === 0 || globalFrameCounter === totalFrames) {
+          const pct = Math.round((globalFrameCounter / totalFrames) * 100);
+          console.log(`[Puppeteer] Progress: ${pct}% (${globalFrameCounter}/${totalFrames} frames) | last screenshot: ${screenshotTime}ms`);
+        }
       }
 
       // Cleanup diagram if it was rendered
@@ -355,6 +357,32 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
     console.log('\n[Puppeteer] All frames rendered. Waiting for FFmpeg to finish encoding...');
     ffmpegProc.stdin.end();
     await ffmpegFinished;
+
+    const totalRenderTimeMs = Date.now() - renderStartTime;
+    const totalRenderSecs = totalRenderTimeMs / 1000;
+    const speedRatio = totalDurationSecs / totalRenderSecs;
+
+    const sortedScreenshot = [...screenshotTimes].sort((a, b) => a - b);
+    const avgScreenshot = Math.round(screenshotTimes.reduce((a, b) => a + b, 0) / (screenshotTimes.length || 1));
+    const p95Idx = Math.floor(sortedScreenshot.length * 0.95);
+    const p95Screenshot = sortedScreenshot[p95Idx] || 0;
+    const maxScreenshot = sortedScreenshot[sortedScreenshot.length - 1] || 0;
+
+    const sortedEvaluate = [...evaluateTimes].sort((a, b) => a - b);
+    const avgEvaluate = Math.round(evaluateTimes.reduce((a, b) => a + b, 0) / (evaluateTimes.length || 1));
+
+    console.log(`\n==================================================`);
+    console.log(`[Renderer Performance Statistics]`);
+    console.log(`Frames rendered: ${globalFrameCounter}/${totalFrames}`);
+    console.log(`Video duration: ${totalDurationSecs.toFixed(1)}s`);
+    console.log(`Total render time: ${totalRenderSecs.toFixed(1)}s`);
+    console.log(`Effective render speed: ${speedRatio.toFixed(2)}x realtime`);
+    console.log(`Average screenshot time: ${avgScreenshot}ms`);
+    console.log(`P95 screenshot time: ${p95Screenshot}ms`);
+    console.log(`Max screenshot time: ${maxScreenshot}ms`);
+    console.log(`Average evaluate time: ${avgEvaluate}ms`);
+    console.log(`==================================================\n`);
+
     console.log('[Puppeteer] Screen-recording video complete: ' + videoPath);
 
   } catch (err) {

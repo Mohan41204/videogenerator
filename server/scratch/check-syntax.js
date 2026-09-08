@@ -2,6 +2,10 @@ const { execSync } = require('child_process');
 const path = require('path');
 
 try {
+  console.log('Checking puppeteer.service.js syntax...');
+  require('./services/puppeteer.service');
+  console.log('puppeteer.service.js loaded successfully!');
+
   console.log('Checking video.controller.js syntax...');
   require('./controllers/video.controller');
   console.log('video.controller.js loaded successfully!');

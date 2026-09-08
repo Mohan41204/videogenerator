@@ -2205,37 +2205,40 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
     }
   }
   
-  // 3. Render Bullet blocks sequentially
+  // 3. Render Bullet blocks sequentially (only update DOM when active bullet index changes)
   var blockContainer = document.getElementById('wb-blocks-container');
   if (blockContainer && bullets.length > 0) {
-    blockContainer.innerHTML = '';
     if (progress > 0.25) {
       var totalTextProgress = Math.min(1, (progress - 0.25) / 0.5); // span 50% of the slide
       var bulletsCount = bullets.length;
       var activeBulletIdx = Math.floor(totalTextProgress * bulletsCount);
       if (activeBulletIdx >= bulletsCount) activeBulletIdx = bulletsCount - 1;
       
-      for (var i = 0; i <= activeBulletIdx; i++) {
-        var bulletVal = bullets[i];
-        var charProgress = 1;
-        if (i === activeBulletIdx) {
-          // Compute fractional progress of the current bullet typing
-          var bulletProgressStart = (i / bulletsCount);
-          var bulletProgressEnd = ((i + 1) / bulletsCount);
-          charProgress = (totalTextProgress - bulletProgressStart) / (bulletProgressEnd - bulletProgressStart);
-          charProgress = Math.max(0, Math.min(1, charProgress));
+      // Rebuild blocks only when current active bullet index changes
+      if (window._lastActiveBulletIdx !== activeBulletIdx || !window._blocksRendered) {
+        blockContainer.innerHTML = '';
+        for (var i = 0; i <= activeBulletIdx; i++) {
+          var bulletVal = bullets[i];
+          var blockHtml = _renderBlock(bulletVal, 1);
+          var div = document.createElement('div');
+          div.innerHTML = blockHtml;
+          blockContainer.appendChild(div.firstChild);
         }
-        var blockHtml = _renderBlock(bulletVal, charProgress);
-        var div = document.createElement('div');
-        div.innerHTML = blockHtml;
-        blockContainer.appendChild(div.firstChild);
+        window._lastActiveBulletIdx = activeBulletIdx;
+        window._blocksRendered = true;
+      }
+    } else {
+      if (window._blocksRendered) {
+        blockContainer.innerHTML = '';
+        window._blocksRendered = false;
+        window._lastActiveBulletIdx = -1;
       }
     }
   }
   
   // Show Main Card
   var mainCard = document.getElementById('wb-main-text-card');
-  if (mainCard) {
+  if (mainCard && !mainCard.classList.contains('visible')) {
     mainCard.classList.add('visible');
   }
   
@@ -2244,9 +2247,9 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
   if (diagramCard) {
     var appearTime = window._diagramAppearSecond || 0;
     if (elapsedSecs >= appearTime) {
-      diagramCard.classList.add('visible');
+      if (!diagramCard.classList.contains('visible')) diagramCard.classList.add('visible');
     } else {
-      diagramCard.classList.remove('visible');
+      if (diagramCard.classList.contains('visible')) diagramCard.classList.remove('visible');
     }
   }
 
@@ -2255,9 +2258,9 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
   if (imageCard) {
     var imgAppearTime = window._imageAppearSecond || 0;
     if (elapsedSecs >= imgAppearTime) {
-      imageCard.classList.add('visible');
+      if (!imageCard.classList.contains('visible')) imageCard.classList.add('visible');
     } else {
-      imageCard.classList.remove('visible');
+      if (imageCard.classList.contains('visible')) imageCard.classList.remove('visible');
     }
 
     // 4c. Render and Sequentially Reveal Annotations (arrows, callouts, highlights)
@@ -2269,14 +2272,14 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
       
       var svgItem = document.getElementById('wb-ann-svg-' + a);
       if (svgItem) {
-        if (isAnnVisible) svgItem.classList.add('visible');
-        else svgItem.classList.remove('visible');
+        if (isAnnVisible && !svgItem.classList.contains('visible')) svgItem.classList.add('visible');
+        else if (!isAnnVisible && svgItem.classList.contains('visible')) svgItem.classList.remove('visible');
       }
 
       var htmlItem = document.getElementById('wb-ann-html-' + a);
       if (htmlItem) {
-        if (isAnnVisible) htmlItem.classList.add('visible');
-        else htmlItem.classList.remove('visible');
+        if (isAnnVisible && !htmlItem.classList.contains('visible')) htmlItem.classList.add('visible');
+        else if (!isAnnVisible && htmlItem.classList.contains('visible')) htmlItem.classList.remove('visible');
       }
     }
   }
@@ -2285,58 +2288,43 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
   var statusText = document.getElementById('wb-teacher-status');
   var pulseRing = document.getElementById('wb-teacher-pulse');
   if (progress < 0.9) {
-    statusText.textContent = "Explaining Lesson...";
-    pulseRing.classList.add('speaking');
+    if (statusText && statusText.textContent !== "Explaining Lesson...") statusText.textContent = "Explaining Lesson...";
+    if (pulseRing && !pulseRing.classList.contains('speaking')) pulseRing.classList.add('speaking');
   } else {
-    statusText.textContent = "Review / Done";
-    pulseRing.classList.remove('speaking');
+    if (statusText && statusText.textContent !== "Review / Done") statusText.textContent = "Review / Done";
+    if (pulseRing && pulseRing.classList.contains('speaking')) pulseRing.classList.remove('speaking');
   }
   
   // 6. Camera Pan & Zoom controls
-  var viewport = document.getElementById('wb-viewport');
   var canvas = document.getElementById('wb-canvas');
-  if (viewport && canvas) {
+  if (canvas && !window._canvasTransformSet) {
     canvas.style.transform = 'scale(1) translate(0px, 0px)';
+    window._canvasTransformSet = true;
   }
   
-  // 7. Teacher Pointer (laser dot) movement
+  // 7. Teacher Pointer (laser dot) movement (approximate positioning without getBoundingClientRect)
   var pointer = document.getElementById('wb-pointer');
   if (pointer) {
     if (progress > 0.05 && progress < 0.9) {
-      pointer.classList.add('visible');
-      var targetX = 200;
+      if (!pointer.classList.contains('visible')) pointer.classList.add('visible');
+      var targetX = 250;
       var targetY = 200;
       
-      // Point at title initially
       if (progress <= 0.15) {
         targetX = 250;
         targetY = 160;
-      }
-      // Follow block typing positions
-      else if (progress > 0.15 && progress <= 0.75 && blockContainer) {
-        var lastBlock = blockContainer.lastElementChild;
-        if (lastBlock) {
-          var rect = lastBlock.getBoundingClientRect();
-          var vRect = viewport.getBoundingClientRect();
-          targetX = rect.left - vRect.left + (rect.width * 0.4);
-          targetY = rect.top - vRect.top + rect.height;
-        } else {
-          targetX = 400;
-          targetY = 400;
-        }
-      }
-      // Point at the center of the diagram
-      else if (progress > 0.75 && diagramCard) {
-        var rect = diagramCard.getBoundingClientRect();
-        var vRect = viewport.getBoundingClientRect();
-        targetX = rect.left - vRect.left + (rect.width / 2);
-        targetY = rect.top - vRect.top + (rect.height / 2);
+      } else if (progress > 0.15 && progress <= 0.75) {
+        targetX = 350;
+        targetY = 320;
+      } else if (progress > 0.75 && diagramCard) {
+        targetX = 750;
+        targetY = 350;
       }
       
       pointer.style.left = targetX + 'px';
       pointer.style.top = targetY + 'px';
     } else {
-      pointer.classList.remove('visible');
+      if (pointer.classList.contains('visible')) pointer.classList.remove('visible');
     }
   }
   
@@ -2352,8 +2340,11 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
   var timeStr = currentMin + ':' + (currentSec < 10 ? '0' : '') + currentSec + ' / ' +
                 totalMin + ':' + (totalSec < 10 ? '0' : '') + totalSec;
                 
-  document.getElementById('wb-timeline-time').textContent = timeStr;
-  document.getElementById('wb-progress-fill').style.width = (progress * 100) + '%';
+  var timeEl = document.getElementById('wb-timeline-time');
+  if (timeEl && timeEl.textContent !== timeStr) timeEl.textContent = timeStr;
+  
+  var fillEl = document.getElementById('wb-progress-fill');
+  if (fillEl) fillEl.style.width = (progress * 100) + '%';
 };
 
 // Default show whiteboard
