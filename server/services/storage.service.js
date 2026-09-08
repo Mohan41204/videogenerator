@@ -255,7 +255,9 @@ class StorageService {
    * @param {object} jobData - Job state object
    */
   async saveJob(jobId, jobData) {
+    const existingJob = (await this.getJob(jobId)) || {};
     const updatedJob = {
+      ...existingJob,
       ...jobData,
       updatedAt: new Date().toISOString()
     };

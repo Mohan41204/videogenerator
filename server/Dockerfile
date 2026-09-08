@@ -49,8 +49,8 @@ COPY . .
 # Ensure output and uploads runtime directories exist
 RUN mkdir -p output uploads
 
-# Expose Cloud Run default port
-EXPOSE 8080
+# Expose application default port
+EXPOSE 5000
 
 # Start application
 CMD ["npm", "start"]

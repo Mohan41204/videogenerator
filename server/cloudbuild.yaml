@@ -15,7 +15,7 @@ steps:
       - 'push'
       - 'asia-south1-docker.pkg.dev/sky-meet-01/video-generator/video-generator-backend:$COMMIT_SHA'
 
-  # 3. Deploy the new image automatically to Cloud Run
+  # 3. Deploy/Update API Cloud Run Service
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -28,13 +28,33 @@ steps:
       - '--port=5000'
       - '--memory=2Gi'
       - '--cpu=2'
-      - '--timeout=1200s'
-      - '--concurrency=1'
+      - '--timeout=60s'
+      - '--concurrency=80'
       - '--min=0'
       - '--max=5'
-      - '--cpu-boost'
       - '--service-account=video-generator-run@sky-meet-01.iam.gserviceaccount.com'
+      - '--set-env-vars=GOOGLE_CLOUD_PROJECT=sky-meet-01,GOOGLE_CLOUD_LOCATION=global,CLOUD_RUN_JOB_NAME=video-generator-job,CLOUD_RUN_JOB_REGION=asia-south1,GCS_BUCKET_NAME=sky-meet-01-video-generator,ENABLE_MULTILINGUAL_AUDIO=true,GOOGLE_GENAI_USE_VERTEXAI=true'
       - '--allow-unauthenticated'
+
+  # 4. Create or Update Cloud Run Job (specifying worker entrypoint command)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'jobs'
+      - 'deploy'
+      - 'video-generator-job'
+      - '--image=asia-south1-docker.pkg.dev/sky-meet-01/video-generator/video-generator-backend:$COMMIT_SHA'
+      - '--command=node'
+      - '--args=jobs/videoGeneration.job.js'
+      - '--region=asia-south1'
+      - '--tasks=1'
+      - '--max-retries=1'
+      - '--cpu=4'
+      - '--memory=8Gi'
+      - '--task-timeout=3600s'
+      - '--service-account=video-generator-run@sky-meet-01.iam.gserviceaccount.com'
+      - '--set-env-vars=GOOGLE_CLOUD_PROJECT=sky-meet-01,GOOGLE_CLOUD_LOCATION=global,GCS_BUCKET_NAME=sky-meet-01-video-generator,ENABLE_MULTILINGUAL_AUDIO=true,GOOGLE_GENAI_USE_VERTEXAI=true,VIDEO_RENDER_FPS=3'
 
 images:
   - 'asia-south1-docker.pkg.dev/sky-meet-01/video-generator/video-generator-backend:$COMMIT_SHA'

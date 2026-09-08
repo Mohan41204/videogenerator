@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
+    "job:video": "node jobs/videoGeneration.job.js",
     "dev": "nodemon --ignore output/ --ignore uploads/ --ignore chrome-profile/ server.js",
     "postinstall": "puppeteer browsers install chrome"
   },
