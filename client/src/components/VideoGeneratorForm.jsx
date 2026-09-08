@@ -84,12 +84,13 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
       setScriptProgress(100);
 
       if (response.data.success) {
-        let formattedText = response.data.text;
+        let rawContent = response.data.data ? response.data.data.text : (response.data.text || response.data.data);
+        let formattedText = rawContent;
         try {
-          const parsed = typeof formattedText === 'string' ? JSON.parse(formattedText) : formattedText;
+          const parsed = typeof rawContent === 'string' ? JSON.parse(rawContent) : rawContent;
           formattedText = JSON.stringify(parsed, null, 2);
         } catch (e) {
-          // If it's not JSON, keep it as is
+          // If it's not JSON, keep as string
         }
         setText(formattedText);
         toast.success('Script generated successfully!');
@@ -97,14 +98,12 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
         toast.error(response.data.message || 'Failed to generate script.');
       }
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message || 'An error occurred while generating script.');
+      console.error('Generate script error:', error);
+      toast.error(error.response?.data?.message || error.message || 'An error occurred while generating script.');
     } finally {
       clearInterval(scriptProgressInterval);
-      setTimeout(() => {
-        setIsGeneratingScript(false);
-        setScriptProgress(0);
-      }, 500);
+      setIsGeneratingScript(false);
+      setScriptProgress(0);
     }
   };
 
@@ -237,11 +236,13 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">
+              <label htmlFor="topic-input" className="text-sm font-medium text-slate-300">
                 {tutorialType === 'aws' ? 'AWS Service' : 'Topic'}
               </label>
               {tutorialType === 'aws' ? (
                 <select
+                  id="topic-input"
+                  name="topic"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
@@ -270,6 +271,8 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
                 </select>
               ) : (
                 <input
+                  id="topic-input"
+                  name="topic"
                   type="text"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
@@ -280,8 +283,10 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Subtopic (Optional)</label>
+              <label htmlFor="subtopic-input" className="text-sm font-medium text-slate-300">Subtopic (Optional)</label>
               <input
+                id="subtopic-input"
+                name="subtopic"
                 type="text"
                 value={subtopic}
                 onChange={(e) => setSubtopic(e.target.value)}
@@ -291,8 +296,10 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Target Duration</label>
+              <label htmlFor="duration-select" className="text-sm font-medium text-slate-300">Target Duration</label>
               <select
+                id="duration-select"
+                name="durationMinutes"
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(Number(e.target.value))}
                 className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
@@ -333,7 +340,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
         {/* Text Input */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-slate-300">Script Content</label>
+            <label htmlFor="script-textarea" className="text-sm font-medium text-slate-300">Script Content</label>
             {text.trim() && (
               <button
                 type="button"
@@ -347,6 +354,8 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
             )}
           </div>
           <textarea
+            id="script-textarea"
+            name="scriptContent"
             value={text}
             onChange={(e) => setText(e.target.value)}
             className="w-full h-32 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none"
