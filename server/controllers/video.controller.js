@@ -390,6 +390,17 @@ const generateScript = async (req, res) => {
 
 const generateAwsScript = async (req, res) => {
   try {
+    const { topic, subTopic, durationMinutes = 5 } = req.body;
+    if (!topic) {
+      return res.status(400).json({ success: false, message: 'AWS Service / Topic is required' });
+    }
+
+    const targetMins = parseInt(durationMinutes, 10) || 5;
+    const targetWords = targetMins * 140;
+
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    const clientConfig = {};
+    if (apiKey && apiKey.trim()) {
       clientConfig.apiKey = apiKey.trim();
     } else {
       clientConfig.vertexai = true;
