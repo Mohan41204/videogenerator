@@ -96,3 +96,25 @@ server.headersTimeout = 1200000;
 process.on('unhandledRejection', (reason, promise) => {
   console.warn('[Warning] Unhandled Rejection:', reason);
 });
+
+// Graceful shutdown handling for SIGTERM
+process.on('SIGTERM', async () => {
+  console.error('[Shutdown] SIGTERM received');
+  try {
+    const videoController = require('./controllers/video.controller');
+    const storageService = require('./services/storage.service');
+    const currentRenderJob = videoController.getCurrentRenderJob();
+
+    if (currentRenderJob) {
+      await storageService.saveJob(currentRenderJob.id, {
+        status: 'failed',
+        error: 'Render worker terminated unexpectedly'
+      });
+      console.error(`[Shutdown] Job ${currentRenderJob.id} marked as failed`);
+    }
+  } catch (error) {
+    console.error('[Shutdown] Failed to update job status:', error);
+  }
+
+  process.exit(0);
+});

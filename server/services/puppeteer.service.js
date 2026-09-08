@@ -17,9 +17,9 @@ const { spawn } = require('child_process');
 const ffmpegPath = require('../utils/ffmpegPath');
 const diagramService = require('./diagram.service');
 
-// FPS for the rendered video. 5fps is ideal for screen-share/typing content —
+// FPS for the rendered video. 3fps is ideal for screen-share/typing content —
 // smooth enough visually, fast enough to render quickly.
-const FPS = 5;
+const FPS = 3;
 
 /**
  * Render all slides into a silent screen-share MP4 video.
@@ -83,12 +83,14 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       '--allow-file-access-from-files',
       '--disable-features=VizDisplayCompositor',
       '--disable-gpu',
-      '--window-size=1500,700'
+      '--window-size=1280,720'
     ]
   };
 
+  console.log('[Puppeteer] Resolving Chromium executable path...');
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    console.log(`[Puppeteer] Using PUPPETEER_EXECUTABLE_PATH env: ${launchOptions.executablePath}`);
   } else {
     try {
       const chromium = require('@sparticuz/chromium');
@@ -98,6 +100,7 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       }
       console.log(`[Puppeteer] Using @sparticuz/chromium binary at ${launchOptions.executablePath}`);
     } catch (e) {
+      console.warn(`[Puppeteer] @sparticuz/chromium resolution failed: ${e.message}. Checking system Chrome paths...`);
       const possiblePaths = [
         '/usr/bin/google-chrome-stable',
         '/usr/bin/google-chrome',
@@ -122,19 +125,27 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
     }
   }
 
+  console.log(`[Puppeteer] Launching browser process with executable: ${launchOptions.executablePath || 'default Puppeteer Chromium'}...`);
+  const launchStartTime = Date.now();
   const browser = await puppeteer.launch(launchOptions);
+  console.log(`[Puppeteer] Browser process launched successfully in ${Date.now() - launchStartTime}ms.`);
 
+  console.log('[Puppeteer] Creating new browser page...');
   const page = await browser.newPage();
   page.setDefaultNavigationTimeout(90000);
   page.setDefaultTimeout(90000);
-  await page.setViewport({ width: 1500, height: 700, deviceScaleFactor: 1 });
+  await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
+  console.log('[Puppeteer] Browser page created and viewport configured (1280x720, deviceScaleFactor: 1).');
 
   // Load the screen-share HTML template
   const templatePath = path.join(__dirname, '../templates/screen_share.html');
   const templateUrl = 'file:///' + templatePath.replace(/\\/g, '/');
+  console.log(`[Puppeteer] Navigating to template URL: ${templateUrl}...`);
   await page.goto(templateUrl, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  console.log('[Puppeteer] Template HTML loaded (domcontentloaded).');
 
   // Make sure the animation API is ready
+  console.log('[Puppeteer] Waiting for window.loadSlide and window.renderFrame animation functions...');
   await page.waitForFunction(() => typeof window.loadSlide === 'function' && typeof window.renderFrame === 'function', { timeout: 90000 });
   console.log('[Puppeteer] Template loaded, animation engine ready.');
 
@@ -152,7 +163,6 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
     '-vcodec', 'mjpeg',
     '-r', String(FPS),
     '-i', 'pipe:0',
-    '-vf', `scale=1500:700`,
     '-c:v', 'libx264',
     '-preset', 'ultrafast',
     '-tune', 'stillimage',
@@ -161,7 +171,12 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
     videoPath
   ];
 
+  console.log(`[FFmpeg] Spawning process: ${ffmpegPath} ${ffmpegArgs.join(' ')}`);
+  console.log(`[FFmpeg] Configuration: stdin=pipe:0, input_format=mjpeg, output_fps=${FPS}, target_resolution=1280x720, codec=libx264 (preset=ultrafast), total_expected_frames=${totalFrames}`);
+  const ffmpegStartTime = Date.now();
+
   const ffmpegProc = spawn(ffmpegPath, ffmpegArgs);
+  console.log(`[FFmpeg] Process spawned successfully (PID: ${ffmpegProc.pid || 'unknown'}).`);
 
   ffmpegProc.stderr.on('data', (data) => {
     const msg = data.toString();
@@ -174,6 +189,8 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
   const ffmpegFinished = new Promise((resolve, reject) => {
     ffmpegProc.on('close', (code, signal) => {
       ffmpegClosed = true;
+      const durationSec = ((Date.now() - ffmpegStartTime) / 1000).toFixed(2);
+      console.log(`\n[FFmpeg] Process exited after ${durationSec}s with code ${code} (signal: ${signal})`);
       if (code === 0 || code === null) {
         resolve();
       } else {
@@ -181,6 +198,7 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       }
     });
     ffmpegProc.on('error', (err) => {
+      console.error(`\n[FFmpeg] Process error event: ${err.message}`);
       reject(new Error('FFmpeg process error: ' + err.message));
     });
   });
@@ -191,6 +209,7 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
   // --- Render each slide frame by frame ---
   try {
     let prevIsCode = null;
+    let globalFrameCounter = 0;
 
     for (let slideIdx = 0; slideIdx < slides.length; slideIdx++) {
       const slide = slides[slideIdx];
@@ -254,10 +273,12 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
 
       // ── LOAD SLIDE ────────────────────────────────────────────────────────
       // Load the slide into the browser
+      console.log(`[Puppeteer] Evaluating loadSlide for slide ${slideIdx + 1}...`);
       await page.evaluate((slideData, prevType) => {
         window._prevIsCode = prevType;
         window.loadSlide(slideData);
       }, slide, prevIsCode);
+      console.log(`[Puppeteer] slideData loaded into DOM for slide ${slideIdx + 1}.`);
 
       // If it is a diagram slide, render the Mermaid SVG into the container
       const hasDiagram = (slide.isDiagram && slide.mermaid) || (slide.visual && slide.visual.enabled);
@@ -277,36 +298,50 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
         }
       }
 
+      console.log(`[Puppeteer] Starting frame capture for slide ${slideIdx + 1} (${slideTotalFrames} frames)...`);
       // Capture frames for this slide
       for (let f = 0; f < slideTotalFrames; f++) {
+        globalFrameCounter++;
+        const frameStart = Date.now();
         const elapsedSecs = f / FPS;
 
         // Tell the browser to render this point in time
+        const evaluateStart = Date.now();
         await page.evaluate((elapsed, total) => {
           window.renderFrame(elapsed, total);
         }, elapsedSecs, duration);
+        const evaluateTime = Date.now() - evaluateStart;
 
         // Screenshot as JPEG (much smaller than PNG, fast enough for our FPS)
+        const screenshotStart = Date.now();
         const frameBuffer = await page.screenshot({
           type: 'jpeg',
-          quality: 85,
-          clip: { x: 0, y: 0, width: 1500, height: 700 }
+          quality: 75,
+          optimizeForSpeed: true,
+          clip: { x: 0, y: 0, width: 1280, height: 720 }
         });
+        const screenshotTime = Date.now() - screenshotStart;
 
-        // Write frame to FFmpeg stdin
+        // Write frame to FFmpeg stdin with back-pressure handling
+        const ffmpegStart = Date.now();
         const canWrite = ffmpegProc.stdin.write(frameBuffer);
-
-        // Back-pressure handling: if buffer is full, wait for drain
         if (!canWrite) {
-          await new Promise((resolve) => ffmpegProc.stdin.once('drain', resolve));
+          await new Promise((resolve, reject) => {
+            ffmpegProc.stdin.once('drain', resolve);
+            ffmpegProc.stdin.once('error', reject);
+          });
         }
+        const ffmpegWriteTime = Date.now() - ffmpegStart;
+        const totalTime = Date.now() - frameStart;
 
-        // Log progress every 25 frames
-        if (f % 25 === 0) {
-          const totalRendered = slides.slice(0, slideIdx).reduce((a, _, i) => a + Math.ceil(durations[i] * FPS), 0) + f;
-          const pct = Math.round((totalRendered / totalFrames) * 100);
-          process.stdout.write(`\r[Puppeteer] Rendering... ${pct}% (slide ${slideIdx + 1}/${slides.length}, frame ${f}/${slideTotalFrames})`);
-        }
+        console.log(
+          `[Frame ${globalFrameCounter}/${totalFrames}] ` +
+          `evaluate=${evaluateTime}ms | ` +
+          `screenshot=${screenshotTime}ms | ` +
+          `ffmpegWrite=${ffmpegWriteTime}ms | ` +
+          `total=${totalTime}ms | ` +
+          `size=${Math.round(frameBuffer.length / 1024)}KB`
+        );
       }
 
       // Cleanup diagram if it was rendered

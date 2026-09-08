@@ -10,6 +10,10 @@ const storageService = require('../services/storage.service');
 
 // Store background jobs
 const jobs = new Map();
+let currentRenderJob = null;
+
+const getCurrentRenderJob = () => currentRenderJob;
+const setCurrentRenderJob = (job) => { currentRenderJob = job; };
 
 // Robust JSON extraction and cleaning utility
 const cleanJsonString = (str) => {
@@ -49,6 +53,7 @@ const generateVideo = async (req, res) => {
     }
 
     const uniqueId = uuidv4();
+    currentRenderJob = { id: uniqueId };
     await storageService.saveJob(uniqueId, { status: 'processing', progress: 0, message: 'Initializing...' });
 
     // Respond immediately to avoid browser timeout
@@ -334,6 +339,10 @@ const generateVideo = async (req, res) => {
       } catch (backgroundError) {
         console.error('Background video generation error:', backgroundError);
         await storageService.saveJob(uniqueId, { status: 'failed', error: backgroundError.message });
+      } finally {
+        if (currentRenderJob && currentRenderJob.id === uniqueId) {
+          currentRenderJob = null;
+        }
       }
     })();
 
@@ -372,31 +381,15 @@ const generateScript = async (req, res) => {
       durationMinutes
     });
 
-    res.status(200).json({
-      success: true,
-      text: scriptResult.text,
-      plan: scriptResult.plan,
-      domain: scriptResult.domain
-    });
+    res.json({ success: true, data: scriptResult });
   } catch (error) {
     console.error('Script generation error:', error);
-    res.status(500).json({ success: false, message: 'Failed to generate script', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to generate teaching script', error: error.message });
   }
 };
 
 const generateAwsScript = async (req, res) => {
   try {
-    const { topic, subTopic, durationMinutes = 5 } = req.body;
-    if (!topic) {
-      return res.status(400).json({ success: false, message: 'AWS Service / Topic is required' });
-    }
-
-    const targetMins = parseInt(durationMinutes, 10) || 5;
-    const targetWords = targetMins * 140;
-
-    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    const clientConfig = {};
-    if (apiKey && apiKey.trim()) {
       clientConfig.apiKey = apiKey.trim();
     } else {
       clientConfig.vertexai = true;
@@ -692,5 +685,7 @@ module.exports = {
   generateScript,
   generateAwsScript,
   regenerateLanguageVideo,
-  getJobStatus
+  getJobStatus,
+  getCurrentRenderJob,
+  setCurrentRenderJob
 };
