@@ -1162,7 +1162,7 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
   if (useVertexAi) {
     clientConfig.vertexai = true;
     clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT || 'sky-meet-01';
-    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
   } else {
     clientConfig.apiKey = apiKey.trim();
   }
@@ -1172,11 +1172,11 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
   const primaryModel = process.env.GEMINI_SCRIPT_MODEL || 'gemini-2.5-flash';
   const envFallbacks = process.env.GEMINI_FALLBACK_MODELS 
     ? process.env.GEMINI_FALLBACK_MODELS.split(',').map(m => m.trim())
-    : ['gemini-2.5-flash', 'gemini-2.0-flash-001'];
+    : ['gemini-2.5-flash'];
   
-  const candidateModels = [...new Set([primaryModel, ...envFallbacks])];
+  const candidateModels = [...new Set([primaryModel, ...envFallbacks])].filter(m => m !== 'gemini-2.0-flash-001');
 
-  const defaultTimeoutMs = Math.max(60000, (plan?.mins || 5) * 15000);
+  const defaultTimeoutMs = 180000;
   const timeoutMs = process.env.GEMINI_SCRIPT_TIMEOUT_MS 
     ? parseInt(process.env.GEMINI_SCRIPT_TIMEOUT_MS, 10) 
     : defaultTimeoutMs;
@@ -1342,52 +1342,77 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
   let result = null;
   let lastError = null;
 
+  const MAX_ATTEMPTS = 3;
+  const backoffDelays = [2000, 5000, 10000];
+
   for (const modelName of candidateModels) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      console.log(`[TeachingEngine] Attempt ${attempt}/${MAX_ATTEMPTS} with ${modelName}`);
 
-    try {
-      console.log(`[TeachingEngine] Attempting script generation with ${modelName}...`);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-      result = await client.models.generateContent({
-        model: modelName,
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: jsonSchema,
-          abortSignal: controller.signal
+      try {
+        result = await client.models.generateContent({
+          model: modelName,
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: jsonSchema,
+            abortSignal: controller.signal
+          }
+        });
+
+        clearTimeout(timer);
+
+        if (result) {
+          console.log(`[TeachingEngine] Successfully received response`);
+          if (result.usageMetadata) {
+            console.log(`[Token Usage] Provider: ${useVertexAi ? 'vertex-ai' : 'api-key'}, Model: ${modelName}, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
+          }
+          break;
         }
-      });
+      } catch (err) {
+        clearTimeout(timer);
+        lastError = err;
+        const errMsg = err.message || String(err);
+        const isAbort = controller.signal.aborted || /abort|timeout/i.test(errMsg);
+        const status = err.status || err.statusCode || err.response?.status;
 
-      clearTimeout(timer);
-
-      if (result) {
-        console.log(`[TeachingEngine] Successfully received response from ${modelName}`);
-        if (result.usageMetadata) {
-          console.log(`[Token Usage] Provider: ${useVertexAi ? 'vertex-ai' : 'api-key'}, Model: ${modelName}, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
+        if (isAbort) {
+          console.warn(`[TeachingEngine] Gemini request timed out`);
+        } else {
+          console.warn(`[TeachingEngine] Model ${modelName} failed (${errMsg})`);
         }
-        break;
-      }
-    } catch (err) {
-      clearTimeout(timer);
-      lastError = err;
-      const errMsg = err.message || String(err);
-      const is404 = /404|not found|Publisher model/i.test(errMsg);
-      const isAbort = controller.signal.aborted || /abort/i.test(errMsg);
 
-      if (is404) {
-        console.warn(`[TeachingEngine] Model ${modelName} unavailable in ${useVertexAi ? 'Vertex AI location ' + clientConfig.location : 'API key mode'} (404 Not Found). Skipping immediately.`);
-      } else if (isAbort) {
-        console.warn(`[TeachingEngine] Model ${modelName} request timed out after ${Math.round(timeoutMs / 1000)}s. Aborted.`);
-      } else {
-        console.warn(`[TeachingEngine] Model ${modelName} failed (${errMsg}). Trying next candidate...`);
+        const is404 = /404|not found|Publisher model/i.test(errMsg) || status === 404;
+        const isPermanent = !isAbort && (
+          is404 ||
+          (status && Number(status) >= 400 && Number(status) < 500 && Number(status) !== 429) ||
+          /400|invalid argument|bad request|401|unauthorized|403|permission denied|forbidden/i.test(errMsg)
+        );
+
+        if (isPermanent) {
+          console.warn(`[TeachingEngine] Permanent error encountered for ${modelName} (${errMsg}). Skipping further retries for this model.`);
+          break;
+        }
+
+        if (attempt < MAX_ATTEMPTS) {
+          const delay = backoffDelays[attempt - 1] || 10000;
+          console.log(`[TeachingEngine] Retrying after ${delay} ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
+    }
+
+    if (result) {
+      break;
     }
   }
 
   if (!result) {
-    console.error('[TeachingEngine] All configured Gemini models failed.');
-    throw new Error(`All candidate Gemini models failed. Last error: ${lastError ? lastError.message : 'Unknown'}`);
+    console.error('[TeachingEngine] All Gemini attempts failed');
+    throw new Error(`All Gemini attempts failed. Last error: ${lastError ? lastError.message : 'Unknown'}`);
   }
 
   const rawText = result.text;
