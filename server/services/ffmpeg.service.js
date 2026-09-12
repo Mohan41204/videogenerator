@@ -82,7 +82,7 @@ module.exports = {
  * @param {string} audioPath  - Path to the merged narration .mp3
  * @param {string} outputPath - Path for the final output .mp4
  */
-function mergeVideoAndAudio(videoPath, audioPath, outputPath, speedMultiplier = 1.15) {
+function mergeVideoAndAudio(videoPath, audioPath, outputPath, speedMultiplier = 1.0) {
   return new Promise((resolve, reject) => {
     const absVideoPath = path.resolve(videoPath);
     const absAudioPath = path.resolve(audioPath);
