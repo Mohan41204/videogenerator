@@ -28,12 +28,12 @@ steps:
       - '--port=5000'
       - '--memory=2Gi'
       - '--cpu=2'
-      - '--timeout=60s'
+      - '--timeout=300s'
       - '--concurrency=80'
       - '--min=0'
       - '--max=5'
       - '--service-account=video-generator-run@sky-meet-01.iam.gserviceaccount.com'
-      - '--set-env-vars=NODE_ENV=production,GOOGLE_CLOUD_PROJECT=sky-meet-01,GOOGLE_CLOUD_LOCATION=global,CLOUD_RUN_JOB_NAME=video-generator-job,CLOUD_RUN_JOB_REGION=asia-south1,GCS_BUCKET_NAME=sky-meet-01-video-generator,ENABLE_MULTILINGUAL_AUDIO=true,GOOGLE_GENAI_USE_VERTEXAI=true,VIDEO_RENDER_FPS=3,TRANSLATION_CONCURRENCY=3,TTS_CONCURRENCY=2,IMAGE_GENERATION_CONCURRENCY=2,RENDER_CONCURRENCY=2'
+      - '--set-env-vars=NODE_ENV=production,GOOGLE_CLOUD_PROJECT=sky-meet-01,GOOGLE_CLOUD_LOCATION=us-central1,CLOUD_RUN_JOB_NAME=video-generator-job,CLOUD_RUN_JOB_REGION=asia-south1,GCS_BUCKET_NAME=sky-meet-01-video-generator,ENABLE_MULTILINGUAL_AUDIO=true,GOOGLE_GENAI_USE_VERTEXAI=true,VIDEO_RENDER_FPS=3,TRANSLATION_CONCURRENCY=3,TTS_CONCURRENCY=2,IMAGE_GENERATION_CONCURRENCY=2,RENDER_CONCURRENCY=2'
       - '--allow-unauthenticated'
 
   # 4. Deploy/Update Cloud Run Job
@@ -54,7 +54,7 @@ steps:
       - '--memory=8Gi'
       - '--task-timeout=3600s'
       - '--service-account=video-generator-run@sky-meet-01.iam.gserviceaccount.com'
-      - '--set-env-vars=NODE_ENV=production,GOOGLE_CLOUD_PROJECT=sky-meet-01,GOOGLE_CLOUD_LOCATION=global,CLOUD_RUN_JOB_NAME=video-generator-job,CLOUD_RUN_JOB_REGION=asia-south1,GCS_BUCKET_NAME=sky-meet-01-video-generator,ENABLE_MULTILINGUAL_AUDIO=true,GOOGLE_GENAI_USE_VERTEXAI=true,VIDEO_RENDER_FPS=3,TRANSLATION_CONCURRENCY=3,TTS_CONCURRENCY=2,IMAGE_GENERATION_CONCURRENCY=2,RENDER_CONCURRENCY=2'
+      - '--set-env-vars=NODE_ENV=production,GOOGLE_CLOUD_PROJECT=sky-meet-01,GOOGLE_CLOUD_LOCATION=us-central1,CLOUD_RUN_JOB_NAME=video-generator-job,CLOUD_RUN_JOB_REGION=asia-south1,GCS_BUCKET_NAME=sky-meet-01-video-generator,ENABLE_MULTILINGUAL_AUDIO=true,GOOGLE_GENAI_USE_VERTEXAI=true,VIDEO_RENDER_FPS=3,TRANSLATION_CONCURRENCY=3,TTS_CONCURRENCY=2,IMAGE_GENERATION_CONCURRENCY=2,RENDER_CONCURRENCY=2'
 
 images:
   - 'asia-south1-docker.pkg.dev/sky-meet-01/video-generator/video-generator-backend:$COMMIT_SHA'
