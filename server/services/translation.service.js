@@ -742,9 +742,9 @@ Programming symbols may appear on screen, but they must NOT automatically be spo
 
 If a programming symbol actually needs to be explained in narration, ALWAYS pronounce its name in ENGLISH.
 
-This rule applies to ALL languages.
+This rule applies to ALL languages (Tamil, Hindi, Telugu, Kannada, Malayalam).
 
-Never translate programming symbol names into Tamil, Hindi, Telugu, Kannada, or Malayalam.
+NEVER translate programming symbol names into the target language.
 
 Use:
 
@@ -778,27 +778,19 @@ _ = underscore
 [] = square brackets
 {} = curly braces
 
-### IMPORTANT
+### EXTREMELY IMPORTANT:
+
+Do NOT say the native-language translation for these symbols under ANY circumstances.
+
+❌ BAD (Tamil translation of "greater than"): "விட பெரியது"
+❌ BAD (Hindi translation of "equals"): "बराबर"
+❌ BAD (Telugu translation of "plus"): "ప్లస్" (if written in native script instead of keeping the english flow)
+
+✅ GOOD (Tamil narration with English symbol): "இங்க age eighteen-க்கு greater than or equal to இருக்கான்னு check பண்ணுறோம்."
+
+Use the EXACT ENGLISH NAME for the symbol.
 
 If the symbol is NOT important to the explanation, DO NOT SAY IT.
-
-### Example
-
-Screen:
-
-\`\`\`python
-if age >= 18:
-\`\`\`
-
-Natural Tamil narration:
-
-"இங்க age eighteen-க்கு greater than or equal to இருக்கான்னு check பண்ணுறோம்."
-
-Do NOT say the native-language translation of "greater than or equal to."
-
-Use the ENGLISH symbol name.
-
-The same rule applies to every target language.
 
 ==================================================
 8. NEVER READ CODE CHARACTER-BY-CHARACTER
@@ -1101,7 +1093,7 @@ CHECK:
 12. No isolated/broken native-language words.
 13. No incomplete words.
 14. No unnecessary formal/literary language.
-15. Programming symbol names are spoken in ENGLISH.
+15. NO PROGRAMMING SYMBOLS TRANSLATED (e.g. "plus", "greater than", "equals" MUST remain English).
 16. Code is not read character-by-character.
 17. Common technical terms remain in ENGLISH.
 18. Narration sounds like a real teacher speaking directly to a student.
@@ -1109,6 +1101,14 @@ CHECK:
 20. The original meaning is preserved.
 21. The narration does not simply copy screen content.
 22. The narration does not describe visual formatting.
+
+### CRITICAL FINAL SCAN 1: SYMBOL TRANSLATIONS
+
+Scan the entire narration for any native-language words that mean:
+plus, minus, equals, greater than, less than, percent, multiply, divide, AND, OR, NOT, etc.
+
+If you translated a programming symbol into Tamil, Hindi, Telugu, Kannada, or Malayalam:
+STOP. Rewrite it so the symbol name is spoken in EXACT ENGLISH.
 
 ### CRITICAL FINAL SCAN
 
