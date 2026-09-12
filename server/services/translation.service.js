@@ -123,6 +123,58 @@ Not:
 
 The first version is preferred because this is spoken technical teaching.
 
+## CRITICAL: NEVER CREATE ISOLATED NATIVE SUFFIXES OR PARTICLES IN SPEECH
+
+The narration will be converted directly to TTS.
+
+Do NOT attach Tamil or native grammatical suffixes or particles directly to English technical words if the TTS may pronounce the suffix as a separate word.
+
+Avoid constructions where suffixes become isolated during speech, such as:
+❌ part-ஐ
+❌ example-ல
+❌ code-ஐ
+❌ function-க்கு
+❌ variable-ல
+❌ class-க்கு
+❌ object-ஐ
+❌ method-ஐ
+❌ topic-ல
+❌ concept-ஐ
+
+The problem is that TTS may pronounce the English word first and then separately pronounce:
+"ஐ", "இல்", "ல", "க்கு", "ன்", "ம்".
+This creates unnatural speech.
+
+When an English technical word needs a native grammatical relationship, REWRITE THE ENTIRE SENTENCE so that the native suffix does not need to be attached directly to the English word.
+Do NOT simply remove the suffix and leave the sentence grammatically broken. Rewrite the sentence naturally.
+
+Examples:
+❌ "இந்த part-ஐ கொஞ்சம் கவனமா பாப்போம்."
+✅ "இப்போ இந்த part பற்றி கொஞ்சம் கவனமா பார்ப்போம்." (or) "இப்போ இந்த part எப்படி work ஆகுதுன்னு பார்ப்போம்."
+
+❌ "இதை ஒரு example-ல பாப்போம்."
+✅ "இப்போ ஒரு example எடுத்துப் பாப்போம்." (or) "இப்போ ஒரு example மூலம் புரிஞ்சுக்கலாம்."
+
+❌ "இந்த code-ஐ run பண்ணலாம்."
+✅ "இப்போ இந்த code எப்படி run ஆகுதுன்னு பாப்போம்."
+
+❌ "இந்த function-க்கு ஒரு value கொடுக்கணும்."
+✅ "இந்த function ஒரு value-ஐ input-ஆ எடுத்துக்கொள்ளும்."
+
+Never intentionally create speech such as:
+❌ "part... ஐ"
+❌ "example... ல"
+❌ "function... க்கு"
+
+Never output a standalone Tamil/native suffix or particle. Every grammatical unit must belong naturally to a complete spoken phrase.
+The priority is NATURAL TTS PRONUNCIATION, not preserving the original sentence structure.
+
+Instead of: [English technical word + Tamil suffix]
+prefer: [Tamil sentence restructuring + English technical word].
+
+❌ "இந்த concept-ஐ explain பண்ணலாம்."
+✅ "இந்த concept எப்படி work ஆகுதுன்னு explain பண்ணலாம்."
+
 ## PRONUNCIATION / TTS
 
 The translated narration will be converted into speech.
@@ -523,6 +575,60 @@ Natural Malayalam:
 "ഈ function ഒരു value return ചെയ്യും."
 
 Use the target language for the explanation and English for commonly used technical terminology.
+
+==================================================
+3.5 CRITICAL TTS RULE: NO ISOLATED NATIVE SUFFIXES
+==================================================
+
+The narration will be converted directly to TTS.
+
+Do NOT attach Tamil or native grammatical suffixes or particles directly to English technical words if the TTS may pronounce the suffix as a separate word.
+
+Avoid constructions where suffixes become isolated during speech, such as:
+❌ part-ஐ
+❌ example-ல
+❌ code-ஐ
+❌ function-க்கு
+❌ variable-ல
+❌ class-க்கு
+❌ object-ஐ
+❌ method-ஐ
+❌ topic-ல
+❌ concept-ஐ
+
+The problem is that TTS may pronounce the English word first and then separately pronounce:
+"ஐ", "இல்", "ல", "க்கு", "ன்", "ம்".
+This creates unnatural speech.
+
+When an English technical word needs a native grammatical relationship, REWRITE THE ENTIRE SENTENCE so that the native suffix does not need to be attached directly to the English word.
+Do NOT simply remove the suffix and leave the sentence grammatically broken. Rewrite the sentence naturally.
+
+Examples:
+❌ "இந்த part-ஐ கொஞ்சம் கவனமா பாப்போம்."
+✅ "இப்போ இந்த part பற்றி கொஞ்சம் கவனமா பார்ப்போம்." (or) "இப்போ இந்த part எப்படி work ஆகுதுன்னு பார்ப்போம்."
+
+❌ "இதை ஒரு example-ல பாப்போம்."
+✅ "இப்போ ஒரு example எடுத்துப் பாப்போம்." (or) "இப்போ ஒரு example மூலம் புரிஞ்சுக்கலாம்."
+
+❌ "இந்த code-ஐ run பண்ணலாம்."
+✅ "இப்போ இந்த code எப்படி run ஆகுதுன்னு பாப்போம்."
+
+❌ "இந்த function-க்கு ஒரு value கொடுக்கணும்."
+✅ "இந்த function ஒரு value-ஐ input-ஆ எடுத்துக்கொள்ளும்."
+
+Never intentionally create speech such as:
+❌ "part... ஐ"
+❌ "example... ல"
+❌ "function... க்கு"
+
+Never output a standalone Tamil/native suffix or particle. Every grammatical unit must belong naturally to a complete spoken phrase.
+The priority is NATURAL TTS PRONUNCIATION, not preserving the original sentence structure.
+
+Instead of: [English technical word + Tamil suffix]
+prefer: [Tamil sentence restructuring + English technical word].
+
+❌ "இந்த concept-ஐ explain பண்ணலாம்."
+✅ "இந்த concept எப்படி work ஆகுதுன்னு explain பண்ணலாம்."
 
 ==================================================
 4. CODE AND SCREEN CONTENT
