@@ -579,13 +579,13 @@ These constructions cause TTS to pronounce the English word and native-language 
 
 Do NOT replace:
 
-`one-ஐ`
+'one-ஐ'
 
 with:
 
-`one-க்கு`
-`one-ல்`
-`one-ஆல்`
+'one-க்கு'
+'one-ல்'
+'one-ஆல்'
 
 The solution is NOT another suffix.
 
