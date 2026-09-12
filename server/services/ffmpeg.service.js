@@ -82,29 +82,50 @@ module.exports = {
  * @param {string} audioPath  - Path to the merged narration .mp3
  * @param {string} outputPath - Path for the final output .mp4
  */
-function mergeVideoAndAudio(videoPath, audioPath, outputPath) {
+function mergeVideoAndAudio(videoPath, audioPath, outputPath, speedMultiplier = 1.15) {
   return new Promise((resolve, reject) => {
     const absVideoPath = path.resolve(videoPath);
     const absAudioPath = path.resolve(audioPath);
     const absOutputPath = path.resolve(outputPath);
 
-    ffmpeg()
+    let ffmpegCmd = ffmpeg()
       .input(absVideoPath)
-      .input(absAudioPath)
+      .input(absAudioPath);
+
+    if (speedMultiplier !== 1.0) {
+      const setpts = 1 / speedMultiplier;
+      ffmpegCmd = ffmpegCmd.complexFilter([
+        `[0:v]setpts=${setpts}*PTS[v]`,
+        `[1:a]atempo=${speedMultiplier}[a]`
+      ])
       .outputOptions([
-        '-c:v copy',      // copy video stream as-is (no re-encode)
+        '-map [v]',
+        '-map [a]',
+        '-c:v libx264',
+        '-preset ultrafast',
         '-c:a aac',
         '-b:a 192k',
-        '-shortest',      // end when the shortest stream ends
+        '-shortest',
         '-movflags +faststart'
-      ])
+      ]);
+    } else {
+      ffmpegCmd = ffmpegCmd.outputOptions([
+        '-c:v copy',
+        '-c:a aac',
+        '-b:a 192k',
+        '-shortest',
+        '-movflags +faststart'
+      ]);
+    }
+
+    ffmpegCmd
       .on('progress', (progress) => {
         if (progress.percent) {
           console.log(`[FFmpeg Merge] ${Math.round(progress.percent)}% done`);
         }
       })
       .on('end', () => {
-        console.log('[FFmpeg Merge] Video + Audio merged successfully.');
+        console.log(`[FFmpeg Merge] Video + Audio merged successfully (Speed: ${speedMultiplier}x).`);
         resolve(absOutputPath);
       })
       .on('error', (err) => {

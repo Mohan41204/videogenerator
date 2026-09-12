@@ -168,12 +168,11 @@ Narration to translate:
 "${text}"
   `.trim();
 
-  const runModelWithRetry = async (modelName) => {
+  const runModelWithRetry = async (modelName, maxRetries = 3) => {
     let attempts = 0;
-    const maxAttempts = 3;
     let delay = 1000;
 
-    while (attempts < maxAttempts) {
+    while (attempts < maxRetries) {
       try {
         const result = await client.models.generateContent({
           model: modelName,
@@ -185,7 +184,7 @@ Narration to translate:
         return result;
       } catch (err) {
         attempts++;
-        if (attempts >= maxAttempts) throw err;
+        if (attempts >= maxRetries) throw err;
         console.warn(`Translation attempt ${attempts} with ${modelName} failed. Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         delay *= 2;
@@ -196,13 +195,7 @@ Narration to translate:
   try {
     let translatedText;
     try {
-      let result;
-      try {
-        result = await runModelWithRetry('gemini-3.7-flash');
-      } catch (error) {
-        console.warn('gemini-3.7-flash failed for translation. Falling back to gemini-2.5-flash...');
-        result = await runModelWithRetry('gemini-2.5-flash');
-      }
+      let result = await runModelWithRetry('gemini-2.5-flash', 3);
       translatedText = result.text?.trim() || '';
     } catch (geminiError) {
       console.error('All Gemini translation attempts failed:', geminiError.message);
@@ -263,12 +256,11 @@ Slides JSON to translate:
 ${JSON.stringify(slides, null, 2)}
   `.trim();
 
-  const runModelWithRetry = async (modelName) => {
+  const runModelWithRetry = async (modelName, maxRetries = 3) => {
     let attempts = 0;
-    const maxAttempts = 3;
     let delay = 1000;
 
-    while (attempts < maxAttempts) {
+    while (attempts < maxRetries) {
       try {
         const result = await client.models.generateContent({
           model: modelName,
@@ -281,7 +273,7 @@ ${JSON.stringify(slides, null, 2)}
         return result;
       } catch (err) {
         attempts++;
-        if (attempts >= maxAttempts) throw err;
+        if (attempts >= maxRetries) throw err;
         console.warn(`Slide translation attempt ${attempts} with ${modelName} failed. Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         delay *= 2;
@@ -292,13 +284,7 @@ ${JSON.stringify(slides, null, 2)}
   try {
     let translatedJsonText;
     try {
-      let result;
-      try {
-        result = await runModelWithRetry('gemini-3.7-flash');
-      } catch (error) {
-        console.warn('gemini-3.7-flash failed for slide translation. Falling back to gemini-2.5-flash...');
-        result = await runModelWithRetry('gemini-2.5-flash');
-      }
+      let result = await runModelWithRetry('gemini-2.5-flash', 3);
       translatedJsonText = result.text?.trim() || '';
     } catch (geminiError) {
       console.error('All Gemini slide translation attempts failed:', geminiError.message);

@@ -246,7 +246,7 @@ The JSON MUST follow this exact structure:
     while (attempts < maxAttempts) {
       try {
         result = await client.models.generateContent({
-          model: 'gemini-3.7-flash',
+          model: 'gemini-2.5-flash',
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
@@ -254,7 +254,7 @@ The JSON MUST follow this exact structure:
           }
         });
         if (result.usageMetadata) {
-          console.log(`[Token Usage] Provider: vertex-ai, Model: gemini-3.7-flash, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
+          console.log(`[Token Usage] Provider: vertex-ai, Model: gemini-2.5-flash, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
         }
         break;
       } catch (err) {

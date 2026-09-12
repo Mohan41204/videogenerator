@@ -93,14 +93,14 @@ const generateSilence = (duration, outputPath) => {
 };
 
 const getPauseDuration = (punctuation) => {
-  if (!punctuation) return 0.2;
+  if (!punctuation) return 0.1;
   if (/[.!?]/.test(punctuation)) {
-    return 1.75; // Extra slow, deliberate teaching pause between sentences
+    return 0.6; // Faster, natural pause between sentences
   }
   if (/,|;|:/.test(punctuation)) {
-    return 1.0; // Extra slow pause at commas / clauses for better pacing
+    return 0.3; // Short pause at commas / clauses for faster pacing
   }
-  return 0.5;
+  return 0.2;
 };
 
 const generateAudio = async (text, outputPath, langCode = 'en', voiceId = null) => {

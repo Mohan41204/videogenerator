@@ -70,18 +70,17 @@ class GoogleCustomVoiceProvider extends TTSProvider {
     let languageCode = 'en-IN';
     let defaultName = voiceGender === 'male' ? 'en-IN-Wavenet-B' : 'en-IN-Wavenet-A';
 
-    // Map language codes appropriately using Neural2 voices for ultra-realistic speech across all languages
+    // Map language codes appropriately to use Wavenet for all languages
     switch (language) {
-      case 'ta': languageCode = 'ta-IN'; defaultName = voiceGender === 'male' ? 'ta-IN-Neural2-B' : 'ta-IN-Neural2-A'; break;
-      case 'hi': languageCode = 'hi-IN'; defaultName = voiceGender === 'male' ? 'hi-IN-Neural2-B' : 'hi-IN-Neural2-A'; break;
-      case 'te': languageCode = 'te-IN'; defaultName = voiceGender === 'male' ? 'te-IN-Neural2-B' : 'te-IN-Neural2-A'; break;
-      case 'kn': languageCode = 'kn-IN'; defaultName = voiceGender === 'male' ? 'kn-IN-Neural2-B' : 'kn-IN-Neural2-A'; break;
-      case 'ml': languageCode = 'ml-IN'; defaultName = voiceGender === 'male' ? 'ml-IN-Neural2-B' : 'ml-IN-Neural2-A'; break;
+      case 'ta': languageCode = 'ta-IN'; defaultName = voiceGender === 'male' ? 'ta-IN-Wavenet-B' : 'ta-IN-Wavenet-A'; break;
+      case 'hi': languageCode = 'hi-IN'; defaultName = voiceGender === 'male' ? 'hi-IN-Wavenet-B' : 'hi-IN-Wavenet-A'; break;
+      case 'te': languageCode = 'te-IN'; defaultName = voiceGender === 'male' ? 'te-IN-Wavenet-B' : 'te-IN-Wavenet-A'; break;
+      case 'kn': languageCode = 'kn-IN'; defaultName = voiceGender === 'male' ? 'kn-IN-Wavenet-B' : 'kn-IN-Wavenet-A'; break;
+      case 'ml': languageCode = 'ml-IN'; defaultName = voiceGender === 'male' ? 'ml-IN-Wavenet-B' : 'ml-IN-Wavenet-A'; break;
       case 'en':
       default:
         languageCode = 'en-IN';
-        // Using high-quality Neural2 voices with an Indian accent
-        defaultName = voiceGender === 'male' ? 'en-IN-Neural2-B' : 'en-IN-Neural2-A';
+        defaultName = voiceGender === 'male' ? 'en-IN-Wavenet-B' : 'en-IN-Wavenet-A';
         break;
     }
 
