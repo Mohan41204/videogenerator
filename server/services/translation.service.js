@@ -296,52 +296,26 @@ const translateSlides = async (slides, targetLanguageName) => {
   const client = new GoogleGenAI(clientConfig);
   
   const prompt = `
-You are an expert educational programming video generator.
+You are an expert educational video content generator for programming and technical subjects.
 
-Generate a complete programming lesson with TWO SEPARATE outputs by translating the given English JSON slide array into ${targetLanguageName}:
+Generate both the ON-SCREEN CONTENT and TEACHER SPEECH NARRATION for the lesson by translating the given English JSON slide array into ${targetLanguageName}.
 
-1. SCREEN CONTENT
-2. TEACHER SPEECH NARRATION
-
-These two outputs MUST follow different rules.
+The two outputs have DIFFERENT language and formatting requirements.
 
 ==================================================
 
-1. SCREEN CONTENT
+1. ON-SCREEN CONTENT
    ==================================================
 
-Screen content is visual content displayed to students.
+The screen content is displayed visually to students (heading, subheading, bullets, labels).
 
-Create modern, clean, professional programming-education content.
+It must be modern, professional, concise, technical, and easy to read.
 
-The screen should NOT look like a direct translation of a textbook.
+DO NOT write screen content in overly pure, literary, traditional, or textbook-style Tamil, Hindi, Telugu, Kannada, or Malayalam.
 
-Use:
+Use a modern technical classroom style.
 
-* Clear headings
-* Short explanations
-* Technical terms
-* Code examples
-* Diagrams
-* Visual relationships
-* Step-by-step examples
-* Important concepts
-* Input → Process → Output where useful
-* Highlighted code where useful
-
-Do NOT put the complete teacher narration on the screen.
-
-Keep screen content concise and readable.
-
-### SCREEN LANGUAGE
-
-For Tamil, Hindi, Telugu, Kannada, and Malayalam:
-
-DO NOT use overly pure, literary, traditional, or textbook-style native-language translations.
-
-Use a MODERN TECHNICAL EDUCATION style.
-
-Keep commonly used programming and technical terminology in ENGLISH.
+For technical/programming terminology, KEEP COMMON ENGLISH TERMS IN ENGLISH.
 
 Examples:
 
@@ -365,107 +339,89 @@ Backend
 Frontend
 Server
 Component
-Python
-Java
-JavaScript
 React
 Node.js
+Python
+Java
 Spring Boot
-OOPs
 
-Do not unnecessarily translate these technical terms.
+Do not unnecessarily translate these technical terms into pure native-language equivalents.
 
-Example:
+The surrounding explanation may use the selected target language.
 
-❌ Too formal/pure:
-"பொருள் சார்ந்த நிரலாக்கத்தின் அடிப்படைக் கருத்துகள்"
+For example, for Tamil:
 
-✅ Modern technical:
+❌ Too pure/formal:
+"பொருள் சார்ந்த நிரலாக்கத்தின் அடிப்படைக் கருத்துகளைப் புரிந்துகொள்வோம்."
+
+✅ Modern technical screen content:
 "Object-Oriented Programming (OOP)
-Basic Concepts"
+அடிப்படை Concepts"
 
-or:
+Another example:
 
-"OOP Basic Concepts"
+❌ Too formal:
+"வகுப்பு என்பது பொருட்களை உருவாக்குவதற்கான வரைபடமாகும்."
+
+✅ Modern technical style:
+"Class என்பது Object-ஐ உருவாக்குவதற்கான Blueprint."
 
 The same principle applies to Hindi, Telugu, Kannada, and Malayalam.
 
-The screen should look like a MODERN PROGRAMMING COURSE, not a translated textbook.
+The screen should look like a modern programming course, not a translated textbook.
 
-### SCREEN SYMBOLS
+Keep screen text concise.
 
-Programming symbols are allowed on screen when they are part of code, formulas, diagrams, or technical explanations.
+Do not put the complete narration on the screen.
 
-Examples:
+Use:
 
-Class → Object
-x = 10
-a == b
-factorial(5)
-{}
-[]
-()
+* Headings
+* Key concepts
+* Short explanations
+* Examples
+* Diagrams
+* Code
+* Important technical terms
 
-Keep actual source code unchanged.
+Do not add unnecessary decorative emojis.
 
-Do NOT add unnecessary decorative emojis.
+Do not add decorative symbols unless they are actually required for the technical content.
+
+Programming symbols that are part of code must remain unchanged.
 
 ==================================================
 2. TEACHER SPEECH NARRATION
 ===========================
 
-The narration is ONLY for spoken audio.
+The narration (the 'narration' field) is ONLY for spoken audio.
 
 It will be sent to a Text-to-Speech engine.
 
-The teacher must sound like a REAL INDIAN PROGRAMMING TEACHER explaining a concept directly to a student.
+The narration must sound like a REAL INDIAN TEACHER naturally explaining the topic to students.
 
-The speech should feel like a natural teacher-student conversation.
+Use:
 
-It must NOT sound like:
+* Natural conversational language
+* Friendly classroom tone
+* Simple spoken grammar
+* Everyday wording
+* Natural colloquial expressions
+* Short TTS-friendly sentences
+* Native Unicode script for the selected target language
+* English technical terms where programmers normally use them
 
-* A YouTube presenter
-* A formal lecture
-* A textbook
-* A news reader
-* A machine translation
-* A screen reader
-* An AI motivational speech
+This is NOT formal translation.
 
-### NO GREETINGS
+This is NOT literary language.
 
-Do NOT say:
+This is NOT textbook language.
 
-"Hi friends"
-"Hello everyone"
-"Welcome"
-"Welcome back"
-"Dear students"
-"Good morning everyone"
-"Today we are going to learn..."
-"Let's start our exciting journey..."
-"Are you ready?"
-"Hope you are doing well"
+This is NOT pure/native-language terminology.
 
-Start DIRECTLY with the concept.
+This is NOT Romanized language.
 
-Bad:
-
-"Hi friends, today we are going to learn about Classes and Objects."
-
-Good:
-
-"இப்போ Classes and Objects எப்படி work ஆகுது என்று பாப்போம்."
-
-The teacher should sound like the lesson is already in progress.
-
-==================================================
-3. NATURAL CONVERSATIONAL LANGUAGE
-==================================
-
-Use the TARGET LANGUAGE'S native Unicode script.
-
-NEVER use:
+Do NOT generate:
 
 Tanglish
 Hinglish
@@ -478,230 +434,46 @@ Romanized Telugu
 Romanized Kannada
 Romanized Malayalam
 
-However:
+The target language must use its proper native Unicode script.
+
+IMPORTANT:
 
 NATIVE UNICODE SCRIPT does NOT mean FORMAL LANGUAGE.
 
-The narration must sound natural and conversational.
+The narration should use native script while sounding conversational.
 
-Do NOT use overly pure, literary, traditional, or textbook language.
+For example, Tamil:
 
-Use the language naturally spoken by an Indian programming teacher.
+❌ Romanized:
+"Ippo recursion epdi work aaguthu nu paakalaam."
 
-### TAMIL
+❌ Too formal:
+"இப்போது recursion எவ்வாறு செயல்படுகிறது என்பதைப் பார்ப்போம்."
 
-Use natural spoken Tamil written in Tamil Unicode.
+✅ Natural spoken classroom Tamil:
+"இப்போ recursion எப்படி வேலை செய்கிறது என்று பாப்போம்."
 
-Natural examples:
+Another example:
 
-இப்போ
-முதல்ல
-இதுல
-இதுக்கு
-அதுல
-அதுக்காக
-பண்ணும்
-பண்ணலாம்
-பண்ணணும்
-பாப்போம்
-புரிஞ்சுக்கலாம்
-வேணும்
-இருக்கு
-இருந்தா
-அப்படின்னா
-அதனால
-கொஞ்சம்
-இங்க
-அங்க
+❌ Too formal:
+"முதலில் function தன்னையே மீண்டும் அழைக்கிறது."
 
-Use these only when they naturally fit.
+✅ Natural spoken classroom Tamil:
+"முதல்ல function தன்னையே மறுபடியும் call பண்ணும்."
 
-Do NOT force slang into every sentence.
+The same principle applies to Hindi, Telugu, Kannada, and Malayalam.
 
-Avoid overly formal wording such as:
+Avoid highly formal, literary, or Sanskritized vocabulary.
 
-இப்போது
-முதலில்
-இதில்
-இதற்கு
-செயல்படுத்த வேண்டும்
-செய்ய வேண்டியுள்ளது
-அழைக்கப்படுகிறது
-புரிந்துகொள்வோம்
-
-when a natural conversational alternative is better.
-
-Example:
-
-❌ "இப்போது இந்த function எவ்வாறு செயல்படுகிறது என்பதைப் பார்ப்போம்."
-
-✅ "இப்போ இந்த function எப்படி work ஆகுது என்று பாப்போம்."
-
-❌ "இந்த code-ஐ மாற்றியமைக்க வேண்டியுள்ளது."
-
-✅ "இப்போ இந்த code-ஐ change பண்ணணும்."
-
-But see the IMPORTANT English-word rule below.
+Use the way a real Indian teacher would naturally explain programming to students.
 
 ==================================================
-4. CRITICAL SPEECH RULE — NATURAL CONTINUOUS PRONUNCIATION
-==========================================================
+3. TECHNICAL TERMS IN SPEECH
+============================
 
-The teacher narration is going directly to Text-to-Speech.
+Do NOT unnecessarily translate technical terminology.
 
-The narration must sound like ONE continuous natural human speech flow.
-
-Do NOT generate English words followed by separate native-language suffixes, particles, case markers, or grammatical endings.
-
-NEVER generate constructions such as:
-
-Tamil:
-❌ one-ஐ
-❌ one ஐ
-❌ code-ஐ
-❌ code ஐ
-❌ example-ல
-❌ example ல
-❌ function-க்கு
-❌ function க்கு
-❌ class-ல
-❌ class ல
-❌ object-ஐ
-❌ object ஐ
-❌ variable-க்கு
-❌ variable க்கு
-❌ part-ஐ
-❌ part ஐ
-
-These constructions cause TTS to pronounce the English word and native-language ending as separate speech units.
-
-### DO NOT FIX THIS WITH A DIFFERENT SUFFIX
-
-Do NOT replace:
-
-'one-ஐ'
-
-with:
-
-'one-க்கு'
-'one-ல்'
-'one-ஆல்'
-
-The solution is NOT another suffix.
-
-The solution is to REWRITE THE SENTENCE.
-
-### EXAMPLES
-
-❌ "one-ஐ return பண்ணும்."
-
-✅ "one return பண்ணும்."
-
-OR rewrite naturally:
-
-✅ "result-ஆ one இருக்கும்."
-
-❌ "இந்த code-ஐ run பண்ணிப் பார்ப்போம்."
-
-✅ "இப்போ இந்த code run பண்ணிப் பார்ப்போம்."
-
-❌ "இந்த example-ல பாப்போம்."
-
-✅ "ஒரு example எடுத்துப் பாப்போம்."
-
-❌ "இந்த part-ஐ கவனமா பாப்போம்."
-
-✅ "இந்த part பற்றி கொஞ்சம் கவனமா பாப்போம்."
-
-❌ "இந்த object-க்கு value கொடுக்குறோம்."
-
-✅ "இந்த object-க்கு value கொடுக்குறோம்."
-
-If TTS still separates the native-language suffix, rewrite again so the English word has NO suffix:
-
-✅ "இப்போ இந்த object எப்படி work ஆகுதுன்னு பாப்போம்."
-
-### ENGLISH WORD MUST BE AN INDEPENDENT WORD
-
-When an English technical word appears in the narration:
-
-Keep the English word completely intact and independent.
-
-Do NOT attach:
-
-* Tamil suffixes
-* Hindi suffixes
-* Telugu suffixes
-* Kannada suffixes
-* Malayalam suffixes
-* Hyphens
-* Separate case markers
-* Separate particles
-
-The English word should be spoken naturally as part of the sentence.
-
-### IMPORTANT TTS RULE
-
-Do NOT create a speech boundary between an English technical word and the surrounding sentence.
-
-The English technical word should flow naturally with the sentence.
-
-For example:
-
-Preferred:
-
-"இப்போ இந்த code run பண்ணிப் பார்ப்போம்."
-
-Not:
-
-"இப்போ இந்த code ... run ..."
-
-Not:
-
-"code ஐ ..."
-
-Not:
-
-"code-ஐ ..."
-
-==================================================
-5. NO BROKEN OR ISOLATED WORDS
-==============================
-
-Never generate isolated native-language fragments such as:
-
-இ
-இல்
-ல
-ஐ
-க்கு
-ல்
-ஆ
-ம்
-ன்
-
-after an English word.
-
-For example:
-
-❌ "one ஐ"
-❌ "code ஐ"
-❌ "example ல"
-❌ "function க்கு"
-
-These are NOT valid narration constructions for this TTS pipeline.
-
-Rewrite the entire sentence.
-
-Every sentence must be complete and naturally pronounceable.
-
-==================================================
-6. TECHNICAL TERMINOLOGY
-========================
-
-Keep commonly used programming terminology in ENGLISH.
-
-Examples:
+Keep common technical terms in English when natural:
 
 function
 class
@@ -714,121 +486,97 @@ recursion
 loop
 array
 string
-database
 API
+database
 backend
 frontend
 server
+request
+response
 component
-Python
-Java
-JavaScript
 React
 Node.js
-
-Do not unnecessarily translate these terms.
+Python
+Java
+Spring Boot
+JavaScript
 
 Example:
 
-✅ "இந்த function ஒரு value return பண்ணும்."
+Natural Tamil:
+"இந்த function ஒரு value-ஐ return பண்ணும்."
 
-Do not replace technical terminology with unnecessarily formal native-language words.
+NOT:
 
-==================================================
-7. PROGRAMMING SYMBOLS — CRITICAL
-=================================
+"இந்த செயல்பாடு ஒரு மதிப்பைத் திருப்பி வழங்கும்."
 
-Programming symbols may appear on screen, but they must NOT automatically be spoken.
+Natural Hindi:
+"यह function एक value return करता है."
 
-If a programming symbol actually needs to be explained in narration, ALWAYS pronounce its name in ENGLISH.
+Natural Telugu:
+"ఈ function ఒక value-ని return చేస్తుంది."
 
-This rule applies to ALL languages (Tamil, Hindi, Telugu, Kannada, Malayalam).
+Natural Kannada:
+"ಈ function ಒಂದು value-ನ return ಮಾಡುತ್ತದೆ."
 
-NEVER translate programming symbol names into the target language.
+Natural Malayalam:
+"ഈ function ഒരു value return ചെയ്യും."
 
-Use:
-
-* = plus
-- = minus
-= = equals
-== = double equals
-=== = triple equals
-!= = not equals
-!== = not equals
-> = greater than
-< = less than
->= = greater than or equal to
-<= = less than or equal to
-% = percent / modulo depending on context
-* = multiply / asterisk depending on context
-/ = slash / divide depending on context
--> = arrow
-=> = arrow / arrow function
-&& = AND
-|| = OR
-! = NOT
-++ = increment
--- = decrement
-# = hash / comment marker depending on context
-@ = at
-_ = underscore
-: = colon
-; = semicolon
-() = parentheses
-[] = square brackets
-{} = curly braces
-
-### EXTREMELY IMPORTANT:
-
-Do NOT say the native-language translation for these symbols under ANY circumstances.
-
-❌ BAD (Tamil translation of "greater than"): "விட பெரியது"
-❌ BAD (Hindi translation of "equals"): "बराबर"
-❌ BAD (Telugu translation of "plus"): "ప్లస్" (if written in native script instead of keeping the english flow)
-
-✅ GOOD (Tamil narration with English symbol): "இங்க age eighteen-க்கு greater than or equal to இருக்கான்னு check பண்ணுறோம்."
-
-Use the EXACT ENGLISH NAME for the symbol.
-
-If the symbol is NOT important to the explanation, DO NOT SAY IT.
+Use the target language for the explanation and English for commonly used technical terminology.
 
 ==================================================
-8. NEVER READ CODE CHARACTER-BY-CHARACTER
+4. CODE AND SCREEN CONTENT
+==========================
+
+NEVER change source code.
+
+NEVER translate:
+
+* Variable names
+* Function names
+* Class names
+* Method names
+* File names
+* Programming keywords
+* Commands
+* URLs
+* API endpoints
+* Package names
+* Library names
+* Code blocks
+
+Screen code must remain exactly as generated.
+
+However, the teacher narration must NOT automatically read code character-by-character.
+
+For example, if the screen shows:
+
+def factorial(n):
+if n == 0:
+return 1
+
+The narration should naturally explain:
+
+"The factorial function takes a number as input. If that number is zero, it returns one."
+
+Do NOT say:
+
+"def factorial open bracket n close bracket colon..."
+
+unless the lesson is specifically teaching that syntax.
+
+==================================================
+5. SYMBOLS AND EMOJIS — CRITICAL TTS RULE
 =========================================
 
-Do NOT automatically read code as individual characters.
+The speech narration must NEVER contain decorative emojis or symbols.
 
-Screen:
-
-\`\`\`python
-def factorial(n):
-    if n == 0:
-        return 1
-\`\`\`
-
-Bad:
-
-"def factorial open bracket n close bracket colon if n double equals zero..."
-
-Good:
-
-"இந்த factorial function ஒரு number-ஐ input-ஆ எடுத்துக்குது. Number zero-ஆ இருந்தா, one-ஐ return பண்ணும்."
-
-Explain the MEANING of code naturally.
-
-Only pronounce syntax symbols individually when the lesson is specifically teaching that syntax.
-
-==================================================
-9. EMOJIS MUST NEVER ENTER SPEECH
-=================================
-
-NEVER send emojis to TTS.
-
-Remove all emojis from narration.
+Remove all emojis from speech.
 
 Examples:
 
 😀
+😃
 😂
 🚀
 🔥
@@ -839,56 +587,75 @@ Examples:
 ❌
 ✅
 
-Bad:
+These must NEVER be sent to the TTS engine.
 
-"இது ரொம்ப easy! 🚀"
+Do not verbally pronounce decorative symbols.
 
-Good:
+For example:
 
-"இது ரொம்ப easy."
+❌ "Great! 🚀"
 
-Never pronounce or describe emojis.
+Output:
+
+"Great!"
+
+If the narration contains:
+
+❌ "Class → Object"
+
+Convert it to natural speech:
+
+"Class and Object"
+
+If a technical symbol is important to the explanation, convert it into natural spoken words.
+
+Examples:
+
+* → "plus"
+- → "minus"
+= → "equals"
+== → "double equals"
+!= → "not equal to"
+> → "greater than"
+< → "less than"
+>= → "greater than or equal to"
+<= → "less than or equal to"
+
+Do not read parentheses, brackets, braces, commas, colons, semicolons, or other programming punctuation literally unless the lesson is specifically explaining those symbols.
 
 ==================================================
-10. SCREEN SYMBOLS MUST NOT AUTOMATICALLY ENTER SPEECH
-======================================================
+6. SCREEN SYMBOLS VS SPEECH
+===========================
 
-The fact that a symbol appears on the screen does NOT mean the teacher should say it.
+A symbol may remain on the SCREEN but should not automatically appear in SPEECH.
 
-Screen:
+Example:
+
+SCREEN:
 
 Class → Object
 
-Speech:
+SPEECH:
 
-"Class-ல இருந்து Object எப்படி உருவாகுது என்று பாப்போம்."
+"Class and Object."
 
-Screen:
+Example:
+
+SCREEN:
 
 factorial(5)
 
-Speech:
+SPEECH:
 
-"இங்க factorial function-க்கு five-ஐ input-ஆ கொடுக்குறோம்."
+"இங்க factorial function-க்கு five-ஐ pass பண்ணுறோம்."
 
-However, if the native-language suffix creates poor TTS pronunciation, restructure the sentence:
+The screen and speech are separate outputs.
 
-"இங்க factorial function எடுத்துக்கிற input-ஐ பாப்போம்."
-
-OR:
-
-"இப்போ factorial function எப்படி work ஆகுதுன்னு பாப்போம்."
-
-Do not read:
-
-"open bracket"
-"close bracket"
-
-unless specifically teaching parentheses.
+Never copy visual formatting into the narration.
 
 ==================================================
-11. MARKDOWN AND VISUAL FORMATTING
-==================================
+7. MARKDOWN AND FORMATTING
+==========================
 
 Never send these to TTS:
 
@@ -899,312 +666,108 @@ Never send these to TTS:
 HTML tags
 Markdown bullets
 Markdown links
-decorative separators
-visual formatting
+Decorative separators
+UI formatting
 
-Remove visual formatting from speech.
-
-==================================================
-12. NATURAL TEACHER CONVERSATION
-================================
-
-The teacher should speak naturally to a student.
-
-Useful transitions may include:
-
-"இங்க ஒரு முக்கியமான point இருக்கு."
-
-"இதுல என்ன நடக்குதுன்னு பாப்போம்."
-
-"ஒரு example எடுத்துப் பாப்போம்."
-
-"இப்போ இதை code-ல எப்படி use பண்ணுறதுன்னு பாப்போம்."
-
-"இது ஏன் தேவைப்படுதுன்னு முதல்ல புரிஞ்சுக்கலாம்."
-
-"இங்க தான் முக்கியமான விஷயம்."
-
-"இந்த part பற்றி கொஞ்சம் கவனமா பாப்போம்."
-
-But DO NOT repeat these expressions in every scene.
-
-Do not artificially add conversational phrases just to make the speech longer.
-
-Do not add fake student questions and answers unless explicitly requested.
+Convert the underlying meaning into natural speech when necessary.
 
 ==================================================
-13. PEDAGOGICAL FLOW
-====================
-
-When appropriate, explain concepts in this order:
-
-1. Introduce the concept directly.
-2. Explain why it is needed.
-3. Give a simple real-world example.
-4. Explain the technical concept.
-5. Show the code or visual.
-6. Explain what happens step-by-step.
-7. Highlight the important point.
-8. Show the result.
-9. Move naturally to the next concept.
-
-Avoid unnecessary repetition.
-
-Do not create narration just to fill a target word count.
-
-Natural explanation is more important than exact word count.
-
-==================================================
-14. VISUAL IMPROVEMENT
-======================
-
-Improve the video by:
-
-* Reducing unnecessary empty space.
-* Making code larger and easier to read.
-* Highlighting the exact code line being explained.
-* Using diagrams for relationships and processes.
-* Showing input → process → output.
-* Showing step-by-step code execution.
-* Using real-world analogies visually.
-* Showing results immediately after code examples.
-* Using before/after comparisons when useful.
-* Keeping transitions smooth.
-* Avoiding sudden scene changes.
-* Avoiding incomplete text rendering.
-* Avoiding partially visible words.
-* Avoiding unnecessary decorative animations.
-
-When code is displayed, the narration should explain the exact visible section.
-
-==================================================
-15. CODE EXAMPLE QUALITY
+8. PRONUNCIATION AND TTS
 ========================
 
-Whenever possible, use COMPLETE and meaningful code examples.
+The narration will be converted to speech using TTS.
 
-Avoid incomplete code unless the purpose is specifically to demonstrate syntax or structure.
+Therefore:
 
-For each important code example:
+* Use natural sentence structures.
+* Avoid unnecessarily long sentences.
+* Use punctuation for natural pauses.
+* Avoid awkward sentence structures.
+* Avoid unnecessary symbols.
+* Avoid emojis.
+* Avoid Romanized words.
+* Keep English technical terms recognizable.
+* Do not write pronunciation instructions.
+* Do not write IPA.
+* Do not add translator notes.
+* Do not add explanations about the translation.
 
-1. Show the relevant code.
-2. Highlight the line being discussed.
-3. Explain what that line does.
-4. Show the result.
-5. Continue to the next concept.
-
-Do not show code that the teacher does not explain.
-
-==================================================
-16. AUDIO / VIDEO SYNCHRONIZATION
-=================================
-
-Synchronize narration and visuals.
-
-Correct sequence:
-
-Visual appears
-→ short natural pause
-→ teacher explains
-
-Do not explain a visual before it appears.
-
-Do not keep unrelated visuals on screen while explaining another concept.
-
-Avoid long artificial pauses after every sentence.
-
-Keep narration flowing naturally.
+The final narration should sound like natural human teaching, not like a screen reader.
 
 ==================================================
-17. LANGUAGE CONSISTENCY
-========================
-
-Tamil:
-
-Tamil Unicode
-+
-Natural conversational Tamil
-+
-English technical terms
-+
-English programming symbol names
-
-Hindi:
-
-Devanagari
-+
-Natural conversational Indian Hindi
-+
-English technical terms
-+
-English programming symbol names
-
-Telugu:
-
-Telugu Unicode
-+
-Natural conversational Telugu
-+
-English technical terms
-+
-English programming symbol names
-
-Kannada:
-
-Kannada Unicode
-+
-Natural conversational Kannada
-+
-English technical terms
-+
-English programming symbol names
-
-Malayalam:
-
-Malayalam Unicode
-+
-Natural conversational Malayalam
-+
-English technical terms
-+
-English programming symbol names
-
-Never use Romanized Indian languages.
-
-==================================================
-18. FINAL TTS CHECK
+9. PRESERVE MEANING
 ===================
 
-Before sending narration to TTS, silently check EVERY sentence.
+Preserve the original English lesson meaning.
 
-CHECK:
+Do NOT perform word-by-word translation.
 
-1. No "Hi friends".
-2. No unnecessary greetings.
-3. No unnecessary introduction.
-4. No emojis.
-5. No decorative symbols.
-6. No Romanized language.
-7. No Tanglish.
-8. No Hinglish.
-9. No Tenglish.
-10. No Kanglish.
-11. No Manglish.
-12. No isolated/broken native-language words.
-13. No incomplete words.
-14. No unnecessary formal/literary language.
-15. NO PROGRAMMING SYMBOLS TRANSLATED (e.g. "plus", "greater than", "equals" MUST remain English).
-16. Code is not read character-by-character.
-17. Common technical terms remain in ENGLISH.
-18. Narration sounds like a real teacher speaking directly to a student.
-19. Sentences are natural for TTS.
-20. The original meaning is preserved.
-21. The narration does not simply copy screen content.
-22. The narration does not describe visual formatting.
+You may restructure sentences to make them natural for the target language.
 
-### CRITICAL FINAL SCAN 1: SYMBOL TRANSLATIONS
+The objective is:
 
-Scan the entire narration for any native-language words that mean:
-plus, minus, equals, greater than, less than, percent, multiply, divide, AND, OR, NOT, etc.
+English lesson meaning
+↓
+Modern technical screen content
 
-If you translated a programming symbol into Tamil, Hindi, Telugu, Kannada, or Malayalam:
-STOP. Rewrite it so the symbol name is spoken in EXACT ENGLISH.
+AND
 
-### CRITICAL FINAL SCAN
-
-Scan every English word in the output.
-
-If you find:
-
-English word + native-language suffix
-
-or:
-
-English word + space + native-language suffix
-
-STOP.
-
-For example:
-
-❌ "one-ஐ"
-❌ "one ஐ"
-
-→ rewrite as:
-
-✅ "one"
-
-or restructure the sentence naturally.
-
-Do NOT simply remove the suffix and leave a grammatically broken sentence.
-Rewrite the whole sentence if necessary.
-
-The final narration must be one continuous, natural teacher speech flow.
-It must NOT sound like separate English and native-language words being stitched together.
-
-If any check fails, rewrite the sentence before returning it.
+English narration meaning
+↓
+Natural conversational target-language speech
+↓
+TTS-friendly narration
 
 ==================================================
-19. FINAL OBJECTIVE
-===================
+10. IMPORTANT SEPARATION RULE
+=============================
 
-The final video should feel like:
+NEVER apply the conversational speech rules to the screen content.
 
-A real Indian programming teacher explaining concepts naturally to a student.
+NEVER apply the screen-content translation style to the speech.
 
-NOT:
+SCREEN CONTENT:
 
-A translated textbook.
+Modern + technical + concise + English technical terminology + target-language explanation.
 
-NOT:
+SPEECH NARRATION:
 
-A YouTube host greeting an audience.
+Natural + conversational + native Unicode + English technical terminology + TTS-friendly.
 
-NOT:
+The two outputs must be generated independently.
 
-A formal language lecture.
+==================================================
+11. FINAL QUALITY CHECK
+=======================
 
-NOT:
+Before returning the generated lesson, silently verify:
 
-A screen reader.
+SCREEN CONTENT:
+1. Is the screen content modern and technical?
+2. Is it free from overly pure/literary native-language terminology?
+3. Are common programming terms kept in English?
+4. Is the screen concise and readable?
+5. Is code unchanged?
+6. Are unnecessary emojis removed?
 
-NOT:
+SPEECH:
+7. Is the narration written in native Unicode?
+8. Is there ZERO Tanglish/Hinglish/Tenglish/Kanglish/Manglish?
+9. Does it sound like a real Indian teacher?
+10. Is it conversational rather than formal/literary?
+11. Are common technical terms kept in English?
+12. Are all emojis removed?
+13. Are unnecessary symbols removed?
+14. Is programming punctuation NOT being read literally?
+15. Is code explained naturally instead of being read character-by-character?
+16. Is the narration suitable for TTS?
+17. Is the original meaning preserved?
 
-An AI reading code character-by-character.
+If the screen content sounds too pure/formal, rewrite it into modern technical educational language.
+If the narration sounds too formal, rewrite it into natural conversational classroom speech.
+If the narration contains emojis or unnecessary symbols, remove them before returning it.
 
-NOT:
-
-A mixture of English words and native-language suffixes that sounds unnatural in TTS.
-
-The desired result is:
-
-MODERN TECHNICAL SCREEN
-+
-NATURAL TEACHER-STUDENT CONVERSATION
-+
-NATIVE UNICODE LANGUAGE
-+
-ENGLISH TECHNICAL TERMINOLOGY
-+
-ENGLISH PROGRAMMING SYMBOL NAMES
-+
-NO EMOJIS IN SPEECH
-+
-NO CODE CHARACTER-BY-CHARACTER READING
-+
-NO BROKEN SINGLE-WORD FRAGMENTS
-+
-NO NATIVE SUFFIXES ATTACHED TO ENGLISH TECHNICAL WORDS
-+
-CLEAR VISUAL EXPLANATION
-+
-NATURAL AUDIO/VIDEO SYNCHRONIZATION
-
-Keep SCREEN CONTENT and SPEECH NARRATION as separate fields.
-
-Never apply speech rules to screen content.
-
-Never automatically copy screen symbols, emojis, formatting, or code into speech.
-
+Return structured outputs according to the application's existing scene/slide schema, keeping SCREEN CONTENT and SPEECH NARRATION as separate fields.
 Translate human-readable fields: heading, subheading, bullets, narration, title, description, buttonText, labels, etc.
 Preserve JSON structure EXACTLY. Return an array of objects with the same structure, just translated text.
 
