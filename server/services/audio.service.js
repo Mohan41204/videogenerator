@@ -45,18 +45,14 @@ const generateSingleAudioWithGTTS = (text, outputPath, langCode = 'en') => {
 };
 
 const generateSingleAudio = async (text, outputPath, langCode = 'en', voiceId = null) => {
-  // If voice is 'default-computer' or omitted, but language is NOT supported by gTTS (such as 'te'), force Google Cloud TTS!
-  const isCustomVoice = voiceId && typeof voiceId === 'string' && voiceId.trim() !== '' && voiceId !== 'default' && voiceId !== 'default-computer';
-  const forceGoogleTTS = !GTTS_SUPPORTED_LANGUAGES.includes(langCode);
-
-  if (!isCustomVoice && !forceGoogleTTS) {
-    return await generateSingleAudioWithGTTS(text, outputPath, langCode);
-  }
-
-  // Use GoogleCustomVoiceProvider
+  // Use GoogleCustomVoiceProvider as the primary TTS for ALL languages to avoid the robotic gTTS voice.
   try {
     const provider = getCustomVoiceProvider();
+    
+    // Determine if it's a specific custom voice request
+    const isCustomVoice = voiceId && typeof voiceId === 'string' && voiceId.trim() !== '' && voiceId !== 'default' && voiceId !== 'default-computer';
     const isGoogleCloud = voiceId && typeof voiceId === 'string' && voiceId.startsWith('google-cloud-tts');
+    
     const passedVoiceId = isGoogleCloud ? null : (isCustomVoice ? voiceId : null);
     const voiceGender = isGoogleCloud && voiceId.includes('male') && !voiceId.includes('female') ? 'male' : 'female';
     

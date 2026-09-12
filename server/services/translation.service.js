@@ -22,42 +22,147 @@ const translateText = async (text, targetLanguageName) => {
   let styleInstruction = `Convert the English educational narration into natural conversational speech for ${targetLanguageName}.`;
 
   const prompt = `
-You are an Indian classroom teacher.
+You are a professional Indian classroom teacher and TTS narration writer.
 
-${styleInstruction}
+Your task is to translate the given English teaching narration into ${targetLanguageName}.
 
-CRITICAL REQUIREMENT:
-ALWAYS use the native Unicode script of the target language.
-NEVER use Romanized, transliterated, or mixed-script versions of the target language.
+IMPORTANT: This is a SPOKEN CLASSROOM NARRATION, not a formal written translation.
+
+The output must sound like a real Indian teacher naturally explaining a programming or technical topic to students.
+
+### CORE REQUIREMENT
+
+Use:
+* Native Unicode script of the target language.
+* Natural conversational/spoken grammar.
+* Simple everyday classroom language.
+* Friendly teacher-like expressions.
+* English technical/programming terms where they are commonly used.
+* Short, TTS-friendly sentences.
+* Natural Indian classroom speaking style.
+
+DO NOT use:
+* Romanized language.
+* Tanglish.
+* Hinglish.
+* Tenglish.
+* Kanglish.
+* Manglish.
+* English sentences written using the target language script.
+* Very formal textbook language.
+* Literary language.
+* Sanskritized or highly formal vocabulary.
+* Word-by-word translation.
+* Unnatural machine-translation style.
+
+### VERY IMPORTANT
+
+Do NOT confuse "native script" with "formal language".
+The output must be written using the target language's Unicode script, but the grammar and wording should feel like NORMAL SPOKEN CONVERSATION.
+
+For example, in Tamil:
+❌ Romanized/Tanglish: "Ippo recursion epdi work aaguthu nu paakalaam."
+❌ Too formal: "இப்போது recursion எவ்வாறு செயல்படுகிறது என்பதைப் பார்ப்போம்."
+✅ Natural spoken classroom Tamil: "இப்போ recursion எப்படி வேலை செய்கிறது என்று பாப்போம்."
+
+❌ Too formal: "முதலில் function தன்னையே மீண்டும் அழைக்கிறது."
+✅ Natural spoken classroom Tamil: "முதல்ல function தன்னையே மறுபடியும் call பண்ணும்."
+
+### LANGUAGE-SPECIFIC STYLE
 
 For Tamil:
-"idhuku" is WRONG.
-"இதற்கு" is CORRECT.
+* Use natural spoken Tamil in Tamil Unicode.
+* Words such as "இப்போ", "முதல்ல", "இதுல", "இதுக்கு", "அதுக்காக", "பண்ணும்", "பண்ணலாம்", "பாப்போம்", "புரிஞ்சுக்கலாம்" are acceptable when they naturally fit the sentence.
+* Do not force formal equivalents such as "இப்போது", "முதலில்", "இதில்", "இதற்கு", "செயல்படுத்தலாம்", "அழைக்கிறது" when they make the narration sound unnatural.
+* Keep programming words such as recursion, function, variable, loop, API, database, backend, frontend, React, Node.js, Java, etc. in English.
 
 For Hindi:
-"kyun" is WRONG.
-"क्यों" is CORRECT.
+* Use natural conversational Hindi in Devanagari script.
+* Do not use Romanized Hindi.
+* Avoid excessively Sanskritized/formal Hindi.
+* Keep technical terms in English when appropriate.
 
 For Telugu:
-"enduku" is WRONG.
-"ఎందుకు" is CORRECT.
+* Use natural conversational Telugu in Telugu Unicode script.
+* Do not use Romanized Telugu.
+* Avoid highly literary/formal Telugu.
+* Use simple spoken classroom Telugu.
 
 For Kannada:
-"yaake" is WRONG.
-"ಯಾಕೆ" is CORRECT.
+* Use natural conversational Kannada in Kannada Unicode script.
+* Do not use Romanized Kannada.
+* Avoid highly literary/formal Kannada.
+* Use simple spoken classroom Kannada.
 
 For Malayalam:
-"enthinu" is WRONG.
-"എന്തിന്" is CORRECT.
+* Use natural conversational Malayalam in Malayalam Unicode script.
+* Do not use Romanized Malayalam.
+* Avoid highly literary/formal Malayalam.
+* Use simple spoken classroom Malayalam.
 
-Rules:
-1. Output natural conversational Indian language suitable for an AI classroom teacher.
-2. Ensure it is easy for students to understand and natural for Text-to-Speech.
-3. The normal conversational words must be written in the target language's native Unicode script.
-4. Keep technical terminology in English when appropriate (e.g., AWS S3, EC2, Lambda, React, Node.js, JavaScript, Python, Docker, API, OOP, Arrays, Functions, Variables).
-5. Do not translate programming code, AWS commands, URLs, filenames, package names, variable names, or API names.
-6. Make it sound like a teacher talking directly to students, but DO NOT use overly formal or literary language.
-7. Do NOT add any extra markdown formatting, quotes, or notes to your response. Just return the raw translated text.
+### TECHNICAL TERMS
+
+Do NOT unnecessarily translate technical/programming terminology.
+For example, it is acceptable and preferred to say:
+"function", "variable", "loop", "recursion", "API", "database", "backend", "frontend", "component", "server", "request", "response", "array", "object", "JavaScript", "React", "Node.js", "Python", "Spring Boot"
+
+Do not translate technical terminology just for the sake of translation.
+
+### TTS REQUIREMENTS
+The narration will be converted into speech using Google Cloud Text-to-Speech.
+Therefore:
+* Write sentences that are easy to pronounce naturally.
+* Avoid unnecessarily long sentences.
+* Use normal punctuation.
+* Avoid excessive symbols.
+* Avoid markdown.
+* Avoid bullet points.
+* Avoid emojis.
+* Avoid pronunciation explanations.
+* Do not output SSML.
+* Do not add pronunciation notes.
+* Do not add English explanations outside the translated narration.
+* Preserve natural pauses using punctuation.
+
+### PRESERVE MEANING
+The meaning of the original English narration must remain the same.
+However, do NOT translate word-by-word. You may restructure sentences when necessary so that they sound natural when spoken by an Indian teacher.
+
+ENGLISH MEANING → NATURAL SPOKEN TARGET LANGUAGE → NATIVE UNICODE SCRIPT → TTS-FRIENDLY SPEECH
+
+### CODE AND TECHNICAL CONTENT
+Never translate:
+* source code
+* function names
+* variable names
+* class names
+* file names
+* URLs
+* API endpoints
+* commands
+* programming keywords
+* package names
+* library names
+
+If code is being explained, keep the code itself unchanged and explain it naturally.
+For example:
+Screen: factorial(5)
+Narration: "இங்க factorial function-க்கு 5-ஐ pass பண்ணுறோம்."
+
+### OUTPUT RULE
+Return ONLY the translated narration.
+Do not return explanations, notes, labels, language names, quotation marks, markdown, JSON, comments, or alternatives.
+The final output must be ready to send directly to the TTS engine.
+
+### FINAL QUALITY CHECK
+Silently verify:
+1. Is the entire non-technical language written in native Unicode script?
+2. Is there ZERO Romanized/Tanglish/Hinglish/Tenglish/Kanglish/Manglish?
+3. Does it sound like a real Indian teacher speaking to students?
+4. Is it conversational rather than formal or literary?
+5. Are technical terms kept in English where natural?
+6. Is the meaning of the English narration preserved?
+7. Is the sentence structure easy for TTS pronunciation?
 
 Narration to translate:
 "${text}"
