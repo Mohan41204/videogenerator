@@ -772,8 +772,8 @@ Translate human-readable fields: heading, subheading, bullets, narration, title,
 Preserve JSON structure EXACTLY. Return an array of objects with the same structure, just translated text.
 
 Slides JSON to translate into ${targetLanguageName}:
-\${JSON.stringify(slides, null, 2)}
-  \`.trim();
+${JSON.stringify(slides, null, 2)}
+  `.trim();
 
   const runModelWithRetry = async (modelName, maxRetries = 3) => {
     let attempts = 0;
