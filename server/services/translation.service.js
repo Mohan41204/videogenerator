@@ -322,6 +322,9 @@ Narration to translate:
       translatedText = translatedText.slice(1, -1);
     }
     
+    // Process TTS normalization if target language is Tamil
+    translatedText = await processNarrationForTTS(translatedText, targetLanguageName);
+    
     return translatedText;
   } catch (error) {
     console.error(`Translation to ${targetLanguageName} failed:`, error);
@@ -923,6 +926,15 @@ ${JSON.stringify(slides, null, 2)}
     cleanedText = cleanedText.replace(/,\s*([}\]])/g, '$1');
     
     const translatedSlides = JSON.parse(cleanedText);
+
+    // Process slide narration for TTS if target language is Tamil
+    if (Array.isArray(translatedSlides) && targetLanguageName.toLowerCase() === 'tamil') {
+      for (const slide of translatedSlides) {
+        if (slide && slide.narration) {
+          slide.narration = await processNarrationForTTS(slide.narration, targetLanguageName);
+        }
+      }
+    }
     
     return translatedSlides;
   } catch (error) {
@@ -931,7 +943,212 @@ ${JSON.stringify(slides, null, 2)}
   }
 };
 
+/**
+ * In-memory cache for normalized Tamil narration results
+ */
+const normalizationCache = new Map();
+
+/**
+ * Validates text for TTS issues, specifically targeting Tamil mixed-language suffix patterns
+ * and general formatting noise.
+ */
+const validateTTSInput = (text) => {
+  if (!text || typeof text !== 'string') return { hasIssues: false, issues: [] };
+
+  const issues = [];
+
+  // 1. Mixed language suffix pattern checks (Tamil specific)
+  const hyphenatedSuffix = /[A-Za-z0-9]+-[\u0B80-\u0BFF]+/u;
+  const adjacentSuffix = /[A-Za-z0-9]+[\u0B80-\u0BFF]+/u;
+  const isolatedParticle = /\b[A-Za-z0-9]+\s+[\u0B80-\u0BFF]{1,3}(?=\s|[.,!?]|$)/u;
+
+  if (hyphenatedSuffix.test(text) || adjacentSuffix.test(text) || isolatedParticle.test(text)) {
+    issues.push('mixed-language-suffix');
+  }
+
+  // 2. Emojis
+  const emojiRegex = /(?:\p{Extended_Pictographic}|\p{Emoji_Presentation})/u;
+  if (emojiRegex.test(text)) {
+    issues.push('emoji');
+  }
+
+  // 3. Markdown syntax
+  const markdownRegex = /\*\*|#+|`|^\s*[*+-]\s+|\[.*?\]\(.*?\)/m;
+  if (markdownRegex.test(text)) {
+    issues.push('markdown');
+  }
+
+  // 4. Decorative symbols / arrows
+  const symbolRegex = /[\u2190-\u21FF\u2600-\u26FF\u2700-\u27BF★➔➡►◄]|→|★/u;
+  if (symbolRegex.test(text)) {
+    issues.push('decorative-symbol');
+  }
+
+  // 5. Excessive / repeated punctuation
+  const repeatedPunctuationRegex = /([.,!?;:-])\1+/;
+  if (repeatedPunctuationRegex.test(text)) {
+    issues.push('repeated-punctuation');
+  }
+
+  // 6. Repeated whitespace
+  const repeatedWhitespaceRegex = /\s{2,}/;
+  if (repeatedWhitespaceRegex.test(text)) {
+    issues.push('repeated-whitespace');
+  }
+
+  return {
+    hasIssues: issues.length > 0,
+    issues
+  };
+};
+
+/**
+ * Deterministic JS cleanup pass for TTS text.
+ * Strips formatting noise without altering speech grammar.
+ */
+const cleanTextForTTS = (text) => {
+  if (!text || typeof text !== 'string') return text;
+
+  let cleaned = text;
+
+  // Replace arrow symbols with natural spoken words
+  cleaned = cleaned.replace(/\s*→\s*/g, ' and ');
+  cleaned = cleaned.replace(/[\u2190-\u21FF\u2600-\u26FF\u2700-\u27BF★➔➡►◄]/g, '');
+
+  // Strip emojis
+  cleaned = cleaned.replace(/(?:\p{Extended_Pictographic}|\p{Emoji_Presentation})/gu, '');
+
+  // Strip markdown formatting
+  cleaned = cleaned.replace(/\*\*/g, '');
+  cleaned = cleaned.replace(/#+/g, '');
+  cleaned = cleaned.replace(/`/g, '');
+  cleaned = cleaned.replace(/^\s*[*+-]\s+/gm, '');
+  cleaned = cleaned.replace(/\[(.*?)\]\(.*?\)/g, '$1');
+
+  // Collapse repeated punctuation
+  cleaned = cleaned.replace(/([.,!?;:-])\1+/g, '$1');
+
+  // Collapse repeated whitespace
+  cleaned = cleaned.replace(/\s{2,}/g, ' ');
+
+  return cleaned.trim();
+};
+
+/**
+ * Tamil-only Gemini cleanup assistant to rewrite narration so suffixes aren't attached to Latin words.
+ */
+const normalizeNarrationForTTS = async (text, attemptNumber = 1, previousIssues = []) => {
+  const cacheKey = `tamil:${text}`;
+  if (attemptNumber === 1 && normalizationCache.has(cacheKey)) {
+    return normalizationCache.get(cacheKey);
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const clientConfig = {};
+  if (apiKey && apiKey.trim()) {
+    clientConfig.apiKey = apiKey.trim();
+  } else {
+    clientConfig.vertexai = true;
+    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT || 'sky-meet-01';
+    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'asia-south1';
+  }
+  const client = new GoogleGenAI(clientConfig);
+
+  let strictInstruction = '';
+  if (previousIssues.length > 0) {
+    strictInstruction = `\nCRITICAL FIX REQUIRED: The previous output still contained the following issues: ${previousIssues.join(', ')}. FIX SPECIFICALLY THAT. Ensure NO Latin technical word has a Tamil suffix attached to it directly or via hyphen, and remove any isolated suffix/particle or emoji.`;
+  }
+
+  const prompt = `
+You are a pronunciation and Text-to-Speech (TTS) normalization assistant for Tamil educational narration.
+
+Your task is to rewrite the following Tamil speech narration so it is 100% TTS-friendly without changing its technical meaning.
+
+RULES:
+1. Preserve the original meaning exactly.
+2. Keep common English technical terms in English script (e.g. function, class, object, variable, method, API, database, component, React, Node.js, code, etc.).
+3. NEVER attach Tamil grammatical suffixes directly to English technical words (e.g., NEVER use "function-ஐ", "code-ஐ", "functionஐ", "variable-ல", "class-க்கு").
+4. If an English technical word needs a native grammatical relationship, REWRITE THE ENTIRE SENTENCE naturally so that the native suffix is not attached directly to the English word.
+5. NEVER produce isolated Tamil suffixes or particles (like standalone "ஐ", "ல", "க்கு").
+6. NEVER produce grammatically broken output or Romanized Tanglish.
+7. Remove all emojis, markdown symbols, and decorative arrows.
+8. Return ONLY the normalized Tamil narration text. Do NOT include markdown code blocks, JSON, notes, SSML, or explanations.
+${strictInstruction}
+
+Narration to normalize:
+"${text}"
+  `.trim();
+
+  try {
+    const result = await client.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+    });
+    let normalized = result.text?.trim() || '';
+    if (normalized.startsWith('"') && normalized.endsWith('"')) {
+      normalized = normalized.slice(1, -1);
+    }
+    normalized = cleanTextForTTS(normalized);
+
+    // Re-validation guard
+    const validation = validateTTSInput(normalized);
+    if (!validation.hasIssues) {
+      if (attemptNumber === 1) {
+        normalizationCache.set(cacheKey, normalized);
+      }
+      return normalized;
+    }
+
+    if (attemptNumber === 1) {
+      console.warn(`[TTS Cleanup] Re-validation failed on 1st attempt. Issues: ${validation.issues.join(', ')}. Retrying once...`);
+      return await normalizeNarrationForTTS(text, 2, validation.issues);
+    }
+
+    console.warn(`[TTS Cleanup] Re-validation failed after retry. Issues remaining: ${validation.issues.join(', ')}. Falling back to original.`);
+    return text;
+  } catch (err) {
+    console.warn(`[TTS Cleanup] Gemini normalization failed: ${err.message}. Falling back to original.`);
+    return text;
+  }
+};
+
+/**
+ * Pipeline helper to process narration for TTS when target language is Tamil.
+ */
+const processNarrationForTTS = async (translatedText, targetLanguageName) => {
+  if (!translatedText || targetLanguageName.toLowerCase() !== 'tamil') {
+    return translatedText;
+  }
+
+  const validation = validateTTSInput(translatedText);
+
+  let ttsText = translatedText;
+  if (validation.hasIssues) {
+    console.log(`[TTS Validation] Issues detected: ${validation.issues.join(', ')}`);
+    console.log(`Original narration: ${translatedText}`);
+
+    try {
+      ttsText = await normalizeNarrationForTTS(translatedText);
+      console.log(`After TTS cleanup: ${ttsText}`);
+    } catch (error) {
+      console.warn('[TTS Cleanup] Failed, using original narration:', error.message);
+      ttsText = translatedText;
+    }
+  }
+
+  ttsText = cleanTextForTTS(ttsText);
+  if (validation.hasIssues) {
+    console.log(`Final TTS text: ${ttsText}`);
+  }
+
+  return ttsText;
+};
+
 module.exports = {
   translateText,
-  translateSlides
-};
+  translateSlides,
+  validateTTSInput,
+  normalizeNarrationForTTS,
+  cleanTextForTTS,
+  normalizationCache
+};
