@@ -966,31 +966,37 @@ const validateTTSInput = (text) => {
     issues.push('mixed-language-suffix');
   }
 
-  // 2. Emojis
+  // 2. Literal programming symbol phrases spoken by accident
+  const literalSymbolSpokenRegex = /\b(?:open|close)\s+(?:parenthesis|parentheses|bracket|brackets|brace|braces)\b|\bequals\s+greater\s+than\b|\bminus\s+greater\s+than\b|\bampersand\s+ampersand\b|\bpipe\s+pipe\b/i;
+  if (literalSymbolSpokenRegex.test(text)) {
+    issues.push('literal-programming-symbol-spoken');
+  }
+
+  // 3. Emojis
   const emojiRegex = /(?:\p{Extended_Pictographic}|\p{Emoji_Presentation})/u;
   if (emojiRegex.test(text)) {
     issues.push('emoji');
   }
 
-  // 3. Markdown syntax
+  // 4. Markdown syntax
   const markdownRegex = /\*\*|#+|`|^\s*[*+-]\s+|\[.*?\]\(.*?\)/m;
   if (markdownRegex.test(text)) {
     issues.push('markdown');
   }
 
-  // 4. Decorative symbols / arrows
+  // 5. Decorative symbols / arrows
   const symbolRegex = /[\u2190-\u21FF\u2600-\u26FF\u2700-\u27BF★➔➡►◄]|→|★/u;
   if (symbolRegex.test(text)) {
     issues.push('decorative-symbol');
   }
 
-  // 5. Excessive / repeated punctuation
+  // 6. Excessive / repeated punctuation
   const repeatedPunctuationRegex = /([.,!?;:-])\1+/;
   if (repeatedPunctuationRegex.test(text)) {
     issues.push('repeated-punctuation');
   }
 
-  // 6. Repeated whitespace
+  // 7. Repeated whitespace
   const repeatedWhitespaceRegex = /\s{2,}/;
   if (repeatedWhitespaceRegex.test(text)) {
     issues.push('repeated-whitespace');
@@ -1003,13 +1009,81 @@ const validateTTSInput = (text) => {
 };
 
 /**
+ * Cleans programming syntax symbols from teacher narration so TTS engines
+ * do not read code punctuation literally (e.g., "open bracket", "underscore", "semicolon", "equals greater than").
+ * Converts semantic operators into natural spoken words.
+ */
+const cleanProgrammingSymbolsForTTS = (text) => {
+  if (!text || typeof text !== 'string') return text;
+
+  let cleaned = text;
+
+  // 1. Remove literal spoken representations of programming symbols
+  cleaned = cleaned.replace(/\b(?:open|close)\s+(?:parenthesis|parentheses|bracket|brackets|brace|braces)\b/gi, '');
+  cleaned = cleaned.replace(/\bequals\s+greater\s+than\b/gi, 'arrow');
+  cleaned = cleaned.replace(/\bminus\s+greater\s+than\b/gi, 'arrow');
+  cleaned = cleaned.replace(/\bampersand\s+ampersand\b/gi, 'and');
+  cleaned = cleaned.replace(/\bpipe\s+pipe\b/gi, 'or');
+  cleaned = cleaned.replace(/\basterisk\b/gi, 'times');
+  cleaned = cleaned.replace(/\bsemicolon\b/gi, '');
+  cleaned = cleaned.replace(/\bcolon\b/gi, '');
+  cleaned = cleaned.replace(/\bdouble\s+quote\b/gi, '');
+  cleaned = cleaned.replace(/\bsingle\s+quote\b/gi, '');
+  cleaned = cleaned.replace(/\bbacktick\b/gi, '');
+
+  // 2. Convert multi-character comparison & logical operators to spoken words
+  cleaned = cleaned.replace(/===\s*/g, ' strictly equals ');
+  cleaned = cleaned.replace(/!==\s*/g, ' strictly not equal to ');
+  cleaned = cleaned.replace(/==\s*/g, ' is equal to ');
+  cleaned = cleaned.replace(/!=\s*/g, ' is not equal to ');
+  cleaned = cleaned.replace(/>=\s*/g, ' is greater than or equal to ');
+  cleaned = cleaned.replace(/<=\s*/g, ' is less than or equal to ');
+  cleaned = cleaned.replace(/=>\s*/g, ' arrow ');
+  cleaned = cleaned.replace(/->\s*/g, ' arrow ');
+  cleaned = cleaned.replace(/&&\s*/g, ' and ');
+  cleaned = cleaned.replace(/\|\|\s*/g, ' or ');
+
+  // 3. Convert single comparison / arithmetic operators when surrounded by variables/numbers
+  cleaned = cleaned.replace(/([a-zA-Z0-9_\u0B80-\u0BFF]+)\s*>\s*([a-zA-Z0-9_\u0B80-\u0BFF]+)/g, '$1 is greater than $2');
+  cleaned = cleaned.replace(/([a-zA-Z0-9_\u0B80-\u0BFF]+)\s*<\s*([a-zA-Z0-9_\u0B80-\u0BFF]+)/g, '$1 is less than $2');
+  cleaned = cleaned.replace(/([a-zA-Z0-9_\u0B80-\u0BFF]+)\s*\*\s*([a-zA-Z0-9_\u0B80-\u0BFF]+)/g, '$1 multiplied by $2');
+  cleaned = cleaned.replace(/([a-zA-Z0-9_\u0B80-\u0BFF]+)\s*\/\s*([a-zA-Z0-9_\u0B80-\u0BFF]+)/g, '$1 divided by $2');
+  cleaned = cleaned.replace(/([a-zA-Z0-9_\u0B80-\u0BFF]+)\s*%\s*([a-zA-Z0-9_\u0B80-\u0BFF]+)/g, '$1 modulo $2');
+
+  // 4. Underscores in identifiers (e.g., user_name -> user name)
+  cleaned = cleaned.replace(/([a-zA-Z0-9]+)_([a-zA-Z0-9]+)/g, '$1 $2');
+
+  // 5. Template literal syntax `${variable}` -> `variable`
+  cleaned = cleaned.replace(/\$\{\s*([a-zA-Z0-9_]+)\s*\}/g, '$1');
+
+  // 6. Strip programming enclosure punctuation from speech
+  // Parentheses, brackets, braces, backticks, quotes around code terms
+  cleaned = cleaned.replace(/[`"'#]/g, '');
+  cleaned = cleaned.replace(/[(){}\[\]]/g, ' ');
+
+  // 7. Remove trailing/isolated colons, semicolons that are code artifacts
+  cleaned = cleaned.replace(/:\s*$/gm, '.');
+  cleaned = cleaned.replace(/;\s*/g, '. ');
+  cleaned = cleaned.replace(/\s*:\s*/g, ' ');
+
+  // 8. Collapse repeated whitespace and clean spaces around punctuation
+  cleaned = cleaned.replace(/\s+/g, ' ');
+  cleaned = cleaned.replace(/\s+([.,!?])/g, '$1');
+
+  return cleaned.trim();
+};
+
+/**
  * Deterministic JS cleanup pass for TTS text.
- * Strips formatting noise without altering speech grammar.
+ * Strips formatting noise and programming syntax symbols without altering speech grammar.
  */
 const cleanTextForTTS = (text) => {
   if (!text || typeof text !== 'string') return text;
 
   let cleaned = text;
+
+  // Apply programming symbol cleanup
+  cleaned = cleanProgrammingSymbolsForTTS(cleaned);
 
   // Replace arrow symbols with natural spoken words
   cleaned = cleaned.replace(/\s*→\s*/g, ' and ');
@@ -1056,7 +1130,7 @@ const normalizeNarrationForTTS = async (text, attemptNumber = 1, previousIssues 
 
   let strictInstruction = '';
   if (previousIssues.length > 0) {
-    strictInstruction = `\nCRITICAL FIX REQUIRED: The previous output still contained the following issues: ${previousIssues.join(', ')}. FIX SPECIFICALLY THAT. Ensure NO Latin technical word has a Tamil suffix attached to it directly or via hyphen, and remove any isolated suffix/particle or emoji.`;
+    strictInstruction = `\nCRITICAL FIX REQUIRED: The previous output still contained the following issues: ${previousIssues.join(', ')}. FIX SPECIFICALLY THAT. Ensure NO Latin technical word has a Tamil suffix attached to it directly or via hyphen, remove any isolated suffix/particle or emoji, and ensure NO programming syntax or code punctuation is read literally.`;
   }
 
   const prompt = `
@@ -1071,7 +1145,7 @@ RULES:
 4. If an English technical word needs a native grammatical relationship, REWRITE THE ENTIRE SENTENCE naturally so that the native suffix is not attached directly to the English word.
 5. NEVER produce isolated Tamil suffixes or particles (like standalone "ஐ", "ல", "க்கு").
 6. NEVER produce grammatically broken output or Romanized Tanglish.
-7. Remove all emojis, markdown symbols, and decorative arrows.
+7. Remove all emojis, markdown symbols, decorative arrows, and NEVER read programming punctuation literally (no "open bracket", "close parenthesis", "underscore", "semicolon", "colon", etc.). Explain code naturally.
 8. Return ONLY the normalized Tamil narration text. Do NOT include markdown code blocks, JSON, notes, SSML, or explanations.
 ${strictInstruction}
 
@@ -1105,31 +1179,32 @@ Narration to normalize:
     }
 
     console.warn(`[TTS Cleanup] Re-validation failed after retry. Issues remaining: ${validation.issues.join(', ')}. Falling back to original.`);
-    return text;
+    return cleanTextForTTS(text);
   } catch (err) {
-    console.warn(`[TTS Cleanup] Gemini normalization failed: ${err.message}. Falling back to original.`);
-    return text;
+    console.warn(`[TTS Cleanup] Gemini normalization failed: ${err.message}. Falling back to cleanTextForTTS.`);
+    return cleanTextForTTS(text);
   }
 };
 
 /**
- * Pipeline helper to process narration for TTS when target language is Tamil.
+ * Pipeline helper to process narration for TTS across all target languages.
  */
-const processNarrationForTTS = async (translatedText, targetLanguageName) => {
-  if (!translatedText || targetLanguageName.toLowerCase() !== 'tamil') {
+const processNarrationForTTS = async (translatedText, targetLanguageName = 'English') => {
+  if (!translatedText) {
     return translatedText;
   }
 
+  const isTamil = targetLanguageName && targetLanguageName.toLowerCase() === 'tamil';
   const validation = validateTTSInput(translatedText);
 
   let ttsText = translatedText;
-  if (validation.hasIssues) {
-    console.log(`[TTS Validation] Issues detected: ${validation.issues.join(', ')}`);
+  if (isTamil && validation.hasIssues) {
+    console.log(`[TTS Validation] Issues detected for ${targetLanguageName}: ${validation.issues.join(', ')}`);
     console.log(`Original narration: ${translatedText}`);
 
     try {
       ttsText = await normalizeNarrationForTTS(translatedText);
-      console.log(`After TTS cleanup: ${ttsText}`);
+      console.log(`After Tamil TTS cleanup: ${ttsText}`);
     } catch (error) {
       console.warn('[TTS Cleanup] Failed, using original narration:', error.message);
       ttsText = translatedText;
@@ -1137,10 +1212,6 @@ const processNarrationForTTS = async (translatedText, targetLanguageName) => {
   }
 
   ttsText = cleanTextForTTS(ttsText);
-  if (validation.hasIssues) {
-    console.log(`Final TTS text: ${ttsText}`);
-  }
-
   return ttsText;
 };
 
@@ -1150,5 +1221,7 @@ module.exports = {
   validateTTSInput,
   normalizeNarrationForTTS,
   cleanTextForTTS,
+  cleanProgrammingSymbolsForTTS,
+  processNarrationForTTS,
   normalizationCache
 };
