@@ -159,7 +159,7 @@ Examples:
 ✅ "இப்போ இந்த code எப்படி run ஆகுதுன்னு பாப்போம்."
 
 ❌ "இந்த function-க்கு ஒரு value கொடுக்கணும்."
-✅ "இந்த function ஒரு value-ஐ input-ஆ எடுத்துக்கொள்ளும்."
+✅ "இந்த function ஒரு valueஐ inputஆ எடுத்துக்கொள்ளும்."
 
 Never intentionally create speech such as:
 ❌ "part... ஐ"
