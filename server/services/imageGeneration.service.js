@@ -72,7 +72,7 @@ class ImageGenerationService {
   _optimizePrompt(prompt) {
     let p = prompt.trim();
     // Quality directives ensuring clean educational realism
-    const educationalDirectives = 'clean composition, simple clean background, clearly visible objects, realistic educational appearance, strong visual clarity, good contrast, minimal clutter, no text, no random labels, no abstract glowing lines, no futuristic fantasy elements';
+    const educationalDirectives = 'clean composition, simple clean background, clearly visible objects, realistic educational appearance, strong visual clarity, good contrast, minimal clutter, concise readable educational labels, meaningful callouts, meaningful arrows, clear concept mapping, visual relationships, short property labels, clean educational composition. Avoid: generic stock photography, generic topic illustrations, decorative AI artwork, abstract concept art, unrelated objects, random objects, excessive icons, floating random symbols, meaningless arrows, random labels, excessive text, long paragraphs, confusing layouts, visual clutter, futuristic fantasy elements, unnecessary glowing effects, overly artistic compositions, irrelevant background elements.';
     
     if (!p.toLowerCase().includes('clean background')) {
       p += `, ${educationalDirectives}`;

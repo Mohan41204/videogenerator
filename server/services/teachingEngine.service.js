@@ -441,7 +441,7 @@ NEVER hardcode scenarios or use predefined domain shortcuts. Instead, solve the 
      "scenario": "Short description of the real-world scene",
      "purpose": "Pedagogical objective (why this image helps student understand)",
      "visualType": "direct" | "analogy" | "process" | "comparison" | "spatial",
-     "imagePrompt": "Detailed concept-driven prompt: describe clean physical scene, realistic educational presentation, minimal clutter. CRITICAL: Strictly NO text, NO labels, NO words, NO diagram symbols in the image generation prompt itself.",
+     "imagePrompt": "Detailed concept-driven prompt. You are an expert educational visual designer. Create ONE professional educational teaching visual for the given topic. Do not create generic topic-related artwork. Think like an experienced classroom teacher. Determine how the concept can be explained using real-world objects, entities, environments, relationships, processes, properties, and practical examples. Use realistic and recognizable real-world objects as the primary teaching elements. Visually connect the real-world scenario to the educational concept. Use concise educational labels, meaningful arrows, relationship indicators, callouts, property lists, component labels, or simple supporting diagrams when they improve understanding. Adapt the composition to the topic. Do not force a fixed layout. The image must be understandable to a student without narration. Prioritize educational accuracy, conceptual clarity, real-world relevance, visual relationships, and practical understanding.",
      "conceptMapping": [
        { "realWorldElement": "Real element name", "concept": "Technical/academic concept" }
      ],
