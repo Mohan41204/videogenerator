@@ -995,7 +995,13 @@ const cleanProgrammingSymbolsForTTS = (text) => {
   cleaned = cleaned.replace(/([a-zA-Z0-9_\u0B80-\u0BFF]+)\s*\/\s*([a-zA-Z0-9_\u0B80-\u0BFF]+)/g, '$1 divided by $2');
   cleaned = cleaned.replace(/([a-zA-Z0-9_\u0B80-\u0BFF]+)\s*%\s*([a-zA-Z0-9_\u0B80-\u0BFF]+)/g, '$1 modulo $2');
 
-  // 4. Underscores in identifiers (e.g., user_name -> user name)
+  // 4. Python dunder methods and underscore cleanup for TTS
+  // 4a. Handle dunder (double-underscore) methods: __init__ -> init, __str__ -> str, __name__ -> name
+  cleaned = cleaned.replace(/__([a-zA-Z][a-zA-Z0-9]*)__/g, '$1');
+  // 4b. Strip remaining leading/trailing underscores from identifiers: _private -> private, name_ -> name
+  cleaned = cleaned.replace(/\b_+([a-zA-Z][a-zA-Z0-9]*)/g, '$1');
+  cleaned = cleaned.replace(/([a-zA-Z0-9]+)_+\b/g, '$1');
+  // 4c. Internal underscores in identifiers: user_name -> user name
   cleaned = cleaned.replace(/([a-zA-Z0-9]+)_([a-zA-Z0-9]+)/g, '$1 $2');
 
   // 5. Template literal syntax `${variable}` -> `variable`

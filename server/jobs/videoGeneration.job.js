@@ -238,7 +238,8 @@ async function main() {
     for (let i = 0; i < slides.length; i++) {
       const slide = slides[i];
       const chunkPath = path.join(currentTempDir, `${jobId}_chunk_${i}_en.mp3`);
-      await audioService.generateAudio(slide.narration || ' ', chunkPath, 'en', resolvedVoiceId);
+      const narrationText = translationService.cleanTextForTTS(slide.narration || ' ');
+      await audioService.generateAudio(narrationText, chunkPath, 'en', resolvedVoiceId);
       const duration = await audioService.getAudioDuration(chunkPath);
       englishAudioPaths.push(chunkPath);
       englishDurations.push(duration);
