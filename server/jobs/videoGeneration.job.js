@@ -334,8 +334,7 @@ async function main() {
     };
 
     // --- STAGE 7: Parallel Multilingual Processing & Rendering ---
-    const hasSelectedLangs = Array.isArray(selectedLanguages) && selectedLanguages.length > 0;
-    const enableMultilingual = hasSelectedLangs || process.env.ENABLE_MULTILINGUAL_AUDIO !== 'false';
+    const enableMultilingual = process.env.ENABLE_MULTILINGUAL_AUDIO === 'true';
     const failedLanguages = [];
     let jobResultStatus = 'success';
 
