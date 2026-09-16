@@ -71,16 +71,21 @@ const VideoPlayer = ({ videoData, script }) => {
   const handleDownloadVideo = (e) => {
     e.preventDefault();
     if (isDownloadingMP4) return;
-    const activeTrackUrl = videos[selectedLang]?.url || localVideoData.videoUrl;
-    const activeLangName = LANGUAGE_NAMES[selectedLang] || selectedLang;
-    const filename = selectedLang === 'en' ? 'generated-video.mp4' : `video_${activeLangName}.mp4`;
+    const v = localVideoData?.videos || {};
+    const validKeys = Object.keys(v).filter(lang => Boolean(v[lang]?.url || (lang === 'en' && localVideoData?.videoUrl)));
+    const activeLangKey = validKeys.includes(selectedLang) ? selectedLang : 'en';
+    const activeTrackUrl = v[activeLangKey]?.url || (activeLangKey === 'en' ? localVideoData?.videoUrl : null);
+    if (!activeTrackUrl) return;
+    const activeLangName = LANGUAGE_NAMES[activeLangKey] || activeLangKey;
+    const filename = activeLangKey === 'en' ? 'generated-video.mp4' : `video_${activeLangName}.mp4`;
     handleDownloadFile(activeTrackUrl, filename, setIsDownloadingMP4);
   };
 
   const handleDownloadLanguageVideo = (langCode, e) => {
     if (e) e.preventDefault();
     if (isDownloadingVideoLang) return;
-    const trackUrl = videos[langCode]?.url || (langCode === 'en' ? localVideoData?.videoUrl : null);
+    const v = localVideoData?.videos || {};
+    const trackUrl = v[langCode]?.url || (langCode === 'en' ? localVideoData?.videoUrl : null);
     if (trackUrl) {
       const langName = LANGUAGE_NAMES[langCode] || langCode;
       handleDownloadFile(trackUrl, `video_${langName}.mp4`, setIsDownloadingVideoLang);
@@ -211,27 +216,29 @@ const VideoPlayer = ({ videoData, script }) => {
   }
 
   const videos = localVideoData.videos || {};
-  const isMultilingualEnabled = Object.keys(videos).length > 0;
   
-  const currentVideoUrl = videos[selectedLang]?.url || localVideoData.videoUrl;
-  const currentLangName = LANGUAGE_NAMES[selectedLang] || selectedLang;
+  // Only include languages that have a valid generated video URL (or master English video)
+  const validLanguageKeys = Object.keys(videos).filter(lang => {
+    return Boolean(videos[lang]?.url || (lang === 'en' && localVideoData?.videoUrl));
+  });
+
+  const isMultilingualEnabled = validLanguageKeys.length > 1;
+  const activeLangKey = validLanguageKeys.includes(selectedLang) ? selectedLang : 'en';
+  const currentVideoUrl = videos[activeLangKey]?.url || localVideoData.videoUrl;
+  const currentLangName = LANGUAGE_NAMES[activeLangKey] || activeLangKey;
 
   return (
     <div className="space-y-4 animate-fade-in">
       {isMultilingualEnabled && (
          <div className="flex justify-center gap-2 mb-4 flex-wrap">
-            {Object.keys(videos).map(lang => (
+            {validLanguageKeys.map(lang => (
               <button
                 key={lang}
                 onClick={() => setSelectedLang(lang)}
-                className={`px-4 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1.5 font-medium ${selectedLang === lang ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                className={`px-4 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1.5 font-medium ${activeLangKey === lang ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
               >
-                <span>{LANGUAGE_NAMES[lang]}</span>
-                {videos[lang]?.url ? (
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                ) : (
-                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                )}
+                <span>{LANGUAGE_NAMES[lang] || lang}</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               </button>
             ))}
          </div>
@@ -259,31 +266,23 @@ const VideoPlayer = ({ videoData, script }) => {
           </div>
           
           <div className="space-y-2">
-             <h4 className="text-xs text-slate-400 uppercase font-semibold">Available Videos</h4>
-             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {Object.keys(LANGUAGE_NAMES).map(lang => {
-                  const hasTrack = Boolean(videos[lang]?.url || (lang === 'en' && localVideoData?.videoUrl));
-                  const status = retryStatus[lang];
+             <h4 className="text-xs text-slate-400 uppercase font-semibold">Available Generated Videos</h4>
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {validLanguageKeys.map(lang => {
+                  const langName = LANGUAGE_NAMES[lang] || lang;
                   return (
-                    <div key={lang} className="flex flex-col gap-1 p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                    <div key={lang} className="flex flex-col gap-1 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
                        <div className="flex justify-between items-center">
-                          <span className={`text-sm font-medium ${hasTrack ? 'text-white' : 'text-slate-500'}`}>{LANGUAGE_NAMES[lang]}</span>
-                          {hasTrack ? (
-                             <button onClick={(e) => handleDownloadLanguageVideo(lang, e)} className="p-1 text-purple-400 hover:text-purple-300 hover:bg-purple-950/50 rounded transition-colors" title={`Download ${LANGUAGE_NAMES[lang]} Video`}>
-                                <Download size={16} />
-                             </button>
-                          ) : (
-                             <button 
-                               onClick={() => handleRetryLanguage(lang)} 
-                               disabled={status === 'loading'}
-                               className="p-1 text-orange-400 hover:text-orange-300 hover:bg-orange-950/50 rounded disabled:opacity-50 transition-colors" 
-                               title="Retry Generation"
-                             >
-                                <RefreshCw size={16} className={status === 'loading' ? 'animate-spin' : ''} />
-                             </button>
-                          )}
+                          <span className="text-sm font-medium text-white">{langName}</span>
+                          <button
+                            onClick={(e) => handleDownloadLanguageVideo(lang, e)} 
+                            className="flex items-center gap-1 text-xs bg-purple-600/80 hover:bg-purple-600 text-white py-1 px-2.5 rounded transition-colors font-medium"
+                            title={`Download ${langName} Video`}
+                          >
+                             <Download size={14} />
+                             <span>Download</span>
+                          </button>
                        </div>
-                       {!hasTrack && <span className="text-[10px] text-orange-400 flex items-center gap-1"><AlertCircle size={10}/> Failed</span>}
                     </div>
                   );
                 })}
@@ -302,21 +301,34 @@ const VideoPlayer = ({ videoData, script }) => {
       )}
 
       <div className="flex gap-4">
-        <button
-          onClick={handleDownloadVideo}
-          disabled={isDownloadingMP4}
-          className="flex-1 glass hover:bg-slate-800/80 text-white font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all border border-slate-600 hover:border-purple-500 group disabled:opacity-50"
-        >
-          {isDownloadingMP4 ? (
-            <svg className="animate-spin h-5 w-5 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          ) : (
-            <Download size={18} className="text-slate-400 group-hover:text-purple-400 transition-colors" />
-          )}
-          <span>{isDownloadingMP4 ? 'Downloading...' : `Download ${currentLangName} MP4`}</span>
-        </button>
+        {(() => {
+          const activeTrackUrl = videos[activeLangKey]?.url || (activeLangKey === 'en' ? localVideoData.videoUrl : null);
+          const isTrackAvailable = Boolean(activeTrackUrl);
+
+          return (
+            <button
+              onClick={handleDownloadVideo}
+              disabled={isDownloadingMP4 || !isTrackAvailable}
+              className="flex-1 glass hover:bg-slate-800/80 text-white font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all border border-slate-600 hover:border-purple-500 group disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDownloadingMP4 ? (
+                <svg className="animate-spin h-5 w-5 text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <Download size={18} className="text-slate-400 group-hover:text-purple-400 transition-colors" />
+              )}
+              <span>
+                {isDownloadingMP4 
+                  ? 'Downloading...' 
+                  : isTrackAvailable 
+                    ? `Download ${currentLangName} MP4` 
+                    : `${currentLangName} Video Not Available`}
+              </span>
+            </button>
+          );
+        })()}
 
         {script && (
           <button
