@@ -71,15 +71,19 @@ const VideoPlayer = ({ videoData, script }) => {
   const handleDownloadVideo = (e) => {
     e.preventDefault();
     if (isDownloadingMP4) return;
-    handleDownloadFile(localVideoData.videoUrl, 'generated-video.mp4', setIsDownloadingMP4);
+    const activeTrackUrl = videos[selectedLang]?.url || localVideoData.videoUrl;
+    const activeLangName = LANGUAGE_NAMES[selectedLang] || selectedLang;
+    const filename = selectedLang === 'en' ? 'generated-video.mp4' : `video_${activeLangName}.mp4`;
+    handleDownloadFile(activeTrackUrl, filename, setIsDownloadingMP4);
   };
 
   const handleDownloadLanguageVideo = (langCode, e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (isDownloadingVideoLang) return;
-    const url = localVideoData.videos[langCode]?.url;
-    if (url) {
-      handleDownloadFile(url, `video_${LANGUAGE_NAMES[langCode] || langCode}.mp4`, setIsDownloadingVideoLang);
+    const trackUrl = videos[langCode]?.url || (langCode === 'en' ? localVideoData?.videoUrl : null);
+    if (trackUrl) {
+      const langName = LANGUAGE_NAMES[langCode] || langCode;
+      handleDownloadFile(trackUrl, `video_${langName}.mp4`, setIsDownloadingVideoLang);
     }
   };
 
@@ -91,9 +95,10 @@ const VideoPlayer = ({ videoData, script }) => {
       const zip = new JSZip();
       const tracks = localVideoData.videos || {};
       for (const [lang, videoObj] of Object.entries(tracks)) {
-        if (!videoObj || !videoObj.url) continue;
+        const trackUrl = videoObj?.url || (lang === 'en' ? localVideoData?.videoUrl : null);
+        if (!trackUrl) continue;
         const filename = `video_${LANGUAGE_NAMES[lang] || lang}.mp4`;
-        const downloadUrl = getDownloadProxyUrl(videoObj.url, filename);
+        const downloadUrl = getDownloadProxyUrl(trackUrl, filename);
         const response = await fetch(downloadUrl);
         if (!response.ok) {
           console.warn(`Failed to fetch ${lang} video for ZIP generation:`, response.statusText);
@@ -209,18 +214,24 @@ const VideoPlayer = ({ videoData, script }) => {
   const isMultilingualEnabled = Object.keys(videos).length > 0;
   
   const currentVideoUrl = videos[selectedLang]?.url || localVideoData.videoUrl;
+  const currentLangName = LANGUAGE_NAMES[selectedLang] || selectedLang;
 
   return (
     <div className="space-y-4 animate-fade-in">
       {isMultilingualEnabled && (
-         <div className="flex justify-center gap-2 mb-4">
+         <div className="flex justify-center gap-2 mb-4 flex-wrap">
             {Object.keys(videos).map(lang => (
               <button
                 key={lang}
                 onClick={() => setSelectedLang(lang)}
-                className={`px-4 py-1 text-sm rounded-full transition-colors ${selectedLang === lang ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                className={`px-4 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1.5 font-medium ${selectedLang === lang ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
               >
-                {LANGUAGE_NAMES[lang]}
+                <span>{LANGUAGE_NAMES[lang]}</span>
+                {videos[lang]?.url ? (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                ) : (
+                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                )}
               </button>
             ))}
          </div>
@@ -251,24 +262,24 @@ const VideoPlayer = ({ videoData, script }) => {
              <h4 className="text-xs text-slate-400 uppercase font-semibold">Available Videos</h4>
              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {Object.keys(LANGUAGE_NAMES).map(lang => {
-                  const hasTrack = !!videos[lang];
+                  const hasTrack = Boolean(videos[lang]?.url || (lang === 'en' && localVideoData?.videoUrl));
                   const status = retryStatus[lang];
                   return (
                     <div key={lang} className="flex flex-col gap-1 p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
                        <div className="flex justify-between items-center">
-                          <span className={`text-sm ${hasTrack ? 'text-white' : 'text-slate-500'}`}>{LANGUAGE_NAMES[lang]}</span>
+                          <span className={`text-sm font-medium ${hasTrack ? 'text-white' : 'text-slate-500'}`}>{LANGUAGE_NAMES[lang]}</span>
                           {hasTrack ? (
-                             <button onClick={(e) => handleDownloadLanguageVideo(lang, e)} className="text-purple-400 hover:text-purple-300" title="Download Video">
-                                <Download size={14} />
+                             <button onClick={(e) => handleDownloadLanguageVideo(lang, e)} className="p-1 text-purple-400 hover:text-purple-300 hover:bg-purple-950/50 rounded transition-colors" title={`Download ${LANGUAGE_NAMES[lang]} Video`}>
+                                <Download size={16} />
                              </button>
                           ) : (
                              <button 
                                onClick={() => handleRetryLanguage(lang)} 
                                disabled={status === 'loading'}
-                               className="text-orange-400 hover:text-orange-300 disabled:opacity-50" 
+                               className="p-1 text-orange-400 hover:text-orange-300 hover:bg-orange-950/50 rounded disabled:opacity-50 transition-colors" 
                                title="Retry Generation"
                              >
-                                <RefreshCw size={14} className={status === 'loading' ? 'animate-spin' : ''} />
+                                <RefreshCw size={16} className={status === 'loading' ? 'animate-spin' : ''} />
                              </button>
                           )}
                        </div>
@@ -282,7 +293,7 @@ const VideoPlayer = ({ videoData, script }) => {
           <button
             onClick={handleDownloadAllVideos}
             disabled={isDownloadingZip}
-            className="w-full text-sm flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-lg transition-colors disabled:opacity-50"
+            className="w-full text-sm flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-lg transition-colors disabled:opacity-50 font-medium border border-slate-700"
           >
             {isDownloadingZip ? <RefreshCw size={14} className="animate-spin" /> : <Archive size={14} />}
             Download All Videos (ZIP)
@@ -304,7 +315,7 @@ const VideoPlayer = ({ videoData, script }) => {
           ) : (
             <Download size={18} className="text-slate-400 group-hover:text-purple-400 transition-colors" />
           )}
-          <span>{isDownloadingMP4 ? 'Downloading...' : 'Download MP4'}</span>
+          <span>{isDownloadingMP4 ? 'Downloading...' : `Download ${currentLangName} MP4`}</span>
         </button>
 
         {script && (
