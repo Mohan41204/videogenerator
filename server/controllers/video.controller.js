@@ -438,8 +438,15 @@ const downloadVideo = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing url or path parameter' });
     }
 
-    res.setHeader('Content-Type', 'video/mp4');
-    res.setHeader('Content-Disposition', `attachment; filename="${cleanFilename}"`);
+    console.log(`[DownloadController] Download request for: ${rawUrl.substring(0, 120)}... filename=${cleanFilename}`);
+
+    // Helper to set download headers just before streaming
+    const setDownloadHeaders = () => {
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'video/mp4');
+        res.setHeader('Content-Disposition', `attachment; filename="${cleanFilename}"`);
+      }
+    };
 
     // Case 1: Check local disk file
     let localPath = null;
@@ -448,63 +455,130 @@ const downloadVideo = async (req, res) => {
     const candidatePaths = [
       path.join(__dirname, '../output/video', baseName),
       path.join(__dirname, '../output', baseName),
-      path.join(__dirname, '..', rawUrl)
     ];
+    // Only add rawUrl-based path if it doesn't look like a full URL
+    if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+      candidatePaths.push(path.join(__dirname, '..', rawUrl));
+    }
 
     for (const p of candidatePaths) {
-      if (fs.existsSync(p) && fs.statSync(p).isFile()) {
-        localPath = p;
-        break;
-      }
+      try {
+        if (fs.existsSync(p) && fs.statSync(p).isFile()) {
+          localPath = p;
+          break;
+        }
+      } catch (e) { /* ignore path errors */ }
     }
 
     if (localPath) {
+      console.log(`[DownloadController] Serving local file: ${localPath}`);
+      setDownloadHeaders();
       return fs.createReadStream(localPath).pipe(res);
     }
 
     // Case 2: GCS Object download / stream
     if (storageService.isStorageConfigured()) {
-      let gcsPath = rawUrl;
-      if (gcsPath.includes('storage.googleapis.com')) {
-        const parts = gcsPath.split('storage.googleapis.com/')[1];
-        if (parts) {
-          const pathSegments = parts.split('/');
-          pathSegments.shift(); // Remove bucket name
-          gcsPath = pathSegments.join('/').split('?')[0];
+      let gcsPath = null;
+
+      // Extract GCS object path from various URL formats
+      if (rawUrl.includes('storage.googleapis.com')) {
+        // Handle path-style: https://storage.googleapis.com/BUCKET/OBJECT
+        const pathStyleMatch = rawUrl.match(/storage\.googleapis\.com\/([^?]+)/);
+        if (pathStyleMatch) {
+          const fullPath = pathStyleMatch[1];
+          // Remove bucket name (first segment)
+          const segments = fullPath.split('/');
+          segments.shift();
+          gcsPath = segments.join('/');
         }
       }
 
-      if (gcsPath.startsWith('/')) gcsPath = gcsPath.slice(1);
+      // If URL doesn't contain storage.googleapis.com but starts with a known prefix
+      if (!gcsPath && !rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+        gcsPath = rawUrl.startsWith('/') ? rawUrl.slice(1) : rawUrl;
+      }
 
-      const exists = await storageService.fileExists(gcsPath);
-      if (exists) {
-        const stream = storageService.getFileReadStream(gcsPath);
-        if (stream) {
-          return stream.pipe(res);
+      if (gcsPath) {
+        // Clean any remaining query parameters
+        gcsPath = gcsPath.split('?')[0];
+        console.log(`[DownloadController] Attempting GCS stream for path: ${gcsPath}`);
+
+        try {
+          const exists = await storageService.fileExists(gcsPath);
+          if (exists) {
+            const stream = storageService.getFileReadStream(gcsPath);
+            if (stream) {
+              setDownloadHeaders();
+              // Handle stream errors gracefully
+              stream.on('error', (streamErr) => {
+                console.error(`[DownloadController] GCS stream error for ${gcsPath}:`, streamErr.message);
+                if (!res.headersSent) {
+                  res.status(500).json({ success: false, message: 'GCS streaming error' });
+                } else {
+                  res.end();
+                }
+              });
+              return stream.pipe(res);
+            }
+          } else {
+            console.log(`[DownloadController] GCS file not found: ${gcsPath}`);
+          }
+        } catch (gcsErr) {
+          console.warn(`[DownloadController] GCS access error for ${gcsPath}:`, gcsErr.message);
         }
       }
     }
 
-    // Case 3: External HTTP fetch fallback if it's a full URL
+    // Case 3: External HTTP fetch fallback with redirect support
     if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-      const http = rawUrl.startsWith('https://') ? require('https') : require('http');
-      http.get(rawUrl, (streamRes) => {
-        if (streamRes.statusCode === 200) {
-          streamRes.pipe(res);
-        } else {
-          res.status(streamRes.statusCode || 500).json({ success: false, message: 'Failed to fetch video from remote URL' });
+      console.log(`[DownloadController] Falling back to HTTP fetch for: ${rawUrl.substring(0, 100)}...`);
+
+      const fetchWithRedirects = (url, maxRedirects = 5) => {
+        if (maxRedirects <= 0) {
+          if (!res.headersSent) {
+            res.status(502).json({ success: false, message: 'Too many redirects' });
+          }
+          return;
         }
-      }).on('error', (err) => {
-        console.error('[DownloadController] Remote fetch error:', err.message);
-        res.status(500).json({ success: false, message: 'Remote video fetch error' });
-      });
+
+        const httpModule = url.startsWith('https://') ? require('https') : require('http');
+        httpModule.get(url, (streamRes) => {
+          // Follow redirects (301, 302, 307, 308)
+          if ([301, 302, 307, 308].includes(streamRes.statusCode) && streamRes.headers.location) {
+            console.log(`[DownloadController] Following redirect to: ${streamRes.headers.location.substring(0, 100)}...`);
+            streamRes.resume(); // Consume the response to free up memory
+            fetchWithRedirects(streamRes.headers.location, maxRedirects - 1);
+            return;
+          }
+
+          if (streamRes.statusCode === 200) {
+            setDownloadHeaders();
+            streamRes.pipe(res);
+          } else {
+            console.error(`[DownloadController] HTTP fetch returned status ${streamRes.statusCode}`);
+            streamRes.resume();
+            if (!res.headersSent) {
+              res.status(streamRes.statusCode || 500).json({ success: false, message: 'Failed to fetch video from remote URL' });
+            }
+          }
+        }).on('error', (err) => {
+          console.error('[DownloadController] Remote fetch error:', err.message);
+          if (!res.headersSent) {
+            res.status(500).json({ success: false, message: 'Remote video fetch error' });
+          }
+        });
+      };
+
+      fetchWithRedirects(rawUrl);
       return;
     }
 
     return res.status(404).json({ success: false, message: 'Video file not found' });
   } catch (error) {
     console.error('[DownloadController] Error downloading video:', error);
-    res.status(500).json({ success: false, message: 'Failed to download video', error: error.message });
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: 'Failed to download video', error: error.message });
+    }
   }
 };
 
