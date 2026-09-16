@@ -32,10 +32,20 @@ const VideoPlayer = ({ videoData, script }) => {
     }
   }, [videoData]);
 
-  const handleDownloadFile = async (url, filename, setLoader) => {
+  const getDownloadProxyUrl = (url, filename) => {
+    if (!url) return '';
+    const fullSourceUrl = getFullUrl(url);
+    return `${API_BASE_URL}/api/videos/download?url=${encodeURIComponent(fullSourceUrl)}&filename=${encodeURIComponent(filename)}`;
+  };
+
+  const handleDownloadFile = async (rawUrl, filename, setLoader) => {
     if (setLoader) setLoader(true);
+    const downloadUrl = getDownloadProxyUrl(rawUrl, filename);
     try {
-      const response = await fetch(url);
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -46,8 +56,13 @@ const VideoPlayer = ({ videoData, script }) => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
-      console.error("Error downloading file:", error);
-      window.open(url, '_blank');
+      console.error("Error downloading file via proxy, falling back to direct download link:", error);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } finally {
       if (setLoader) setLoader(false);
     }
@@ -56,7 +71,7 @@ const VideoPlayer = ({ videoData, script }) => {
   const handleDownloadVideo = (e) => {
     e.preventDefault();
     if (isDownloadingMP4) return;
-    handleDownloadFile(getFullUrl(localVideoData.videoUrl), 'generated-video.mp4', setIsDownloadingMP4);
+    handleDownloadFile(localVideoData.videoUrl, 'generated-video.mp4', setIsDownloadingMP4);
   };
 
   const handleDownloadLanguageVideo = (langCode, e) => {
@@ -64,7 +79,7 @@ const VideoPlayer = ({ videoData, script }) => {
     if (isDownloadingVideoLang) return;
     const url = localVideoData.videos[langCode]?.url;
     if (url) {
-      handleDownloadFile(getFullUrl(url), `video_${LANGUAGE_NAMES[langCode]}.mp4`, setIsDownloadingVideoLang);
+      handleDownloadFile(url, `video_${LANGUAGE_NAMES[langCode] || langCode}.mp4`, setIsDownloadingVideoLang);
     }
   };
 
@@ -77,11 +92,17 @@ const VideoPlayer = ({ videoData, script }) => {
       const tracks = localVideoData.videos || {};
       for (const [lang, videoObj] of Object.entries(tracks)) {
         if (!videoObj || !videoObj.url) continue;
-        const response = await fetch(getFullUrl(videoObj.url));
+        const filename = `video_${LANGUAGE_NAMES[lang] || lang}.mp4`;
+        const downloadUrl = getDownloadProxyUrl(videoObj.url, filename);
+        const response = await fetch(downloadUrl);
+        if (!response.ok) {
+          console.warn(`Failed to fetch ${lang} video for ZIP generation:`, response.statusText);
+          continue;
+        }
         const blob = await response.blob();
-        zip.file(`video_${LANGUAGE_NAMES[lang]}.mp4`, blob);
+        zip.file(filename, blob);
       }
-      
+
       const content = await zip.generateAsync({ type: "blob" });
       const blobUrl = window.URL.createObjectURL(content);
       const link = document.createElement('a');

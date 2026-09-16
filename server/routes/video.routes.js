@@ -18,4 +18,7 @@ router.post('/:id/video/:lang/regenerate', videoController.regenerateLanguageVid
 // Get job status endpoint
 router.get('/status/:jobId', videoController.getJobStatus);
 
+// Download video endpoint (CORS-safe attachment proxy)
+router.get('/download', videoController.downloadVideo);
+
 module.exports = router;

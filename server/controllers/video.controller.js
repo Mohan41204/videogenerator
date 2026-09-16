@@ -428,11 +428,92 @@ const regenerateLanguageVideo = async (req, res) => {
   }
 };
 
+const downloadVideo = async (req, res) => {
+  try {
+    const rawUrl = req.query.url || req.query.path;
+    const customFilename = req.query.filename || 'generated-video.mp4';
+    const cleanFilename = customFilename.endsWith('.mp4') ? customFilename : `${customFilename}.mp4`;
+
+    if (!rawUrl) {
+      return res.status(400).json({ success: false, message: 'Missing url or path parameter' });
+    }
+
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Disposition', `attachment; filename="${cleanFilename}"`);
+
+    // Case 1: Check local disk file
+    let localPath = null;
+    const baseName = path.basename(rawUrl.split('?')[0]);
+
+    const candidatePaths = [
+      path.join(__dirname, '../output/video', baseName),
+      path.join(__dirname, '../output', baseName),
+      path.join(__dirname, '..', rawUrl)
+    ];
+
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p) && fs.statSync(p).isFile()) {
+        localPath = p;
+        break;
+      }
+    }
+
+    if (localPath) {
+      return fs.createReadStream(localPath).pipe(res);
+    }
+
+    // Case 2: GCS Object download / stream
+    if (storageService.isStorageConfigured()) {
+      let gcsPath = rawUrl;
+      if (gcsPath.includes('storage.googleapis.com')) {
+        const parts = gcsPath.split('storage.googleapis.com/')[1];
+        if (parts) {
+          const pathSegments = parts.split('/');
+          pathSegments.shift(); // Remove bucket name
+          gcsPath = pathSegments.join('/').split('?')[0];
+        }
+      }
+
+      if (gcsPath.startsWith('/')) gcsPath = gcsPath.slice(1);
+
+      const exists = await storageService.fileExists(gcsPath);
+      if (exists) {
+        const stream = storageService.getFileReadStream(gcsPath);
+        if (stream) {
+          return stream.pipe(res);
+        }
+      }
+    }
+
+    // Case 3: External HTTP fetch fallback if it's a full URL
+    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+      const http = rawUrl.startsWith('https://') ? require('https') : require('http');
+      http.get(rawUrl, (streamRes) => {
+        if (streamRes.statusCode === 200) {
+          streamRes.pipe(res);
+        } else {
+          res.status(streamRes.statusCode || 500).json({ success: false, message: 'Failed to fetch video from remote URL' });
+        }
+      }).on('error', (err) => {
+        console.error('[DownloadController] Remote fetch error:', err.message);
+        res.status(500).json({ success: false, message: 'Remote video fetch error' });
+      });
+      return;
+    }
+
+    return res.status(404).json({ success: false, message: 'Video file not found' });
+  } catch (error) {
+    console.error('[DownloadController] Error downloading video:', error);
+    res.status(500).json({ success: false, message: 'Failed to download video', error: error.message });
+  }
+};
+
 module.exports = {
   generateVideo,
   generateScript,
   generateAwsScript,
   regenerateLanguageVideo,
+  downloadVideo,
   getJobStatus,
   getCurrentRenderJob,
   setCurrentRenderJob

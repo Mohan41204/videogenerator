@@ -247,6 +247,18 @@ class StorageService {
     }
   }
 
+  /**
+   * Returns a readable stream for a GCS object path.
+   * @param {string} destinationPath - GCS object path
+   * @returns {import('stream').Readable|null}
+   */
+  getFileReadStream(destinationPath) {
+    if (!this.isStorageConfigured()) return null;
+    const bucket = this._getBucket();
+    if (!bucket) return null;
+    return bucket.file(destinationPath).createReadStream();
+  }
+
   // ── Persistent Job Store (GCS jobs/{jobId}.json) ──────────────────────────
 
   /**
