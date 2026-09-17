@@ -133,6 +133,21 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
   const page = await browser.newPage();
   page.setDefaultNavigationTimeout(90000);
   page.setDefaultTimeout(90000);
+
+  // Attach browser diagnostic handlers
+  page.on('console', msg => {
+    const text = msg.text();
+    if (msg.type() === 'error' || text.includes('Error') || text.includes('Failed')) {
+      console.warn(`[BrowserConsole:${msg.type()}] ${text}`);
+    }
+  });
+  page.on('pageerror', err => {
+    console.error(`[BrowserError] ${err.message}`);
+  });
+  page.on('requestfailed', req => {
+    console.warn(`[AssetLoadError] ${req.url()} failed: ${req.failure()?.errorText}`);
+  });
+
   await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
   console.log('[Puppeteer] Browser page created and viewport configured (1280x720, deviceScaleFactor: 1).');
 
@@ -268,13 +283,25 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
         const fallbackPath = path.join(imagesDir, `render_scene_${slideIdx}_scenario.jpg`);
         try {
           const res = await imageGenService.generateScenarioImage(slide.realWorldVisual.imagePrompt, fallbackPath);
-          if (res.success) {
-            slide.imagePath = fallbackPath;
+          if (res.success && res.imagePath) {
+            slide.imagePath = res.imagePath;
           }
         } catch (e) {
           console.warn(`[Puppeteer] Fallback image generation skipped: ${e.message}`);
         }
       }
+
+      const imgExists = slide.imagePath ? fs.existsSync(slide.imagePath) : false;
+      const imgSize = imgExists ? fs.statSync(slide.imagePath).size : 0;
+      const hasDiagram = !!(slide.mermaid || (slide.visual && slide.visual.enabled));
+
+      console.log(`\n[VisualDebug] --- Slide ${slideIdx + 1}/${slides.length}: "${slide.heading}" ---`);
+      console.log(`[VisualDebug] Visual type: ${slide.realWorldVisual ? slide.realWorldVisual.visualType : (hasDiagram ? 'diagram' : 'text')}`);
+      console.log(`[VisualDebug] Diagram content exists: ${hasDiagram}`);
+      console.log(`[VisualDebug] RealWorldVisual enabled: ${!!(slide.realWorldVisual && slide.realWorldVisual.enabled)}`);
+      console.log(`[VisualDebug] Image path: ${slide.imagePath || 'None'}`);
+      console.log(`[VisualDebug] Image exists: ${imgExists}`);
+      console.log(`[VisualDebug] Image size: ${imgSize} bytes`);
 
       // ── LOAD SLIDE ────────────────────────────────────────────────────────
       // Load the slide into the browser
@@ -285,8 +312,20 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       }, slide, prevIsCode);
       console.log(`[Puppeteer] slideData loaded into DOM for slide ${slideIdx + 1}.`);
 
+      // Wait for image element DOM load completion if image is present
+      if (slide.imagePath && imgExists) {
+        try {
+          await page.waitForFunction(() => {
+            const img = document.getElementById('wb-scenario-image');
+            return img && img.complete && img.naturalWidth > 0;
+          }, { timeout: 3500 });
+          console.log(`[Puppeteer] ✓ Real-world scenario image loaded and verified in browser DOM.`);
+        } catch (imgWaitErr) {
+          console.warn(`[Puppeteer] Warning: Image DOM load wait unverified or timed out: ${imgWaitErr.message}`);
+        }
+      }
+
       // If it is a diagram slide, render the Mermaid SVG into the container
-      const hasDiagram = (slide.isDiagram && slide.mermaid) || (slide.visual && slide.visual.enabled);
       if (hasDiagram) {
         console.log(`[Puppeteer]   → Rendering diagram for slide ${slideIdx + 1}...`);
         let mermaidCode = slide.mermaid;

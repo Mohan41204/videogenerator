@@ -1905,7 +1905,7 @@ window.loadSlide = function(slide) {
     var canvas = document.getElementById('wb-canvas');
     canvas.innerHTML = '';
     
-    var hasDiagram = !!(slide.isDiagram || slide.mermaid || (slide.visual && slide.visual.enabled));
+    var hasDiagram = !!(slide.mermaid || (slide.visual && slide.visual.enabled));
     
     // Build Text Card Element
     var textCard = document.createElement('div');
@@ -1942,16 +1942,16 @@ window.loadSlide = function(slide) {
     
     // If Diagram is present, build diagram container element directly in the main educational area!
     if (hasDiagram) {
-      // Set appear time from visualTiming, or default to 0 for legacy scripts without visualTiming
-      window._diagramAppearSecond = 4;
+      // Show diagram early (from 1.0s or immediate) so student sees content without prolonged blank white screen
+      window._diagramAppearSecond = 1.0;
       if (slide.visualTiming && slide.visualTiming.enabled !== false && typeof slide.visualTiming.appearAtSecond === 'number') {
-        window._diagramAppearSecond = slide.visualTiming.appearAtSecond;
+        window._diagramAppearSecond = Math.min(1.5, Math.max(0, slide.visualTiming.appearAtSecond));
       } else if (!slide.visualTiming || slide.visualTiming.enabled === false) {
-        window._diagramAppearSecond = 0; // Legacy scripts show diagram from beginning
+        window._diagramAppearSecond = 0;
       }
       
       var diagramCard = document.createElement('div');
-      diagramCard.className = 'wb-element wb-diagram-container';
+      diagramCard.className = 'wb-element wb-diagram-container visible';
       diagramCard.id = 'wb-diagram-card';
       canvas.appendChild(diagramCard);
     } else {
@@ -1960,18 +1960,19 @@ window.loadSlide = function(slide) {
 
     // STRICT VISUAL ISOLATION: Real-world visual is ONLY created on non-diagram slides where explicitly enabled
     // This guarantees diagrams have 100% full screen whiteboard space and no visual interference
-    var hasRealWorld = !hasDiagram && !!(slide.realWorldVisual && slide.realWorldVisual.enabled === true && (slide.imagePath || slide.imageUrl));
+    var hasRealWorld = !hasDiagram && !!(slide.realWorldVisual && slide.realWorldVisual.enabled === true && (slide.imagePath || slide.imageUrl || slide.realWorldVisual.imagePrompt));
     window._hasRealWorld = hasRealWorld;
     window._imageAppearSecond = 0;
 
     if (hasRealWorld) {
-      window._imageAppearSecond = 4;
+      // Show real-world image early (from 1.0s) so visual content is displayed cleanly during narration
+      window._imageAppearSecond = 1.0;
       if (slide.realWorldVisualTiming && slide.realWorldVisualTiming.enabled !== false && typeof slide.realWorldVisualTiming.appearAtSecond === 'number') {
-        window._imageAppearSecond = slide.realWorldVisualTiming.appearAtSecond;
+        window._imageAppearSecond = Math.min(1.5, Math.max(0, slide.realWorldVisualTiming.appearAtSecond));
       }
 
       var imageCard = document.createElement('div');
-      imageCard.className = 'wb-element wb-image-container';
+      imageCard.className = 'wb-element wb-image-container visible';
       imageCard.id = 'wb-image-card';
 
       var wrapper = document.createElement('div');
@@ -1989,9 +1990,6 @@ window.loadSlide = function(slide) {
       imgEl.alt = slide.realWorldVisual.scenario || 'Real-World Visual Scenario';
       wrapper.appendChild(imgEl);
 
-      // Annotation overlay removed — the generated infographic image itself
-      // now contains all educational labels, arrows, and visual structure.
-      // No overlay text is needed on top of the image.
       window._scenarioAnnotations = [];
 
       imageCard.appendChild(wrapper);
