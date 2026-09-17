@@ -111,15 +111,18 @@ Focus primarily on VISUAL EXPLANATION rather than decoration.`;
    */
   async _tryGeminiImageGen(prompt, outputPath) {
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    if (!apiKey || !apiKey.trim()) return null;
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'sky-meet-01';
 
     try {
       const { GoogleGenAI } = require('@google/genai');
-      const clientConfig = { apiKey: apiKey.trim() };
+      const clientConfig = {};
 
-      if (process.env.GOOGLE_CLOUD_PROJECT) {
+      if (apiKey && apiKey.trim()) {
+        clientConfig.apiKey = apiKey.trim();
+      } else {
+        // Fall back to Vertex AI Service Account authentication on Cloud Run
         clientConfig.vertexai = true;
-        clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT;
+        clientConfig.project = projectId;
         clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'asia-south1';
       }
 
