@@ -441,7 +441,7 @@ NEVER hardcode scenarios or use predefined domain shortcuts. Instead, solve the 
      "scenario": "Short description of the real-world scene",
      "purpose": "Pedagogical objective (why this image helps student understand)",
      "visualType": "direct" | "analogy" | "process" | "comparison" | "spatial",
-     "imagePrompt": "Generate a COMPLETE EDUCATIONAL INFOGRAPHIC prompt. The prompt must instruct the image model to create a professional educational presentation slide that visually TEACHES the concept — NOT a generic photograph, product photo, cinematic scene, or decorative illustration. The prompt MUST explicitly describe: (1) The main concept being taught, (2) The real-world analogy chosen and why, (3) The entities/components representing the concept, (4) The relationships between those entities shown with arrows/connectors, (5) The exact visual hierarchy and layout (e.g. Class at top → Objects below, Input → Process → Output left-to-right), (6) The directional arrows or visual connections required, (7) The concise labels that should appear inside the image on each element, (8) The position of each major element (e.g. center, top-left, bottom-right), (9) The educational purpose of the visual. Use a clean 16:9 layout with white or light background, rounded cards/panels, soft coordinated colors, professional typography, clean vector-style diagrams, and polished realistic illustrations for real-world objects. The image must contain visual containers, boxes, arrows, labels, icons, and diagrams — resembling a professionally designed educational course slide. A viewer should understand the concept, its components, and their relationships just by looking at the image. Do NOT generate prompts for: realistic photographs only, collections of objects, product photos, photo collages, cinematic scenes, generic environments, or abstract artwork.",
+     "imagePrompt": "Write a prompt that will make the image model generate a single educational diagram image that EXPLAINS this topic visually. Think step by step: (1) What is the main concept? (2) What real-world example best explains it? (3) How are the parts related? Then describe the image. For example, if the topic is 'Class and Object in Python', the prompt should describe: a diagram showing 'Vehicles' labeled as '(Class)' on the left with a car icon, with bold arrows pointing to three separate illustrated items — a red car labeled 'Car (Object)', a blue bicycle labeled 'Bike (Object)', and a yellow truck labeled 'Truck (Object)' — with a large 'Objects' label on the right. The prompt must describe the EXACT visual layout: what goes where, what arrows connect, what labels appear on each element, and what real-world illustrations to draw. The image must teach the concept by showing the relationship between the main idea and its real-world examples. Use flat colorful vector illustrations of real objects (cars, computers, books, people, buildings etc.), labeled colored rounded cards, bold arrows showing relationships. White background, 16:9 layout.",
      "conceptMapping": [
        { "realWorldElement": "Real element name", "concept": "Technical/academic concept" }
      ],
@@ -992,18 +992,27 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
         const conceptName = slide.subheading || slide.heading || 'the concept';
         const scenario = slide.realWorldVisual.scenario || '';
         const vType = slide.realWorldVisual.visualType || 'direct';
-        const mappings = (slide.realWorldVisual.conceptMapping || [])
-          .map(m => `"${m.realWorldElement}" represents "${m.concept}"`)
-          .join(', ');
+        const mappingList = slide.realWorldVisual.conceptMapping || [];
 
-        let layoutHint = '';
-        if (vType === 'analogy') layoutHint = 'Show the real-world analogy on the left side and the technical concept on the right side, with labeled arrows connecting corresponding elements between them.';
-        else if (vType === 'process') layoutHint = 'Show the process as a left-to-right or top-to-bottom flow with numbered steps, directional arrows between each step, and concise labels on each step.';
-        else if (vType === 'comparison') layoutHint = 'Use a side-by-side comparison layout with two distinct panels, each clearly labeled, highlighting the key differences and similarities.';
-        else if (vType === 'spatial') layoutHint = 'Use a hierarchical or layered layout showing containment, parent-child relationships, or architectural layers with clear nesting and grouping.';
-        else layoutHint = 'Place the main concept prominently at the center or top, with supporting components arranged around it in a logical visual hierarchy.';
+        // Build a concrete visual description from the concept mappings
+        let mappingDesc = '';
+        if (mappingList.length > 0) {
+          const parts = mappingList.map((m, idx) => {
+            const colors = ['red', 'blue', 'green', 'orange', 'purple', 'teal'];
+            const color = colors[idx % colors.length];
+            return `a ${color} illustrated ${m.realWorldElement} labeled "${m.realWorldElement} (${m.concept})"`;
+          });
+          mappingDesc = `with bold arrows pointing to: ${parts.join(', ')}`;
+        }
 
-        slide.realWorldVisual.imagePrompt = `Create a COMPLETE professional educational infographic that visually TEACHES the concept of "${conceptName}". ${scenario ? `Real-world scenario: ${scenario}. ` : ''}${mappings ? `Concept mapping: ${mappings}. ` : ''}${layoutHint} The image must be a self-contained educational diagram — include visual containers (rounded cards/panels), labeled boxes for each concept, directional arrows showing relationships and flow, concise text labels on every important element, and polished realistic illustrations for any real-world objects. Use a clean 16:9 presentation layout with white or very light background, professional typography, soft coordinated colors, strong visual hierarchy, and clean vector-style diagrams. The final image must look like a professionally designed slide from a high-quality programming or technology course. A viewer should understand: (1) what the main concept is, (2) its important components, (3) how those components relate to each other. Do NOT create: generic photographs, product photos, photo collages, cinematic scenes, abstract artwork, or decorative illustrations without educational structure.`;
+        let layoutDesc = '';
+        if (vType === 'analogy') layoutDesc = `On the left side, show "${conceptName}" as the main concept in a large labeled card. ${mappingDesc || 'With arrows pointing to real-world examples on the right side.'}`;
+        else if (vType === 'process') layoutDesc = `Show the steps of "${conceptName}" flowing left to right, each step in a labeled card with arrows between them. ${mappingDesc}`;
+        else if (vType === 'comparison') layoutDesc = `Show a side-by-side comparison explaining "${conceptName}", with two labeled panels. ${mappingDesc}`;
+        else if (vType === 'spatial') layoutDesc = `Show "${conceptName}" as a hierarchy or layered diagram, with the main concept on top and sub-concepts below. ${mappingDesc}`;
+        else layoutDesc = `Show "${conceptName}" as the main concept in a large labeled card on the left. ${mappingDesc || 'With arrows pointing to its real-world examples on the right side.'}`;
+
+        slide.realWorldVisual.imagePrompt = `Educational diagram that visually explains "${conceptName}". ${scenario ? `Real-world example: ${scenario}. ` : ''}${layoutDesc} Each element should have a flat colorful vector illustration of the real object and a clear text label. Use bold dark arrows to show the relationships. White background, clean 16:9 layout.`;
       }
       if (!slide.realWorldVisual.purpose) {
         slide.realWorldVisual.purpose = `Help students intuitively understand ${slide.heading} through a real-world scenario`;

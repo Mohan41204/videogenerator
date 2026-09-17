@@ -66,19 +66,18 @@ class ImageGenerationService {
   }
 
   /**
-   * Appends quality and educational infographic directives for image generation.
-   * Ensures the prompt produces professional educational infographics with
-   * diagrams, arrows, labels, and visual structure — not generic photographs.
+   * Wraps the prompt to ensure the image model generates a concept-explaining
+   * educational diagram — like "Vehicles (Class) → Car/Bike/Truck (Objects)".
+   * The image must visually EXPLAIN the topic, not just illustrate it.
    */
   _optimizePrompt(prompt) {
     let p = prompt.trim();
-    // Educational infographic quality directives
-    const infographicDirectives = 'Professional educational infographic style, clean 16:9 presentation layout, white or very light background, strong visual hierarchy, clean vector-style diagrams, rounded cards and panels, professional typography, soft coordinated colors, labeled boxes for concepts, directional arrows showing relationships and flow, concise readable text labels on important elements, polished realistic illustrations for real-world objects, balanced composition, consistent illustration style, high-resolution sharp graphics, presentation-slide quality. Avoid: generic stock photography, generic topic illustrations, decorative AI artwork, abstract concept art, photo collages, product advertisements, cinematic scenes, unrelated objects, random objects, excessive icons, floating random symbols, meaningless arrows, random labels, excessive text, long paragraphs, confusing layouts, visual clutter, futuristic fantasy elements, unnecessary glowing effects, overly artistic compositions, irrelevant background elements, watermarks, logos, signatures.';
-    
-    if (!p.toLowerCase().includes('infographic')) {
-      p += `. ${infographicDirectives}`;
-    }
-    return p;
+
+    const prefix = 'Create an educational concept diagram that visually EXPLAINS the topic. Show the main concept and its real-world examples with flat colorful vector illustrations, labeled rounded colored cards, and bold arrows showing how they relate. White background, 16:9 widescreen layout, large readable labels.';
+
+    const suffix = 'The image must TEACH the topic — a student should understand the concept just by looking at the image. Show real objects (cars, computers, books, people, buildings etc.) as flat colorful vector illustrations inside soft pastel colored cards with clear labels. Use bold dark arrows to show relationships. NO realistic photographs. NO photo collages. NO dark backgrounds. NO abstract art. NO watermarks.';
+
+    return `${prefix} ${p} ${suffix}`;
   }
 
   /**

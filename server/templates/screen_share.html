@@ -1989,139 +1989,12 @@ window.loadSlide = function(slide) {
       imgEl.alt = slide.realWorldVisual.scenario || 'Real-World Visual Scenario';
       wrapper.appendChild(imgEl);
 
-      // Create Educational Annotation Overlay Layer
-      var annotations = slide.realWorldVisual.annotations || [];
-      window._scenarioAnnotations = annotations;
+      // Annotation overlay removed — the generated infographic image itself
+      // now contains all educational labels, arrows, and visual structure.
+      // No overlay text is needed on top of the image.
+      window._scenarioAnnotations = [];
 
-      var svgNs = "http://www.w3.org/2000/svg";
-      var svgEl = document.createElementNS(svgNs, "svg");
-      svgEl.setAttribute("class", "wb-annotation-svg");
-      svgEl.setAttribute("id", "wb-annotation-svg");
-      svgEl.setAttribute("viewBox", "0 0 1000 600");
-      svgEl.setAttribute("preserveAspectRatio", "none");
-
-      // Marker for arrowheads
-      var defs = document.createElementNS(svgNs, "defs");
-      var marker = document.createElementNS(svgNs, "marker");
-      marker.setAttribute("id", "wb-arrow-head");
-      marker.setAttribute("viewBox", "0 0 10 10");
-      marker.setAttribute("refX", "8");
-      marker.setAttribute("refY", "5");
-      marker.setAttribute("markerWidth", "6");
-      marker.setAttribute("markerHeight", "6");
-      marker.setAttribute("orient", "auto-start-reverse");
-      var markerPath = document.createElementNS(svgNs, "path");
-      markerPath.setAttribute("d", "M 0 1 L 10 5 L 0 9 z");
-      markerPath.setAttribute("fill", "#2563eb");
-      marker.appendChild(markerPath);
-      defs.appendChild(marker);
-      svgEl.appendChild(defs);
-
-      // HTML layer for crisp typography callouts
-      var htmlLayer = document.createElement("div");
-      htmlLayer.className = "wb-annotation-html-layer";
-      htmlLayer.id = "wb-annotation-html-layer";
-
-      annotations.forEach(function(ann, aIdx) {
-        var annGroup = document.createElementNS(svgNs, "g");
-        annGroup.setAttribute("class", "wb-ann-item");
-        annGroup.setAttribute("id", "wb-ann-svg-" + aIdx);
-
-        var x = ann.x * 1000;
-        var y = ann.y * 600;
-
-        if (ann.type === 'arrow' && typeof ann.toX === 'number' && typeof ann.toY === 'number') {
-          var toX = ann.toX * 1000;
-          var toY = ann.toY * 600;
-          var arrowLine = document.createElementNS(svgNs, "line");
-          arrowLine.setAttribute("x1", x);
-          arrowLine.setAttribute("y1", y);
-          arrowLine.setAttribute("x2", toX);
-          arrowLine.setAttribute("y2", toY);
-          arrowLine.setAttribute("class", "wb-ann-arrow");
-          arrowLine.setAttribute("marker-end", "url(#wb-arrow-head)");
-          annGroup.appendChild(arrowLine);
-        } else if (ann.type === 'box') {
-          var box = document.createElementNS(svgNs, "rect");
-          var w = Math.min(260, (1 - ann.x) * 1000);
-          var h = Math.min(180, (1 - ann.y) * 600);
-          box.setAttribute("x", Math.max(10, x - w/2));
-          box.setAttribute("y", Math.max(10, y - h/2));
-          box.setAttribute("width", w);
-          box.setAttribute("height", h);
-          box.setAttribute("class", "wb-ann-box");
-          annGroup.appendChild(box);
-        } else if (ann.type === 'circle' || ann.type === 'highlight') {
-          var circle = document.createElementNS(svgNs, "circle");
-          circle.setAttribute("cx", x);
-          circle.setAttribute("cy", y);
-          circle.setAttribute("r", "28");
-          circle.setAttribute("class", "wb-ann-circle");
-          annGroup.appendChild(circle);
-        }
-        svgEl.appendChild(annGroup);
-
-        // HTML Callout Card / Badge
-        var callout = document.createElement("div");
-        callout.className = "wb-ann-item wb-annotation-callout";
-        callout.id = "wb-ann-html-" + aIdx;
-
-        var posX = ann.x * 100;
-        var posY = ann.y * 100;
-        if (ann.type === 'arrow' && typeof ann.toX === 'number' && typeof ann.toY === 'number') {
-          posX = ((ann.x + ann.toX) / 2) * 100;
-          posY = ((ann.y + ann.toY) / 2) * 100;
-        }
-        callout.style.left = posX + "%";
-        callout.style.top = posY + "%";
-
-        var conceptSpan = document.createElement("span");
-        conceptSpan.className = "wb-callout-concept";
-        conceptSpan.textContent = ann.concept || ann.label || '';
-        callout.appendChild(conceptSpan);
-
-        if (ann.label && ann.label !== ann.concept) {
-          var labelSpan = document.createElement("span");
-          labelSpan.className = "wb-callout-label";
-          labelSpan.textContent = ann.label;
-          callout.appendChild(labelSpan);
-        }
-
-        htmlLayer.appendChild(callout);
-      });
-
-      wrapper.appendChild(svgEl);
-      wrapper.appendChild(htmlLayer);
       imageCard.appendChild(wrapper);
-
-      // Add concept mapping bar if mappings exist
-      var mappings = slide.realWorldVisual.conceptMapping || [];
-      if (mappings.length > 0) {
-        var mapBar = document.createElement('div');
-        mapBar.className = 'wb-concept-mapping-bar';
-        mappings.forEach(function(m) {
-          var pill = document.createElement('div');
-          pill.className = 'wb-concept-pill';
-
-          var realSpan = document.createElement('span');
-          realSpan.className = 'pill-real';
-          realSpan.textContent = m.realWorldElement || '';
-
-          var arrowSpan = document.createElement('span');
-          arrowSpan.className = 'pill-arrow';
-          arrowSpan.textContent = ' ➔ ';
-
-          var techSpan = document.createElement('span');
-          techSpan.className = 'pill-tech';
-          techSpan.textContent = m.concept || '';
-
-          pill.appendChild(realSpan);
-          pill.appendChild(arrowSpan);
-          pill.appendChild(techSpan);
-          mapBar.appendChild(pill);
-        });
-        imageCard.appendChild(mapBar);
-      }
 
       canvas.appendChild(imageCard);
     }
@@ -2261,26 +2134,6 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
       if (!imageCard.classList.contains('visible')) imageCard.classList.add('visible');
     } else {
       if (imageCard.classList.contains('visible')) imageCard.classList.remove('visible');
-    }
-
-    // 4c. Render and Sequentially Reveal Annotations (arrows, callouts, highlights)
-    var annotations = window._scenarioAnnotations || [];
-    for (var a = 0; a < annotations.length; a++) {
-      var ann = annotations[a];
-      var annAppear = ann.appearAtSecond || imgAppearTime;
-      var isAnnVisible = elapsedSecs >= annAppear;
-      
-      var svgItem = document.getElementById('wb-ann-svg-' + a);
-      if (svgItem) {
-        if (isAnnVisible && !svgItem.classList.contains('visible')) svgItem.classList.add('visible');
-        else if (!isAnnVisible && svgItem.classList.contains('visible')) svgItem.classList.remove('visible');
-      }
-
-      var htmlItem = document.getElementById('wb-ann-html-' + a);
-      if (htmlItem) {
-        if (isAnnVisible && !htmlItem.classList.contains('visible')) htmlItem.classList.add('visible');
-        else if (!isAnnVisible && htmlItem.classList.contains('visible')) htmlItem.classList.remove('visible');
-      }
     }
   }
   
