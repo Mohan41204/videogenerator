@@ -66,44 +66,34 @@ class ImageGenerationService {
   }
 
   /**
-   * Builds the final image prompt using the user-defined educational infographic template.
-   * The [TOPIC] placeholder is replaced with the actual concept prompt from the script engine.
-   * This prompt focuses on VISUAL EXPLANATION — real-world analogy, minimal text, flexible layout.
+   * Wraps the prompt to ensure the image model generates a complete educational teaching visual
+   * as ONE composed image from the beginning, using recognizable real-world objects intentionally arranged for teaching.
    */
   _optimizePrompt(prompt) {
-    const topic = prompt.trim();
+    let p = prompt.trim();
 
-    return `Create an educational programming concept infographic for [${topic}].
+    const prefix = [
+      'You are creating a professional educational teaching visual, not a photograph.',
+      'Design the complete composition before rendering it. The entire image must be one coherent teaching aid.',
+      'Use realistic recognizable real-world objects as the main visual elements, but arrange those objects intentionally to explain the educational concept.',
+      'Integrate the real-world objects, conceptual structure, headings, concise labels, property information, relationships, arrows, and callouts into one unified composition on a clean light educational canvas.',
+      'Do not create a realistic background photograph and place annotations on top of it. Do not create an annotated photograph.',
+      'The student should understand the concept by looking at the complete image.',
+      'Use a professional classroom presentation or educational infographic composition with clear visual hierarchy, concise text, and meaningful arrows.',
+      'Prioritize teaching clarity over photographic realism. 16:9 widescreen layout.'
+    ].join(' ');
 
-The main goal is to EXPLAIN and VISUALIZE the programming concept, not simply display text or code.
+    const negativeInstructions = [
+      'NEGATIVE INSTRUCTIONS: Do not generate a normal photograph. Do not generate a photo-first composition.',
+      'Do not create a large realistic background and overlay labels. Do not create a warehouse scene with annotations.',
+      'Do not create an office photograph with annotations. Do not create a street photograph with annotations.',
+      'Do not make the background dominate the image. Do not use tiny objects surrounded by large empty scenery.',
+      'Do not use random objects. Do not use decorative annotations. Do not use meaningless arrows.',
+      'Do not use excessive text or long paragraphs. Do not create abstract AI artwork or sci-fi graphics.',
+      'Do not create futuristic fantasy objects. Do not create a generic stock photograph.'
+    ].join(' ');
 
-Think of a simple real-world analogy that a beginner can immediately understand.
-
-Show the relationship, process, or behavior of the programming concept using:
-- Real-world objects or situations
-- Simple visual illustrations
-- Arrows, connections, flow, grouping, or comparisons where appropriate
-- Very short labels
-- Minimal text
-- A small amount of relevant code only when it helps explain the concept
-
-The image should make the concept understandable even before reading the labels.
-
-Do NOT force the image into a fixed layout.
-Do NOT copy a particular infographic design.
-Choose the visual structure that best represents the concept.
-
-Use a clean, modern educational illustration style:
-- White or very light background
-- Professional vector illustrations
-- Soft colors
-- Clear labels
-- Simple shapes
-- Good spacing
-- Beginner-friendly
-- 16:9 presentation format
-
-Focus primarily on VISUAL EXPLANATION rather than decoration.`;
+    return `${prefix} TOPIC SCENARIO VISUAL SPECIFICATION: ${p} ${negativeInstructions}`;
   }
 
   /**
@@ -111,18 +101,15 @@ Focus primarily on VISUAL EXPLANATION rather than decoration.`;
    */
   async _tryGeminiImageGen(prompt, outputPath) {
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'sky-meet-01';
+    if (!apiKey || !apiKey.trim()) return null;
 
     try {
       const { GoogleGenAI } = require('@google/genai');
-      const clientConfig = {};
+      const clientConfig = { apiKey: apiKey.trim() };
 
-      if (apiKey && apiKey.trim()) {
-        clientConfig.apiKey = apiKey.trim();
-      } else {
-        // Fall back to Vertex AI Service Account authentication on Cloud Run
+      if (process.env.GOOGLE_CLOUD_PROJECT) {
         clientConfig.vertexai = true;
-        clientConfig.project = projectId;
+        clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT;
         clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'asia-south1';
       }
 
