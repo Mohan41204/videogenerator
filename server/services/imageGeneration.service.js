@@ -66,56 +66,83 @@ class ImageGenerationService {
   }
 
   /**
-   * Wraps the prompt to ensure the image model generates a concept-explaining
-   * educational diagram — like "Vehicles (Class) → Car/Bike/Truck (Objects)".
-   * The image must visually EXPLAIN the topic, not just illustrate it.
+   * Builds the final image prompt using the user-defined educational infographic template.
+   * The [TOPIC] placeholder is replaced with the actual concept prompt from the script engine.
+   * This prompt focuses on VISUAL EXPLANATION — real-world analogy, minimal text, flexible layout.
    */
   _optimizePrompt(prompt) {
-    let p = prompt.trim();
+    const topic = prompt.trim();
 
-    const prefix = 'Create an educational concept diagram that visually EXPLAINS the topic. Show the main concept and its real-world examples with flat colorful vector illustrations, labeled rounded colored cards, and bold arrows showing how they relate. White background, 16:9 widescreen layout, large readable labels.';
+    return `Create an educational programming concept infographic for [${topic}].
 
-    const suffix = 'The image must TEACH the topic — a student should understand the concept just by looking at the image. Show real objects (cars, computers, books, people, buildings etc.) as flat colorful vector illustrations inside soft pastel colored cards with clear labels. Use bold dark arrows to show relationships. NO realistic photographs. NO photo collages. NO dark backgrounds. NO abstract art. NO watermarks.';
+The main goal is to EXPLAIN and VISUALIZE the programming concept, not simply display text or code.
 
-    return `${prefix} ${p} ${suffix}`;
+Think of a simple real-world analogy that a beginner can immediately understand.
+
+Show the relationship, process, or behavior of the programming concept using:
+- Real-world objects or situations
+- Simple visual illustrations
+- Arrows, connections, flow, grouping, or comparisons where appropriate
+- Very short labels
+- Minimal text
+- A small amount of relevant code only when it helps explain the concept
+
+The image should make the concept understandable even before reading the labels.
+
+Do NOT force the image into a fixed layout.
+Do NOT copy a particular infographic design.
+Choose the visual structure that best represents the concept.
+
+Use a clean, modern educational illustration style:
+- White or very light background
+- Professional vector illustrations
+- Soft colors
+- Clear labels
+- Simple shapes
+- Good spacing
+- Beginner-friendly
+- 16:9 presentation format
+
+Focus primarily on VISUAL EXPLANATION rather than decoration.`;
   }
 
   /**
    * Attempts generation using Google Gemini / Imagen.
    */
   async _tryGeminiImageGen(prompt, outputPath) {
-    if (!process.env.GOOGLE_CLOUD_PROJECT) return null;
-    
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey || !apiKey.trim()) return null;
+
     try {
       const { GoogleGenAI } = require('@google/genai');
-      const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-      const clientConfig = {};
-      if (apiKey && apiKey.trim()) {
-        clientConfig.apiKey = apiKey.trim();
-      } else {
+      const clientConfig = { apiKey: apiKey.trim() };
+
+      if (process.env.GOOGLE_CLOUD_PROJECT) {
         clientConfig.vertexai = true;
-        clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT || 'sky-meet-01';
+        clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT;
         clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'asia-south1';
       }
+
       const ai = new GoogleGenAI(clientConfig);
-      
-      const response = await ai.models.generateContent({
+
+      const response = await ai.models.generateImages({
         model: 'imagen-3.0-generate-002',
-        contents: prompt,
+        prompt: prompt,
+        config: {
+          numberOfImages: 1,
+          outputMimeType: 'image/jpeg',
+          aspectRatio: '16:9',
+        },
       });
 
-      const parts = response.candidates?.[0]?.content?.parts;
-      if (parts && parts.length > 0) {
-        for (const part of parts) {
-          if (part.inlineData && part.inlineData.data) {
-            const buffer = Buffer.from(part.inlineData.data, 'base64');
-            fs.writeFileSync(outputPath, buffer);
-            return true;
-          }
-        }
+      const base64Data = response.generatedImages?.[0]?.image?.imageBytes;
+      if (base64Data) {
+        const buffer = Buffer.from(base64Data, 'base64');
+        fs.writeFileSync(outputPath, buffer);
+        return true;
       }
     } catch (err) {
-      // Pass error to fallback (Tier 2: Pollinations AI)
+      console.warn(`[ImageGen] Gemini Imagen 3 error: ${err.message}`);
       throw err;
     }
     return null;
