@@ -66,34 +66,18 @@ class ImageGenerationService {
   }
 
   /**
-   * Wraps the prompt to ensure the image model generates a complete educational teaching visual
-   * as ONE composed image from the beginning, using recognizable real-world objects intentionally arranged for teaching.
+   * Wraps the prompt to ensure the image model generates a concept-explaining
+   * educational diagram — like "Vehicles (Class) → Car/Bike/Truck (Objects)".
+   * The image must visually EXPLAIN the topic, not just illustrate it.
    */
   _optimizePrompt(prompt) {
     let p = prompt.trim();
 
-    const prefix = [
-      'You are creating a professional educational teaching visual, not a photograph.',
-      'Design the complete composition before rendering it. The entire image must be one coherent teaching aid.',
-      'Use realistic recognizable real-world objects as the main visual elements, but arrange those objects intentionally to explain the educational concept.',
-      'Integrate the real-world objects, conceptual structure, headings, concise labels, property information, relationships, arrows, and callouts into one unified composition on a clean light educational canvas.',
-      'Do not create a realistic background photograph and place annotations on top of it. Do not create an annotated photograph.',
-      'The student should understand the concept by looking at the complete image.',
-      'Use a professional classroom presentation or educational infographic composition with clear visual hierarchy, concise text, and meaningful arrows.',
-      'Prioritize teaching clarity over photographic realism. 16:9 widescreen layout.'
-    ].join(' ');
+    const prefix = 'Create an educational concept diagram that visually EXPLAINS the topic. Show the main concept and its real-world examples with flat colorful vector illustrations, labeled rounded colored cards, and bold arrows showing how they relate. White background, 16:9 widescreen layout, large readable labels.';
 
-    const negativeInstructions = [
-      'NEGATIVE INSTRUCTIONS: Do not generate a normal photograph. Do not generate a photo-first composition.',
-      'Do not create a large realistic background and overlay labels. Do not create a warehouse scene with annotations.',
-      'Do not create an office photograph with annotations. Do not create a street photograph with annotations.',
-      'Do not make the background dominate the image. Do not use tiny objects surrounded by large empty scenery.',
-      'Do not use random objects. Do not use decorative annotations. Do not use meaningless arrows.',
-      'Do not use excessive text or long paragraphs. Do not create abstract AI artwork or sci-fi graphics.',
-      'Do not create futuristic fantasy objects. Do not create a generic stock photograph.'
-    ].join(' ');
+    const suffix = 'The image must TEACH the topic — a student should understand the concept just by looking at the image. Show real objects (cars, computers, books, people, buildings etc.) as flat colorful vector illustrations inside soft pastel colored cards with clear labels. Use bold dark arrows to show relationships. NO realistic photographs. NO photo collages. NO dark backgrounds. NO abstract art. NO watermarks.';
 
-    return `${prefix} TOPIC SCENARIO VISUAL SPECIFICATION: ${p} ${negativeInstructions}`;
+    return `${prefix} ${p} ${suffix}`;
   }
 
   /**

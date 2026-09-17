@@ -441,7 +441,7 @@ NEVER hardcode scenarios or use predefined domain shortcuts. Instead, solve the 
      "scenario": "Short description of the real-world scene",
      "purpose": "Pedagogical objective (why this image helps student understand)",
      "visualType": "direct" | "analogy" | "process" | "comparison" | "spatial",
-     "imagePrompt": "Design a complete professional educational teaching visual composed as one unified image from the beginning. Do NOT describe a photo first with annotations overlay. Integrate realistic recognizable real-world objects, conceptual structure, headings, short labels, property boxes, relationships, and meaningful arrows into one coherent visual layout. Choose the layout dynamically based on the concept (e.g. Class -> Attributes/Methods -> Multiple Objects; Client -> API -> Server flow; Step 1 -> Step 2 -> Step 3 process; Parent -> Child hierarchy; Example A vs Example B comparison). The background must be a clean, neutral educational canvas. Explain the main topic and its real-world mapping through intentional arrangement of objects, clear visual hierarchy, concise text labels, and meaningful arrows.",
+     "imagePrompt": "Write a prompt that will make the image model generate a single educational diagram image that EXPLAINS this topic visually. Think step by step: (1) What is the main concept? (2) What real-world example best explains it? (3) How are the parts related? Then describe the image. For example, if the topic is 'Class and Object in Python', the prompt should describe: a diagram showing 'Vehicles' labeled as '(Class)' on the left with a car icon, with bold arrows pointing to three separate illustrated items — a red car labeled 'Car (Object)', a blue bicycle labeled 'Bike (Object)', and a yellow truck labeled 'Truck (Object)' — with a large 'Objects' label on the right. The prompt must describe the EXACT visual layout: what goes where, what arrows connect, what labels appear on each element, and what real-world illustrations to draw. The image must teach the concept by showing the relationship between the main idea and its real-world examples. Use flat colorful vector illustrations of real objects (cars, computers, books, people, buildings etc.), labeled colored rounded cards, bold arrows showing relationships. White background, 16:9 layout.",
      "conceptMapping": [
        { "realWorldElement": "Real element name", "concept": "Technical/academic concept" }
      ],
@@ -998,21 +998,21 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
         let mappingDesc = '';
         if (mappingList.length > 0) {
           const parts = mappingList.map((m, idx) => {
-            const colors = ['teal', 'navy', 'crimson', 'amber', 'purple', 'emerald'];
+            const colors = ['red', 'blue', 'green', 'orange', 'purple', 'teal'];
             const color = colors[idx % colors.length];
-            return `a clear realistic representation of ${m.realWorldElement} labeled "${m.realWorldElement} (${m.concept})" inside a ${color} structured card`;
+            return `a ${color} illustrated ${m.realWorldElement} labeled "${m.realWorldElement} (${m.concept})"`;
           });
-          mappingDesc = `with meaningful directional arrows connecting: ${parts.join(', ')}`;
+          mappingDesc = `with bold arrows pointing to: ${parts.join(', ')}`;
         }
 
         let layoutDesc = '';
-        if (vType === 'analogy') layoutDesc = `On the left section, present "${conceptName}" as the main concept block with attributes and methods. ${mappingDesc || 'Use clear arrows pointing to real-world object examples on the right section.'}`;
-        else if (vType === 'process') layoutDesc = `Present the educational flow of "${conceptName}" step-by-step from left to right, linking realistic objects in ordered sequence cards with flow arrows. ${mappingDesc}`;
-        else if (vType === 'comparison') layoutDesc = `Present a side-by-side educational comparison visual explaining "${conceptName}", with two clearly structured comparison columns and property cards. ${mappingDesc}`;
-        else if (vType === 'spatial') layoutDesc = `Present "${conceptName}" as a visual hierarchy, with the primary concept block at the top and sub-components linked below. ${mappingDesc}`;
-        else layoutDesc = `Present "${conceptName}" as the central teaching concept. ${mappingDesc || 'Connect the primary concept to its real-world instances using structured property cards and directional arrows.'}`;
+        if (vType === 'analogy') layoutDesc = `On the left side, show "${conceptName}" as the main concept in a large labeled card. ${mappingDesc || 'With arrows pointing to real-world examples on the right side.'}`;
+        else if (vType === 'process') layoutDesc = `Show the steps of "${conceptName}" flowing left to right, each step in a labeled card with arrows between them. ${mappingDesc}`;
+        else if (vType === 'comparison') layoutDesc = `Show a side-by-side comparison explaining "${conceptName}", with two labeled panels. ${mappingDesc}`;
+        else if (vType === 'spatial') layoutDesc = `Show "${conceptName}" as a hierarchy or layered diagram, with the main concept on top and sub-concepts below. ${mappingDesc}`;
+        else layoutDesc = `Show "${conceptName}" as the main concept in a large labeled card on the left. ${mappingDesc || 'With arrows pointing to its real-world examples on the right side.'}`;
 
-        slide.realWorldVisual.imagePrompt = `Professional educational teaching visual explaining "${conceptName}". ${scenario ? `Real-world scenario context: ${scenario}. ` : ''}${layoutDesc} Composed as one unified teaching aid on a clean neutral light background. Integrate realistic objects intentionally arranged for instruction, concise labels, property boxes, concept mapping, and meaningful arrows.`;
+        slide.realWorldVisual.imagePrompt = `Educational diagram that visually explains "${conceptName}". ${scenario ? `Real-world example: ${scenario}. ` : ''}${layoutDesc} Each element should have a flat colorful vector illustration of the real object and a clear text label. Use bold dark arrows to show the relationships. White background, clean 16:9 layout.`;
       }
       if (!slide.realWorldVisual.purpose) {
         slide.realWorldVisual.purpose = `Help students intuitively understand ${slide.heading} through a real-world scenario`;
