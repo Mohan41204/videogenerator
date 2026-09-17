@@ -66,16 +66,17 @@ class ImageGenerationService {
   }
 
   /**
-   * Appends quality, realism, and clarity instructions for educational presentation.
-   * Strictly enforces concrete recognizable objects and bans abstract art/noise.
+   * Appends quality and educational infographic directives for image generation.
+   * Ensures the prompt produces professional educational infographics with
+   * diagrams, arrows, labels, and visual structure — not generic photographs.
    */
   _optimizePrompt(prompt) {
     let p = prompt.trim();
-    // Quality directives ensuring clean educational realism
-    const educationalDirectives = 'clean composition, simple clean background, clearly visible objects, realistic educational appearance, strong visual clarity, good contrast, minimal clutter, concise readable educational labels, meaningful callouts, meaningful arrows, clear concept mapping, visual relationships, short property labels, clean educational composition. Avoid: generic stock photography, generic topic illustrations, decorative AI artwork, abstract concept art, unrelated objects, random objects, excessive icons, floating random symbols, meaningless arrows, random labels, excessive text, long paragraphs, confusing layouts, visual clutter, futuristic fantasy elements, unnecessary glowing effects, overly artistic compositions, irrelevant background elements.';
+    // Educational infographic quality directives
+    const infographicDirectives = 'Professional educational infographic style, clean 16:9 presentation layout, white or very light background, strong visual hierarchy, clean vector-style diagrams, rounded cards and panels, professional typography, soft coordinated colors, labeled boxes for concepts, directional arrows showing relationships and flow, concise readable text labels on important elements, polished realistic illustrations for real-world objects, balanced composition, consistent illustration style, high-resolution sharp graphics, presentation-slide quality. Avoid: generic stock photography, generic topic illustrations, decorative AI artwork, abstract concept art, photo collages, product advertisements, cinematic scenes, unrelated objects, random objects, excessive icons, floating random symbols, meaningless arrows, random labels, excessive text, long paragraphs, confusing layouts, visual clutter, futuristic fantasy elements, unnecessary glowing effects, overly artistic compositions, irrelevant background elements, watermarks, logos, signatures.';
     
-    if (!p.toLowerCase().includes('clean background')) {
-      p += `, ${educationalDirectives}`;
+    if (!p.toLowerCase().includes('infographic')) {
+      p += `. ${infographicDirectives}`;
     }
     return p;
   }

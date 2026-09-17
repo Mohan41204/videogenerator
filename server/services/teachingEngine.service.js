@@ -441,7 +441,7 @@ NEVER hardcode scenarios or use predefined domain shortcuts. Instead, solve the 
      "scenario": "Short description of the real-world scene",
      "purpose": "Pedagogical objective (why this image helps student understand)",
      "visualType": "direct" | "analogy" | "process" | "comparison" | "spatial",
-     "imagePrompt": "Detailed concept-driven prompt. You are an expert educational visual designer. Create ONE professional educational teaching visual for the given topic. Do not create generic topic-related artwork. Think like an experienced classroom teacher. Determine how the concept can be explained using real-world objects, entities, environments, relationships, processes, properties, and practical examples. Use realistic and recognizable real-world objects as the primary teaching elements. Visually connect the real-world scenario to the educational concept. Use concise educational labels, meaningful arrows, relationship indicators, callouts, property lists, component labels, or simple supporting diagrams when they improve understanding. Adapt the composition to the topic. Do not force a fixed layout. The image must be understandable to a student without narration. Prioritize educational accuracy, conceptual clarity, real-world relevance, visual relationships, and practical understanding.",
+     "imagePrompt": "Generate a COMPLETE EDUCATIONAL INFOGRAPHIC prompt. The prompt must instruct the image model to create a professional educational presentation slide that visually TEACHES the concept — NOT a generic photograph, product photo, cinematic scene, or decorative illustration. The prompt MUST explicitly describe: (1) The main concept being taught, (2) The real-world analogy chosen and why, (3) The entities/components representing the concept, (4) The relationships between those entities shown with arrows/connectors, (5) The exact visual hierarchy and layout (e.g. Class at top → Objects below, Input → Process → Output left-to-right), (6) The directional arrows or visual connections required, (7) The concise labels that should appear inside the image on each element, (8) The position of each major element (e.g. center, top-left, bottom-right), (9) The educational purpose of the visual. Use a clean 16:9 layout with white or light background, rounded cards/panels, soft coordinated colors, professional typography, clean vector-style diagrams, and polished realistic illustrations for real-world objects. The image must contain visual containers, boxes, arrows, labels, icons, and diagrams — resembling a professionally designed educational course slide. A viewer should understand the concept, its components, and their relationships just by looking at the image. Do NOT generate prompts for: realistic photographs only, collections of objects, product photos, photo collages, cinematic scenes, generic environments, or abstract artwork.",
      "conceptMapping": [
        { "realWorldElement": "Real element name", "concept": "Technical/academic concept" }
      ],
@@ -989,7 +989,21 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
         slide.realWorldVisual.scenario = `Real-world visual for ${slide.heading}`;
       }
       if (!slide.realWorldVisual.imagePrompt) {
-        slide.realWorldVisual.imagePrompt = `A clean educational illustration showing ${slide.realWorldVisual.scenario}, clean simple background, clear recognizable objects, realistic educational appearance, minimal clutter, no text labels, no abstract lines`;
+        const conceptName = slide.subheading || slide.heading || 'the concept';
+        const scenario = slide.realWorldVisual.scenario || '';
+        const vType = slide.realWorldVisual.visualType || 'direct';
+        const mappings = (slide.realWorldVisual.conceptMapping || [])
+          .map(m => `"${m.realWorldElement}" represents "${m.concept}"`)
+          .join(', ');
+
+        let layoutHint = '';
+        if (vType === 'analogy') layoutHint = 'Show the real-world analogy on the left side and the technical concept on the right side, with labeled arrows connecting corresponding elements between them.';
+        else if (vType === 'process') layoutHint = 'Show the process as a left-to-right or top-to-bottom flow with numbered steps, directional arrows between each step, and concise labels on each step.';
+        else if (vType === 'comparison') layoutHint = 'Use a side-by-side comparison layout with two distinct panels, each clearly labeled, highlighting the key differences and similarities.';
+        else if (vType === 'spatial') layoutHint = 'Use a hierarchical or layered layout showing containment, parent-child relationships, or architectural layers with clear nesting and grouping.';
+        else layoutHint = 'Place the main concept prominently at the center or top, with supporting components arranged around it in a logical visual hierarchy.';
+
+        slide.realWorldVisual.imagePrompt = `Create a COMPLETE professional educational infographic that visually TEACHES the concept of "${conceptName}". ${scenario ? `Real-world scenario: ${scenario}. ` : ''}${mappings ? `Concept mapping: ${mappings}. ` : ''}${layoutHint} The image must be a self-contained educational diagram — include visual containers (rounded cards/panels), labeled boxes for each concept, directional arrows showing relationships and flow, concise text labels on every important element, and polished realistic illustrations for any real-world objects. Use a clean 16:9 presentation layout with white or very light background, professional typography, soft coordinated colors, strong visual hierarchy, and clean vector-style diagrams. The final image must look like a professionally designed slide from a high-quality programming or technology course. A viewer should understand: (1) what the main concept is, (2) its important components, (3) how those components relate to each other. Do NOT create: generic photographs, product photos, photo collages, cinematic scenes, abstract artwork, or decorative illustrations without educational structure.`;
       }
       if (!slide.realWorldVisual.purpose) {
         slide.realWorldVisual.purpose = `Help students intuitively understand ${slide.heading} through a real-world scenario`;
