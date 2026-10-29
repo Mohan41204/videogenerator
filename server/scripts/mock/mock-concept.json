@@ -1,0 +1,30 @@
+{
+  "heading": "தரவு அமைப்புகள் (Data Structures)",
+  "subheading": "நேரியல் மற்றும் நேரியலற்ற தரவு அமைப்புகள்",
+  "isCode": false,
+  "bullets": [
+    "தரவு அமைப்புகள் கணினியில் தரவைச் சேமிக்கும் முறை.",
+    "அணி (Array) மற்றும் பட்டியல் (List) நேரியல் அமைப்புகள்.",
+    "மரம் (Tree) மற்றும் வரைபடம் (Graph) படிநிலை அமைப்புகள்.",
+    "தேடுதல் வேகம் O(log n) வரை மேம்படும்."
+  ],
+  "narration": "தரவு அமைப்புகள் நிரலாக்கத்தின் அடிப்படை தூண்களாக விளங்குகின்றன.",
+  "board": {
+    "heading": "தரவு அமைப்புகள்",
+    "layout": "free",
+    "nodes": [
+      { "id": "ds",     "label": "தரவு அமைப்பு",  "shape": "rect",    "color": "#2563eb", "x": 60,  "y": 180, "w": 160, "h": 65 },
+      { "id": "linear", "label": "அணி (Array)",  "shape": "rect",    "color": "#16a34a", "x": 290, "y": 120, "w": 150, "h": 60 },
+      { "id": "tree",   "label": "மரம் (Tree)",  "shape": "ellipse", "color": "#9333ea", "x": 290, "y": 240, "w": 150, "h": 60 },
+      { "id": "graph",  "label": "வரைபடம் (Graph)","shape": "ellipse", "color": "#ea580c", "x": 500, "y": 180, "w": 170, "h": 60 }
+    ],
+    "edges": [
+      { "from": "ds",     "to": "linear", "label": "Linear",      "color": "#16a34a" },
+      { "from": "ds",     "to": "tree",   "label": "Hierarchical","color": "#9333ea" },
+      { "from": "tree",   "to": "graph",  "label": "Network",     "color": "#ea580c" }
+    ],
+    "notes": [
+      { "text": "வேகம் மற்றும் நினைவகத் திறன் (Time & Space)", "color": "#0f172a", "fontSize": 18, "y": 420, "x": 360 }
+    ]
+  }
+}

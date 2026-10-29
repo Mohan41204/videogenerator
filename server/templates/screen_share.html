@@ -863,6 +863,38 @@
       overflow-wrap: break-word;
     }
 
+    /* Whiteboard Split Layout (when slide.board is present) */
+    .wb-board-panel {
+      display: none;
+    }
+    .wb-workspace.wb-has-board .wb-canvas-viewport {
+      flex: 0 0 38%;
+      max-width: 38%;
+      border-right: 1px solid #e2e8f0;
+      background: #fafafa;
+    }
+    .wb-workspace.wb-has-board .wb-canvas {
+      padding: 24px 28px;
+      align-items: flex-start;
+      text-align: left;
+    }
+    .wb-workspace.wb-has-board .wb-board-panel {
+      display: flex;
+      flex: 0 0 62%;
+      max-width: 62%;
+      height: 100%;
+      position: relative;
+      background: #ffffff;
+      overflow: hidden;
+      align-items: center;
+      justify-content: center;
+    }
+    #board-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
     /* Whiteboard elements container */
     .wb-element {
       position: relative;
@@ -1024,21 +1056,20 @@
     /* Real-World Visual Scenario Container */
     .wb-image-container {
       width: 100%;
-      max-width: 1200px;
-      margin: 8px auto;
+      max-width: 100%;
+      margin: 4px auto 0 auto;
       display: none; /* Hide until revealed to prevent blank reserved space */
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
-      padding: 14px 20px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 0;
       box-sizing: border-box;
-      overflow: hidden;
+      overflow: visible;
       opacity: 0;
-      transform: translateY(16px);
+      transform: translateY(12px);
       transition: opacity 0.4s ease, transform 0.4s ease;
     }
     .wb-image-container.visible {
@@ -1051,19 +1082,21 @@
       display: inline-flex;
       justify-content: center;
       align-items: center;
-      max-height: 360px;
-      border-radius: 10px;
-      overflow: visible;
+      max-width: 100%;
+      max-height: 520px;
+      border-radius: 12px;
+      overflow: hidden;
     }
     .wb-scenario-img {
-      max-width: 100%;
-      max-height: 340px;
+      max-width: 95%;
+      max-height: 500px;
       width: auto;
       height: auto;
       object-fit: contain;
-      border-radius: 10px;
+      border: none;
+      border-radius: 12px;
       display: block;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      box-shadow: none;
     }
 
     /* Annotation Layer (SVG & HTML Badges) */
@@ -1580,7 +1613,7 @@
     </div>
 
     <!-- Workspace -->
-    <div class="wb-workspace">
+    <div class="wb-workspace" id="wb-workspace">
       <div class="wb-teacher-col">
         <div class="wb-avatar-card">
           <div class="wb-avatar-circle">
@@ -1597,6 +1630,10 @@
         </div>
         <div id="wb-pointer" class="wb-pointer"></div>
       </div>
+      <!-- Whiteboard Drawing Board Panel (Right ~60%) -->
+      <div class="wb-board-panel" id="wb-board-panel">
+        <canvas id="board-canvas"></canvas>
+      </div>
     </div>
     <div class="wb-timeline-bar">
       <div class="wb-timeline-progress-container">
@@ -1607,6 +1644,11 @@
   </div>
 
 </div>
+
+<!-- Whiteboard Drawing Board Scripts -->
+<script src="board/rough.min.js"></script>
+<script src="board/hershey-font.js"></script>
+<script src="board/board-engine.js"></script>
 
 <script>
 // ============================================================
@@ -1868,6 +1910,10 @@ window.loadSlide = function(slide) {
   _prevIsCode = _slide ? !!_slide.isCode : null;
   _slide = slide;
   
+  // Cleanly reset bullet animation state across slide transitions
+  window._lastActiveBulletIdx = -1;
+  window._blocksRendered = false;
+  
   if (slide.isCode) {
     _showVSCode();
     var fileName = slide.fileName || 'main.py';
@@ -1901,11 +1947,75 @@ window.loadSlide = function(slide) {
     _showWhiteboard();
     document.getElementById('wb-lesson-title-label').textContent = slide.heading || 'Theory / Concept';
     
+    // Toggle whiteboard drawing board split layout
+    var workspace = document.getElementById('wb-workspace');
+    var hasBoard = !!(slide.board && (slide.board.nodes || slide.board.strokes || slide.board.heading));
+    if (hasBoard) {
+      if (workspace) workspace.classList.add('wb-has-board');
+      var boardCanvas = document.getElementById('board-canvas');
+      if (boardCanvas && window.Board) {
+        var panel = document.getElementById('wb-board-panel');
+        var panelW = (panel && panel.clientWidth && panel.clientWidth > 100) ? panel.clientWidth : Math.floor(1280 * 0.62);
+        var panelH = (panel && panel.clientHeight && panel.clientHeight > 100) ? panel.clientHeight : 640;
+        window.Board.load(slide.board, panelW, panelH, { slideHeading: slide.heading });
+      }
+    } else {
+      if (workspace) workspace.classList.remove('wb-has-board');
+    }
+
     // Clear and build the whiteboard canvas elements
     var canvas = document.getElementById('wb-canvas');
     canvas.innerHTML = '';
     
-    var hasDiagram = !!(slide.isDiagram || slide.mermaid || (slide.visual && slide.visual.enabled));
+    // Board and Mermaid/Diagrams are mutually exclusive (Decision 4)
+    var hasDiagram = !hasBoard && !!(slide.isDiagram || slide.mermaid || (slide.visual && slide.visual.enabled));
+    var hasRealWorld = !hasDiagram && !hasBoard && !!(slide.realWorldVisual && slide.realWorldVisual.enabled === true && (slide.imagePath || slide.imageUrl));
+    window._hasRealWorld = hasRealWorld;
+    window._imageAppearSecond = 0;
+
+    // Safety fallback: ensure whiteboard text slides are never blank if bullets was empty
+    if (!hasDiagram && !hasBoard && !hasRealWorld) {
+      if (!Array.isArray(slide.bullets) || slide.bullets.length === 0) {
+        if (slide.narration && typeof slide.narration === 'string') {
+          var rawSentences = slide.narration.split(/(?<=[.!?])\s+/);
+          var cleanPoints = rawSentences
+            .map(function(s) { return s.trim(); })
+            .filter(function(s) {
+              return s.length >= 20 && !/^(welcome|hello|today|in this|let'?s\s+(begin|start|look)|imagine)/i.test(s);
+            });
+          if (cleanPoints.length >= 2) {
+            slide.bullets = cleanPoints.slice(0, 3);
+          } else if (cleanPoints.length === 1) {
+            slide.bullets = [
+              cleanPoints[0],
+              'Core overview and essential principles of ' + (slide.subheading || slide.heading || 'the topic'),
+              'Key implementation patterns and structured design'
+            ];
+          } else {
+            slide.bullets = [
+              'Core overview and essential principles of ' + (slide.subheading || slide.heading || 'the topic'),
+              'Structured execution, parameters, and practical usage',
+              'Best practices and common programming patterns'
+            ];
+          }
+        } else {
+          slide.bullets = [
+            'Core overview and essential principles of ' + (slide.subheading || slide.heading || 'the topic'),
+            'Structured execution, parameters, and practical usage',
+            'Best practices and common programming patterns'
+          ];
+        }
+      }
+    }
+
+    // Adjust canvas padding for maximum visual display area when diagram or real-world image is shown
+    if (hasRealWorld) {
+      canvas.style.padding = '20px 40px';
+      canvas.style.gap = '8px';
+    } else {
+      canvas.style.padding = '';
+      canvas.style.gap = '';
+    }
     
     // Build Text Card Element
     var textCard = document.createElement('div');
@@ -1913,15 +2023,15 @@ window.loadSlide = function(slide) {
     textCard.id = 'wb-main-text-card';
     textCard.style.width = '100%';
     textCard.style.maxWidth = '1350px';
-    textCard.style.padding = hasDiagram ? '12px 24px 6px 24px' : '28px 32px';
+    textCard.style.padding = (hasDiagram || hasRealWorld) ? '10px 24px 4px 24px' : '28px 32px';
     
     // Create Title
     var titleEl = document.createElement('h1');
     titleEl.className = 'wb-title';
     titleEl.id = 'wb-main-title';
-    if (hasDiagram) {
+    if (hasDiagram || hasRealWorld) {
       titleEl.style.fontSize = '30px';
-      titleEl.style.marginBottom = '6px';
+      titleEl.style.marginBottom = '4px';
     }
     textCard.appendChild(titleEl);
     
@@ -1930,10 +2040,10 @@ window.loadSlide = function(slide) {
       var subHeadingEl = document.createElement('div');
       subHeadingEl.className = 'wb-section-heading';
       subHeadingEl.id = 'wb-main-subheading';
-      if (hasDiagram) {
+      if (hasDiagram || hasRealWorld) {
         subHeadingEl.style.fontSize = '18px';
-        subHeadingEl.style.marginTop = '4px';
-        subHeadingEl.style.marginBottom = '6px';
+        subHeadingEl.style.marginTop = '2px';
+        subHeadingEl.style.marginBottom = '4px';
       }
       textCard.appendChild(subHeadingEl);
     }
@@ -1957,12 +2067,6 @@ window.loadSlide = function(slide) {
     } else {
       window._diagramAppearSecond = 0;
     }
-
-    // STRICT VISUAL ISOLATION: Real-world visual is ONLY created on non-diagram slides where explicitly enabled
-    // This guarantees diagrams have 100% full screen whiteboard space and no visual interference
-    var hasRealWorld = !hasDiagram && !!(slide.realWorldVisual && slide.realWorldVisual.enabled === true && (slide.imagePath || slide.imageUrl));
-    window._hasRealWorld = hasRealWorld;
-    window._imageAppearSecond = 0;
 
     if (hasRealWorld) {
       window._imageAppearSecond = 4;
@@ -2049,29 +2153,33 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
   }
   
   // Whiteboard rendering flow
+  if (_slide && _slide.board && window.Board) {
+    window.Board.render(elapsedSecs, totalDuration);
+  }
+
   var titleText = _slide.heading || '';
   var subheadingText = _slide.subheading || '';
   var bullets = _slide.bullets || [];
   
   // Progress Timeline Allocations:
-  // 0% - 15%: Title fades in and pointer gestures there
-  // 15% - 25%: Subheading appears
-  // 25% - 75%: Bullet/Paragraph blocks build sequentially
-  // 75% - 90%: Inline Diagram fades in / animates
+  // 0% - 8%: Title reveals smoothly
+  // 6% - 13%: Subheading reveals smoothly
+  // 8% - 75%: Bullet/Paragraph blocks build sequentially (no awkward 15s blank period!)
+  // 75% - 90%: Inline Diagram fades in / animates (if present)
   // 90% - 100%: Review / Settle
   
   // 1. Render Title
   var titleEl = document.getElementById('wb-main-title');
   if (titleEl) {
-    var titleProgress = Math.min(1, progress / 0.15);
+    var titleProgress = Math.min(1, progress / 0.08);
     titleEl.textContent = titleText.substring(0, Math.floor(titleProgress * titleText.length));
   }
   
   // 2. Render Subheading
   var subHeadingEl = document.getElementById('wb-main-subheading');
   if (subHeadingEl && subheadingText) {
-    if (progress > 0.15) {
-      var subProgress = Math.min(1, (progress - 0.15) / 0.1);
+    if (progress > 0.06) {
+      var subProgress = Math.min(1, (progress - 0.06) / 0.07);
       subHeadingEl.innerHTML = _parseFormattedTextToHtml(subheadingText, Math.floor(subProgress * subheadingText.length));
     } else {
       subHeadingEl.innerHTML = '';
@@ -2081,8 +2189,11 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
   // 3. Render Bullet blocks sequentially (only update DOM when active bullet index changes)
   var blockContainer = document.getElementById('wb-blocks-container');
   if (blockContainer && bullets.length > 0) {
-    if (progress > 0.25) {
-      var totalTextProgress = Math.min(1, (progress - 0.25) / 0.5); // span 50% of the slide
+    var bulletStart = 0.08;
+    var hasDiag = !!(_slide.isDiagram || _slide.mermaid || (_slide.visual && _slide.visual.enabled));
+    var bulletSpan = hasDiag ? 0.35 : 0.65;
+    if (progress > bulletStart) {
+      var totalTextProgress = Math.min(1, (progress - bulletStart) / bulletSpan);
       var bulletsCount = bullets.length;
       var activeBulletIdx = Math.floor(totalTextProgress * bulletsCount);
       if (activeBulletIdx >= bulletsCount) activeBulletIdx = bulletsCount - 1;
@@ -2095,7 +2206,9 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
           var blockHtml = _renderBlock(bulletVal, 1);
           var div = document.createElement('div');
           div.innerHTML = blockHtml;
-          blockContainer.appendChild(div.firstChild);
+          while (div.firstChild) {
+            blockContainer.appendChild(div.firstChild);
+          }
         }
         window._lastActiveBulletIdx = activeBulletIdx;
         window._blocksRendered = true;

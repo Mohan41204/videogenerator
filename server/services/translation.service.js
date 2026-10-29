@@ -860,6 +860,49 @@ ${JSON.stringify(slides, null, 2)}
 
     const translatedSlides = extractJson(translatedJsonText);
 
+    // Safely preserve board structure (ids, sentenceIndex, connections) and merge translated labels
+    if (Array.isArray(translatedSlides)) {
+      for (let i = 0; i < translatedSlides.length; i++) {
+        const transSlide = translatedSlides[i];
+        const origSlide = slides[i];
+        if (origSlide && origSlide.board) {
+          if (!transSlide.board) {
+            transSlide.board = JSON.parse(JSON.stringify(origSlide.board));
+          } else {
+            const mergedBoard = JSON.parse(JSON.stringify(origSlide.board));
+            if (transSlide.board.heading) {
+              mergedBoard.heading = transSlide.board.heading;
+            }
+            if (Array.isArray(mergedBoard.nodes) && Array.isArray(transSlide.board.nodes)) {
+              for (let n = 0; n < mergedBoard.nodes.length; n++) {
+                const transNode = transSlide.board.nodes.find(tn => String(tn.id) === String(mergedBoard.nodes[n].id)) || transSlide.board.nodes[n];
+                if (transNode && transNode.label) {
+                  mergedBoard.nodes[n].label = transNode.label;
+                }
+              }
+            }
+            if (Array.isArray(mergedBoard.edges) && Array.isArray(transSlide.board.edges)) {
+              for (let e = 0; e < mergedBoard.edges.length; e++) {
+                const transEdge = transSlide.board.edges[e];
+                if (transEdge && transEdge.label) {
+                  mergedBoard.edges[e].label = transEdge.label;
+                }
+              }
+            }
+            if (Array.isArray(mergedBoard.notes) && Array.isArray(transSlide.board.notes)) {
+              for (let m = 0; m < mergedBoard.notes.length; m++) {
+                const transNote = transSlide.board.notes[m];
+                if (transNote && transNote.text) {
+                  mergedBoard.notes[m].text = transNote.text;
+                }
+              }
+            }
+            transSlide.board = mergedBoard;
+          }
+        }
+      }
+    }
+
     // Process slide narration for TTS if target language is Tamil
     if (Array.isArray(translatedSlides) && isTamil) {
       for (const slide of translatedSlides) {

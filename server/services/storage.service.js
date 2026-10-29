@@ -15,6 +15,14 @@ class StorageService {
     this.storage = null;
     this.bucket = null;
     this.localJobsCache = new Map();
+    this.localJobsDir = path.join(__dirname, '../output/jobs');
+    try {
+      if (!fs.existsSync(this.localJobsDir)) {
+        fs.mkdirSync(this.localJobsDir, { recursive: true });
+      }
+    } catch (e) {
+      // Ignored if directory creation fails on boot
+    }
   }
 
   /**
@@ -92,6 +100,13 @@ class StorageService {
       };
     } catch (err) {
       console.error(`[Storage] Failed to upload file ${localFilePath} to ${destinationPath}:`, err.message);
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`[Storage] Local/dev mode: continuing with local file URL fallback instead of failing.`);
+        return {
+          objectName: destinationPath,
+          url: `/output/${path.basename(localFilePath)}`
+        };
+      }
       throw new Error(`[Storage] Failed to upload ${path.basename(localFilePath)}: ${err.message}`);
     }
   }
@@ -277,8 +292,19 @@ class StorageService {
     // Update local cache
     this.localJobsCache.set(jobId, updatedJob);
 
+    // Persist to local disk so child worker processes can access the job record
+    try {
+      if (!fs.existsSync(this.localJobsDir)) {
+        fs.mkdirSync(this.localJobsDir, { recursive: true });
+      }
+      const localFilePath = path.join(this.localJobsDir, `${jobId}.json`);
+      fs.writeFileSync(localFilePath, JSON.stringify(updatedJob, null, 2), 'utf8');
+    } catch (fsErr) {
+      console.warn(`[JobStore] Could not write local job file:`, fsErr.message);
+    }
+
     if (!this.isStorageConfigured()) {
-      console.log(`[JobStore] Updated job ${jobId}: ${updatedJob.status} (local memory fallback)`);
+      console.log(`[JobStore] Updated job ${jobId}: ${updatedJob.status} (local fallback)`);
       return updatedJob;
     }
 
@@ -306,7 +332,7 @@ class StorageService {
   }
 
   /**
-   * Retrieves a job record from GCS (or in-memory cache).
+   * Retrieves a job record from GCS (or in-memory cache / local disk).
    * @param {string} jobId - Unique job ID
    * @returns {Promise<object|null>}
    */
@@ -333,6 +359,19 @@ class StorageService {
           console.warn(`[JobStore] Failed to read job ${jobId} from GCS: ${err.message}. Checking local cache.`);
         }
       }
+    }
+
+    // Check local disk file first for cross-process synchronization
+    try {
+      const localFilePath = path.join(this.localJobsDir, `${jobId}.json`);
+      if (fs.existsSync(localFilePath)) {
+        const fileData = JSON.parse(fs.readFileSync(localFilePath, 'utf8'));
+        this.localJobsCache.set(jobId, fileData);
+        console.log(`[JobStore] Retrieved job ${jobId}: ${fileData.status} (from local disk)`);
+        return fileData;
+      }
+    } catch (fsErr) {
+      console.warn(`[JobStore] Could not read local job file:`, fsErr.message);
     }
 
     if (this.localJobsCache.has(jobId)) {

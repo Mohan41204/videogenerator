@@ -1,0 +1,30 @@
+{
+  "heading": "Microservices Architecture",
+  "subheading": "Distributed services with event-driven messaging",
+  "isCode": false,
+  "bullets": [
+    "Frontend clients communicate via unified API Gateway.",
+    "Order and Inventory services operate autonomously.",
+    "Apache Kafka handles asynchronous event streaming.",
+    "PostgreSQL stores ACID transactional states."
+  ],
+  "narration": "In a microservices architecture, services communicate over high-throughput event buses and API gateways.",
+  "board": {
+    "heading": "Cloud Architecture",
+    "layout": "free",
+    "nodes": [
+      { "id": "client",  "label": "Web Client",     "shape": "rect",    "color": "#0284c7", "x": 60,  "y": 180, "w": 140, "h": 65 },
+      { "id": "gateway", "label": "API Gateway",    "shape": "rect",    "color": "#6366f1", "x": 260, "y": 180, "w": 140, "h": 65 },
+      { "id": "orders",  "label": "Order Service",  "shape": "rect",    "color": "#10b981", "x": 480, "y": 120, "w": 150, "h": 60 },
+      { "id": "db",      "label": "PostgreSQL DB",  "shape": "ellipse", "color": "#f59e0b", "x": 480, "y": 250, "w": 150, "h": 60 }
+    ],
+    "edges": [
+      { "from": "client",  "to": "gateway", "label": "HTTPS", "color": "#64748b" },
+      { "from": "gateway", "to": "orders",  "label": "gRPC",  "color": "#10b981" },
+      { "from": "orders",  "to": "db",      "label": "SQL",   "color": "#f59e0b" }
+    ],
+    "notes": [
+      { "text": "Latency: < 25ms p99 across service boundaries", "color": "#334155", "fontSize": 18, "y": 420, "x": 350 }
+    ]
+  }
+}

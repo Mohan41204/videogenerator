@@ -383,10 +383,17 @@ For EACH scene, perform a visual planning analysis and ask:
      * Provide valid 'fileName' (e.g., 'main.py', 'index.js', 'Main.java') and 'runCommand' (e.g., 'python main.py', 'node index.js').
      * Set 'isDiagram': false, 'mermaid': '', and 'visual': { 'enabled': false }.
 
-4. WHITEBOARD TEXT SLIDES:
+4. WHITEBOARD THEORY & DRAWING SLIDES:
    - When isCode is false and isDiagram is false:
-     * Provide 2 to 4 clear, well-structured bullet strings.
-     * You may use callouts like '> [!NOTE] key insight', tables '| Col 1 | Col 2 |', or clean bullet points.
+     * Provide 2 to 4 clear, well-structured bullet strings for the left panel.
+     * To make the explanation come alive, generate the "board" object! The instructor will dynamically draw this concept, architecture, array, or flow diagram stroke-by-stroke on the right whiteboard canvas:
+       - "heading": (String - max 4 words) Short title for the drawing (optional, e.g. "Binary Search", "Memory Stack").
+       - "layout": "horizontal" | "vertical" | "flowchart" | "tree" | "free".
+       - "nodes": 2 to 7 clear nodes [{ "id": "1", "label": "Short label", "shape": "rect" | "ellipse", "sentenceIndex": 0, "color": "#2563eb" }].
+       - "edges": connections between nodes [{ "from": "1", "to": "2", "label": "optional", "arrow": true, "sentenceIndex": 1 }].
+       - "notes": 1 to 2 key takeaway notes [{ "text": "Time: O(log n)", "sentenceIndex": 2 }].
+     * MUTUAL EXCLUSIVITY: A slide with "board" draws directly on the whiteboard canvas. When "board" is present, set "mermaid": "", "visual": { "enabled": false }, and "realWorldVisual": { "enabled": false }.
+     * You may use callouts like '> [!NOTE] key insight', tables '| Col 1 | Col 2 |', or clean bullet points in 'bullets'.
 
 ================================================================================
 CRITICAL RULE 4: NATURAL TEACHER NARRATION FOR TTS
@@ -542,13 +549,14 @@ You MUST output ONLY a valid JSON array of exactly ${plan.sceneCount} Scene obje
 Each Scene object must have:
 - "heading": (String) Must be "${topic}" (authoritative user topic).
 - "subheading": (String) For Scene 1: "${subTopic || topic}". For subsequent scenes: clear, technical concept name for that slide.
-- "bullets": (Array of Strings) Text bullets to display. (1 string for code slides, empty [] for diagram slides).
+- "bullets": (Array of Strings) Text bullets to display. (1 string for code slides, empty [] for diagram slides, and MUST contain 2 to 4 clear informative bullet points for ALL theory, hook, and whiteboard slides).
 - "narration": (String) Spoken teaching dialogue (~${plan.avgWordsPerScene} words). Creative hooks and analogies belong here!
 - "isCode": (Boolean) True if this slide displays code.
 - "isDiagram": (Boolean) True if this slide displays a diagram.
 - "mermaid": (String) Valid Mermaid code if isDiagram is true, else "".
 - "visual": (Object - optional) Structured diagram object with "enabled", "type", "title", "nodes", "connections".
 - "visualTiming": (Object - optional) Timing configuration: { "enabled": true, "appearAtSecond": 12, "triggerPhrase": "Let's examine this visually." }.
+- "board": (Object - optional) Structured whiteboard drawing: { "heading": "...", "layout": "horizontal"|"vertical"|"flowchart"|"tree"|"free", "nodes": [{ "id": "1", "label": "...", "shape": "rect"|"ellipse", "sentenceIndex": 0, "color": "..." }], "edges": [{ "from": "1", "to": "2", "label": "...", "arrow": true, "sentenceIndex": 1 }], "notes": [{ "text": "...", "sentenceIndex": 2 }] }. When board is present, isDiagram must be false and realWorldVisual must be disabled.
 - "realWorldVisual": (Object - optional) Structured real-world object: { "enabled": true, "scenario": "...", "purpose": "...", "visualType": "direct"|"analogy"|"process"|"comparison"|"spatial", "imagePrompt": "...", "conceptMapping": [...], "annotations": [...] }. If not helpful, { "enabled": false }.
 - "realWorldVisualTiming": (Object - optional) Timing configuration: { "enabled": true, "appearAtSecond": 10, "triggerPhrase": "Let's look at a real-world example." }.
 - "fileName": (String) E.g. "main.py" if isCode is true, else "".
@@ -734,7 +742,7 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
   if (slides.length > 0) {
     if (slides[0].realWorldVisual && slides[0].realWorldVisual.enabled) {
       const targetIdx = Math.max(1, Math.min(slides.length - 2, 4));
-      if (!slides[targetIdx].isDiagram && !slides[targetIdx].isCode) {
+      if (slides[targetIdx] && !slides[targetIdx].isDiagram && !slides[targetIdx].isCode) {
         slides[targetIdx].realWorldVisual = slides[0].realWorldVisual;
         slides[targetIdx].realWorldVisualTiming = slides[0].realWorldVisualTiming;
       }
@@ -860,8 +868,59 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
       else slide.teachingPurpose = 'explain_core_mechanics';
     }
 
-    const hasVisual = slide.visual && slide.visual.enabled !== false && (slide.visual.nodes && slide.visual.nodes.length > 0);
-    if (slide.isDiagram || hasVisual || (slide.mermaid && slide.mermaid.trim())) {
+    // ── MUTUAL EXCLUSIVITY & SANITIZATION FOR BOARD (Decision 4 & 2) ──
+    const USE_WHITEBOARD_FLOWCHARTS = process.env.USE_WHITEBOARD_FLOWCHARTS !== 'false';
+
+    let hasValidBoard = !!(slide.board && (
+      (Array.isArray(slide.board.nodes) && slide.board.nodes.length > 0) ||
+      (Array.isArray(slide.board.strokes) && slide.board.strokes.length > 0)
+    ));
+
+    // Adapter: convert legacy or Gemini flowchart/diagram data into animated whiteboard board
+    if (!hasValidBoard && USE_WHITEBOARD_FLOWCHARTS) {
+      if (slide.visual && slide.visual.enabled !== false && Array.isArray(slide.visual.nodes) && slide.visual.nodes.length > 0) {
+        try {
+          const convertedBoard = diagramService.visualToBoard(slide.visual, slide.heading);
+          if (convertedBoard && convertedBoard.nodes && convertedBoard.nodes.length > 0) {
+            slide.board = convertedBoard;
+            hasValidBoard = true;
+          }
+        } catch (convErr) {
+          console.warn(`[TeachingEngine] Failed to convert visual to whiteboard board on slide ${idx + 1}: ${convErr.message}`);
+        }
+      } else if (slide.mermaid && slide.mermaid.trim()) {
+        try {
+          const convertedBoard = diagramService.mermaidToBoard(slide.mermaid, slide.heading);
+          if (convertedBoard && convertedBoard.nodes && convertedBoard.nodes.length > 0) {
+            slide.board = convertedBoard;
+            hasValidBoard = true;
+          }
+        } catch (convErr) {
+          console.warn(`[TeachingEngine] Failed to convert mermaid to whiteboard board on slide ${idx + 1}: ${convErr.message}`);
+        }
+      }
+    }
+
+    if (hasValidBoard) {
+      slide.isCode = false;
+      slide.isDiagram = false;
+      slide.mermaid = '';
+      if (slide.visual) slide.visual.enabled = false;
+      if (slide.realWorldVisual) {
+        slide.realWorldVisual = { enabled: false };
+        slide.realWorldVisualTiming = { enabled: false, appearAtSecond: 0, triggerPhrase: '' };
+      }
+      if (!slide.visualType) slide.visualType = 'whiteboard_drawing';
+
+      // Decision 2: sanitize board.heading to max 4 words
+      if (slide.board.heading && typeof slide.board.heading === 'string') {
+        const words = slide.board.heading.trim().split(/\s+/);
+        slide.board.heading = words.slice(0, 4).join(' ');
+      }
+    }
+
+    const hasVisual = !hasValidBoard && slide.visual && slide.visual.enabled !== false && (slide.visual.nodes && slide.visual.nodes.length > 0);
+    if (!hasValidBoard && (slide.isDiagram || hasVisual || (slide.mermaid && slide.mermaid.trim()))) {
       slide.isCode = false;
 
       // STRICT ISOLATION: Diagram slides must never have realWorldVisual enabled
@@ -1147,8 +1206,40 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
         slide.bullets = [slide.code || '# Code example\\Nprint("Hello world")\\N\\N==== OUTPUT ====\\nHello world'];
       }
     } else {
+      // For non-code slides: ensure bullets array is valid
       if (!Array.isArray(slide.bullets)) {
         slide.bullets = [];
+      }
+
+      // If this is a theory/whiteboard slide without visual diagrams or drawings, guarantee bullets are never empty
+      const isPureTextSlide = !slide.isDiagram && !slide.board && (!slide.realWorldVisual || !slide.realWorldVisual.enabled);
+      if (isPureTextSlide && slide.bullets.length === 0) {
+        if (Array.isArray(slide.keyPoints) && slide.keyPoints.length > 0) slide.bullets = slide.keyPoints;
+        else if (Array.isArray(slide.points) && slide.points.length > 0) slide.bullets = slide.points;
+        else if (Array.isArray(slide.takeaways) && slide.takeaways.length > 0) slide.bullets = slide.takeaways;
+        else if (typeof slide.content === 'string' && slide.content.trim()) slide.bullets = [slide.content.trim()];
+        else if (typeof slide.text === 'string' && slide.text.trim()) slide.bullets = [slide.text.trim()];
+        else if (slide.narration && typeof slide.narration === 'string') {
+          const sentences = slide.narration
+            .split(/(?<=[.!?])\s+/)
+            .map(s => s.trim())
+            .filter(s => s.length >= 20 && !/^(welcome|hello|today|in this|let'?s\s+(begin|start|look)|imagine)/i.test(s));
+          if (sentences.length >= 2) {
+            slide.bullets = sentences.slice(0, 3);
+          } else if (sentences.length === 1) {
+            slide.bullets = [
+              sentences[0],
+              `Understanding the core concepts of ${slide.subheading || slide.heading}`,
+              `Key principles and practical implementation in ${slide.heading}`
+            ];
+          } else {
+            slide.bullets = [
+              `Core overview and essential principles of ${slide.subheading || slide.heading}`,
+              `Structured implementation and best practices in ${slide.heading}`,
+              `Practical real-world execution and common patterns`
+            ];
+          }
+        }
       }
     }
 
@@ -1265,6 +1356,56 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
             enabled: { type: 'boolean' },
             appearAtSecond: { type: 'number' },
             triggerPhrase: { type: 'string' }
+          }
+        },
+        board: {
+          type: 'object',
+          properties: {
+            heading: { type: 'string' },
+            layout: {
+              type: 'string',
+              enum: ['horizontal', 'vertical', 'flowchart', 'tree', 'free']
+            },
+            nodes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  label: { type: 'string' },
+                  shape: { type: 'string', enum: ['rect', 'ellipse'] },
+                  color: { type: 'string' },
+                  sentenceIndex: { type: 'number' }
+                },
+                required: ['id', 'label']
+              }
+            },
+            edges: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  from: { type: 'string' },
+                  to: { type: 'string' },
+                  label: { type: 'string' },
+                  color: { type: 'string' },
+                  sentenceIndex: { type: 'number' }
+                },
+                required: ['from', 'to']
+              }
+            },
+            notes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  text: { type: 'string' },
+                  color: { type: 'string' },
+                  sentenceIndex: { type: 'number' }
+                },
+                required: ['text']
+              }
+            }
           }
         },
         realWorldVisual: {
@@ -1493,5 +1634,6 @@ module.exports = {
   classifyDomain,
   getDurationPlan,
   sanitizeNarration,
-  visualToMermaid
+  visualToMermaid,
+  postProcessSlides
 };

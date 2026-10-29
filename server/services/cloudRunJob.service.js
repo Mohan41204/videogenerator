@@ -77,7 +77,7 @@ class CloudRunJobService {
     } catch (err) {
       console.error(`[CloudRunJob] Failed to trigger Cloud Run Job via REST API:`, err.message);
       
-      const allowLocalFallback = process.env.NODE_ENV !== 'production' && process.env.ALLOW_LOCAL_FALLBACK === 'true';
+      const allowLocalFallback = (process.env.NODE_ENV !== 'production' && process.env.ALLOW_LOCAL_FALLBACK !== 'false') || process.env.ALLOW_LOCAL_FALLBACK === 'true';
 
       if (allowLocalFallback) {
         console.warn(`[CloudRunJob] Falling back to local worker process for job ${jobId}...`);
@@ -106,14 +106,19 @@ class CloudRunJobService {
       VIDEO_JOB_ID: jobId
     };
 
+    console.log(`[CloudRunJob] Spawning local worker process for jobId: ${jobId}...`);
     const child = spawn(process.execPath, [jobScriptPath], {
       env: childEnv,
-      detached: true,
       stdio: 'inherit'
     });
 
-    child.unref();
-    console.log(`[CloudRunJob] Spawned local worker process (PID: ${child.pid}) for jobId: ${jobId}`);
+    child.on('error', (err) => {
+      console.error(`[CloudRunJob] Local worker process error for jobId ${jobId}:`, err);
+    });
+
+    child.on('exit', (code) => {
+      console.log(`[CloudRunJob] Local worker process finished with code ${code} for jobId: ${jobId}`);
+    });
   }
 }
 

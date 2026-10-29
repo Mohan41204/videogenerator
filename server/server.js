@@ -9,6 +9,7 @@ dotenv.config();
 if (!process.env.GOOGLE_CLOUD_PROJECT) {
   dotenv.config({ path: path.join(__dirname, '../../.env') });
 }
+// Video generator backend server - updated
 
 // Auto-detect Google Cloud Credentials in Cloud Environments (Render, Vercel, Heroku, etc.)
 if (process.env.GOOGLE_CREDENTIALS_JSON && (!process.env.GOOGLE_APPLICATION_CREDENTIALS || !fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS))) {
@@ -46,11 +47,12 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Serve static files (forces download header for MP4 videos)
+// Serve static files for video streaming and downloads
 app.use('/output', express.static(path.join(__dirname, 'output'), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.mp4')) {
-      res.setHeader('Content-Disposition', 'attachment');
+      res.setHeader('Content-Type', 'video/mp4');
+      res.setHeader('Accept-Ranges', 'bytes');
     }
   }
 }));

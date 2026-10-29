@@ -1,0 +1,30 @@
+{
+  "heading": "User Authentication Flow",
+  "subheading": "JWT token verification & validation pipeline",
+  "isCode": false,
+  "bullets": [
+    "Client submits credentials via POST request.",
+    "Auth service validates password hash against database.",
+    "Issues signed JWT access token on success.",
+    "Returns HTTP 401 Unauthorized on failure."
+  ],
+  "narration": "When a user logs in, the authentication service validates their credentials and generates a signed token.",
+  "board": {
+    "heading": "Auth Flow",
+    "layout": "flowchart",
+    "nodes": [
+      { "id": "start", "label": "Login Request", "shape": "ellipse", "color": "#2563eb", "sentenceIndex": 0, "x": 60, "y": 140, "w": 160, "h": 60 },
+      { "id": "check", "label": "Valid Hash?", "shape": "rect", "color": "#7c3aed", "sentenceIndex": 1, "x": 300, "y": 140, "w": 150, "h": 60 },
+      { "id": "jwt",   "label": "Issue JWT", "shape": "rect", "color": "#16a34a", "sentenceIndex": 2, "x": 520, "y": 140, "w": 140, "h": 60, "fill": "rgba(22, 163, 74, 0.1)" },
+      { "id": "fail",  "label": "401 Error", "shape": "rect", "color": "#dc2626", "sentenceIndex": 3, "x": 300, "y": 280, "w": 150, "h": 60, "fill": "rgba(220, 38, 38, 0.1)" }
+    ],
+    "edges": [
+      { "from": "start", "to": "check", "label": "POST /login", "color": "#64748b" },
+      { "from": "check", "to": "jwt",   "label": "Valid", "color": "#16a34a" },
+      { "from": "check", "to": "fail",  "label": "Invalid", "color": "#dc2626" }
+    ],
+    "notes": [
+      { "text": "Token valid for 24 hours with RSA-256 signature", "color": "#0f172a", "fontSize": 18, "y": 420, "x": 360 }
+    ]
+  }
+}

@@ -13,6 +13,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const dotenv = require('dotenv');
 
 // Initialize env
@@ -151,8 +152,8 @@ async function main() {
     message: 'Starting Cloud Run Job pipeline...'
   });
 
-  // Isolated workspace directory inside /tmp
-  currentTempDir = path.join('/tmp', 'video-jobs', jobId);
+  // Isolated workspace directory
+  currentTempDir = path.join(os.tmpdir(), 'video-jobs', jobId);
   const videoDir = path.join(currentTempDir, 'video');
   const audioDir = path.join(currentTempDir, 'audio');
   const imagesDir = path.join(currentTempDir, 'images');
@@ -301,6 +302,35 @@ async function main() {
     let masterVideoUrl = `/output/video/${jobId}.mp4`;
     let masterVideoObject = `videos/${jobId}/english.mp4`;
 
+    // Persist English video and images to server output directory
+    const serverOutputDir = path.join(__dirname, '../output');
+    const localVideoDir = path.join(serverOutputDir, 'video');
+    const localImagesDir = path.join(serverOutputDir, 'images');
+    if (!fs.existsSync(localVideoDir)) fs.mkdirSync(localVideoDir, { recursive: true });
+    if (!fs.existsSync(localImagesDir)) fs.mkdirSync(localImagesDir, { recursive: true });
+
+    const localMasterVideoPath = path.join(localVideoDir, `${jobId}.mp4`);
+    if (fs.existsSync(finalVideoPath)) {
+      try {
+        fs.copyFileSync(finalVideoPath, localMasterVideoPath);
+        console.log(`[VideoJob] Saved master English video to ${localMasterVideoPath}`);
+      } catch (cpErr) {
+        console.error(`[VideoJob] Failed to copy master video to local output:`, cpErr.message);
+      }
+    }
+
+    for (const item of createdImagePaths) {
+      if (fs.existsSync(item.imageFilePath)) {
+        try {
+          const destImgPath = path.join(localImagesDir, item.imageFileName);
+          fs.copyFileSync(item.imageFilePath, destImgPath);
+          slides[item.i].imageUrl = `/output/images/${item.imageFileName}`;
+        } catch (imgCpErr) {
+          console.warn(`[VideoJob] Failed to copy local image ${item.imageFileName}:`, imgCpErr.message);
+        }
+      }
+    }
+
     if (storageService.isStorageConfigured()) {
       const uploadRes = await storageService.uploadFile(finalVideoPath, masterVideoObject);
       if (uploadRes) {
@@ -413,6 +443,17 @@ async function main() {
             const uploadStartTime = Date.now();
             let langVideoUrl = `/output/video/${langVideoFileName}`;
             let langVideoObject = `videos/${jobId}/languages/${langConfig.code}.mp4`;
+
+            // Persist localized video to server output directory
+            const localLangVideoPath = path.join(localVideoDir, langVideoFileName);
+            if (fs.existsSync(langVideoPath)) {
+              try {
+                fs.copyFileSync(langVideoPath, localLangVideoPath);
+                console.log(`[VideoJob] Saved localized ${lang} video to ${localLangVideoPath}`);
+              } catch (cpErr) {
+                console.error(`[VideoJob] Failed to copy ${lang} video to local output:`, cpErr.message);
+              }
+            }
 
             if (storageService.isStorageConfigured()) {
               const langUpload = await storageService.uploadFile(langVideoPath, langVideoObject);

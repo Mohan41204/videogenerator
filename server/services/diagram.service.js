@@ -202,4 +202,245 @@ async function renderMermaidInPage(page, mermaidCode) {
   await new Promise(r => setTimeout(r, 300));
 }
 
-module.exports = { renderMermaidInPage, reset, sanitizeMermaid };
+/**
+ * Converts a Mermaid flowchart string into structured Whiteboard Board data.
+ * Supports:
+ * - Rectangles: id["label"] or id[label]
+ * - Rounded boxes: id("label") or id(label)
+ * - Stadiums: id(["label"]) or id([label])
+ * - Rhombuses / Decision diamonds: id{"label"} or id{label}
+ * - Connectors / Edges: A --> B, A -->|label| B, A -- label --> B
+ * - Orientations: TD, TB (vertical), LR (horizontal)
+ *
+ * @param {string} mermaidCode 
+ * @param {string} [defaultHeading]
+ * @param {Object} [options] - Whiteboard styling options (drawingStyle, roughness, bowing, seed, etc.)
+ * @returns {Object|null} Board data object
+ */
+function mermaidToBoard(mermaidCode, defaultHeading, options) {
+  if (!mermaidCode || typeof mermaidCode !== 'string') return null;
+  options = options || {};
+
+  // Determine layout orientation
+  let layout = 'vertical';
+  const orientationMatch = mermaidCode.match(/^\s*(?:graph|flowchart)\s+([A-Za-z]{2})/i);
+  if (orientationMatch) {
+    const ori = orientationMatch[1].toUpperCase();
+    if (ori === 'LR' || ori === 'RL') {
+      layout = 'horizontal';
+    } else {
+      layout = 'vertical';
+    }
+  }
+
+  const nodes = [];
+  const nodeMap = new Map();
+  const edges = [];
+
+  const lines = mermaidCode.split('\n');
+  const validNodePattern = /([a-zA-Z0-9_\-]+)\s*(?:\[\[(.*?)\]\]|\(\[(.*?)\]\)|\{\{\s*(.*?)\s*\}\}|\{\s*(.*?)\s*\}|\(\s*(.*?)\s*\)|\[\s*(.*?)\s*\])/g;
+
+  for (let rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('graph') || line.startsWith('flowchart') || line.startsWith('%%') || line.startsWith('subgraph') || line.startsWith('end')) {
+      continue;
+    }
+
+    // 1. Extract node definitions
+    let match;
+    while ((match = validNodePattern.exec(line)) !== null) {
+      const id = match[1];
+      // match[2] = [[...]], match[3] = ([...]), match[4] = {{...}}, match[5] = {...}, match[6] = (...), match[7] = [...]
+      let rawLabel = match[3] || match[5] || match[6] || match[7] || match[2] || id;
+      let shape = 'rect';
+      if (match[3]) shape = 'round'; // stadium / rounded
+      else if (match[5]) shape = 'rhombus'; // decision branch
+      else if (match[6]) shape = 'round'; // rounded
+      else if (match[7]) shape = 'rect'; // rectangular box
+
+      // Clean label
+      const cleanLabel = rawLabel.replace(/^["']|["']$/g, '').replace(/\\n/g, '\n').trim();
+
+      if (!nodeMap.has(id)) {
+        const nodeObj = {
+          id: id,
+          label: cleanLabel || id,
+          shape: shape,
+          color: shape === 'rhombus' ? '#ea580c' : '#2563eb'
+        };
+        nodeMap.set(id, nodeObj);
+        nodes.push(nodeObj);
+      }
+    }
+    validNodePattern.lastIndex = 0;
+
+    // 2. Extract edge connectors:
+    // Strip bracketed node labels from the line so node identifiers are clean before and after connectors
+    let lineForEdges = line.replace(/\[\[.*?\]\]|\(\[.*?\]\)|\{\{.*?\}\}|\{.*?\}|\(.*?\)|\[.*?\]/g, '');
+
+    // Pattern: A --> B, A -->|label| B, A -.-> B
+    const edgeRegex = /([a-zA-Z0-9_\-]+)\s*(?:-->|---\.?->?|-\.->)\s*(?:\|([^|]+)\|)?\s*([a-zA-Z0-9_\-]+)/g;
+    let edgeMatch;
+    while ((edgeMatch = edgeRegex.exec(lineForEdges)) !== null) {
+      const from = edgeMatch[1];
+      const edgeLabel = (edgeMatch[2] || '').trim();
+      const to = edgeMatch[3];
+
+      // Ensure nodes exist even if declared inline without bracket definition
+      if (!nodeMap.has(from)) {
+        const nObj = { id: from, label: from, shape: 'rect', color: '#2563eb' };
+        nodeMap.set(from, nObj);
+        nodes.push(nObj);
+      }
+      if (!nodeMap.has(to)) {
+        const nObj = { id: to, label: to, shape: 'rect', color: '#2563eb' };
+        nodeMap.set(to, nObj);
+        nodes.push(nObj);
+      }
+
+      edges.push({
+        from: from,
+        to: to,
+        label: edgeLabel || undefined,
+        arrow: true,
+        color: '#64748b'
+      });
+    }
+
+    // Pattern: A -- label --> B
+    const labeledEdgeRegex = /([a-zA-Z0-9_\-]+)\s*--\s*([^-]+?)\s*-->\s*([a-zA-Z0-9_\-]+)/g;
+    let lblMatch;
+    while ((lblMatch = labeledEdgeRegex.exec(lineForEdges)) !== null) {
+      const from = lblMatch[1];
+      const edgeLabel = lblMatch[2].trim();
+      const to = lblMatch[3];
+
+      if (!nodeMap.has(from)) {
+        const nObj = { id: from, label: from, shape: 'rect', color: '#2563eb' };
+        nodeMap.set(from, nObj);
+        nodes.push(nObj);
+      }
+      if (!nodeMap.has(to)) {
+        const nObj = { id: to, label: to, shape: 'rect', color: '#2563eb' };
+        nodeMap.set(to, nObj);
+        nodes.push(nObj);
+      }
+
+      edges.push({
+        from: from,
+        to: to,
+        label: edgeLabel,
+        arrow: true,
+        color: '#64748b'
+      });
+    }
+  }
+
+  if (nodes.length === 0) {
+    return null;
+  }
+
+  // If node count is large (>= 6) and orientation is vertical, layout should be 'flowchart' or 'vertical'
+  if (nodes.length >= 6 && layout === 'vertical') {
+    layout = 'flowchart';
+  }
+
+  const resBoard = {
+    heading: defaultHeading ? defaultHeading.split(/\s+/).slice(0, 4).join(' ') : 'Diagram Flow',
+    layout: layout,
+    nodes: nodes,
+    edges: edges,
+    showCursor: true
+  };
+
+  if (options.drawingStyle) resBoard.drawingStyle = options.drawingStyle;
+  if (typeof options.roughness === 'number') resBoard.roughness = options.roughness;
+  if (typeof options.bowing === 'number') resBoard.bowing = options.bowing;
+  if (typeof options.strokeWidthVariation === 'number') resBoard.strokeWidthVariation = options.strokeWidthVariation;
+  if (typeof options.doubleStroke === 'boolean') resBoard.doubleStroke = options.doubleStroke;
+  if (typeof options.seed === 'number' || typeof options.seed === 'string') resBoard.seed = options.seed;
+
+  return resBoard;
+}
+
+/**
+ * Converts Gemini structured visual ({ nodes, connections, type, title }) into Whiteboard Board data.
+ *
+ * @param {Object} visual
+ * @param {string} [defaultHeading]
+ * @param {Object} [options] - Whiteboard styling options (drawingStyle, roughness, bowing, seed, etc.)
+ * @returns {Object|null}
+ */
+function visualToBoard(visual, defaultHeading, options) {
+  if (!visual || !Array.isArray(visual.nodes) || visual.nodes.length === 0) {
+    return null;
+  }
+  options = options || {};
+
+  let layout = 'horizontal';
+  const vType = (visual.type || '').toLowerCase();
+  if (vType.includes('flow') || vType.includes('seq') || vType.includes('tree') || visual.nodes.length >= 5) {
+    layout = visual.nodes.length >= 6 ? 'flowchart' : 'vertical';
+  }
+
+  const nodes = visual.nodes.map((n, idx) => {
+    let shape = 'rect';
+    const rawShape = (n.shape || '').toLowerCase();
+    if (rawShape === 'circle' || rawShape === 'ellipse' || rawShape === 'round') {
+      shape = 'round';
+    } else if (rawShape === 'diamond' || rawShape === 'rhombus' || rawShape === 'decision') {
+      shape = 'rhombus';
+    }
+
+    return {
+      id: String(n.id || `node_${idx + 1}`),
+      label: n.label || n.text || String(n.id || `Step ${idx + 1}`),
+      shape: shape,
+      color: shape === 'rhombus' ? '#ea580c' : (n.color || '#2563eb'),
+      sentenceIndex: typeof n.sentenceIndex === 'number' ? n.sentenceIndex : undefined
+    };
+  });
+
+  const edges = [];
+  if (Array.isArray(visual.connections)) {
+    for (const conn of visual.connections) {
+      if (conn.from && conn.to) {
+        edges.push({
+          from: String(conn.from),
+          to: String(conn.to),
+          label: conn.label || undefined,
+          arrow: conn.arrow !== false,
+          color: '#64748b'
+        });
+      }
+    }
+  }
+
+  const headingText = visual.title || defaultHeading || 'Visual Explanation';
+
+  const resVisualBoard = {
+    heading: headingText.split(/\s+/).slice(0, 4).join(' '),
+    layout: layout,
+    nodes: nodes,
+    edges: edges,
+    showCursor: true
+  };
+
+  const styleSource = Object.assign({}, visual, options);
+  if (styleSource.drawingStyle) resVisualBoard.drawingStyle = styleSource.drawingStyle;
+  if (typeof styleSource.roughness === 'number') resVisualBoard.roughness = styleSource.roughness;
+  if (typeof styleSource.bowing === 'number') resVisualBoard.bowing = styleSource.bowing;
+  if (typeof styleSource.strokeWidthVariation === 'number') resVisualBoard.strokeWidthVariation = styleSource.strokeWidthVariation;
+  if (typeof styleSource.doubleStroke === 'boolean') resVisualBoard.doubleStroke = styleSource.doubleStroke;
+  if (typeof styleSource.seed === 'number' || typeof styleSource.seed === 'string') resVisualBoard.seed = styleSource.seed;
+
+  return resVisualBoard;
+}
+
+module.exports = {
+  renderMermaidInPage,
+  reset,
+  sanitizeMermaid,
+  mermaidToBoard,
+  visualToBoard
+};

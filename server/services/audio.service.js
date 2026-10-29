@@ -103,13 +103,18 @@ const getPauseDuration = (punctuation) => {
   return 0.2;
 };
 
+const splitIntoSentences = (text) => {
+  if (!text) return [];
+  const raw = text.split(/(?<=[.!?])\s+/);
+  return raw.map(s => s.trim()).filter(Boolean);
+};
+
 const generateAudio = async (text, outputPath, langCode = 'en', voiceId = null) => {
   try {
     const uniqueId = path.basename(outputPath, '.mp3');
     const outputDir = path.dirname(outputPath);
 
     // Split the text into speech segments and punctuation, keeping sentence/clause structures
-    // using a lookahead to only split on punctuation followed by space or end of string.
     const parts = text.split(/([.,!?;]+(?=\s|$))/);
     const segments = [];
 
@@ -128,10 +133,19 @@ const generateAudio = async (text, outputPath, langCode = 'en', voiceId = null) 
     }
 
     if (segments.length === 0) {
-      return await generateSilence(1, outputPath);
+      const res = await generateSilence(1, outputPath);
+      const strObj = new String(res);
+      strObj.outputPath = res;
+      strObj.sentenceTimings = [];
+      return strObj;
     }
 
     const tempFiles = [];
+    const sentenceTimings = [];
+    let currentTime = 0;
+    let currentSentenceText = '';
+    let currentSentenceStart = 0;
+
     try {
       for (let i = 0; i < segments.length; i++) {
         const seg = segments[i];
@@ -140,11 +154,36 @@ const generateAudio = async (text, outputPath, langCode = 'en', voiceId = null) 
         await generateSingleAudio(seg.text, speechPath, langCode, voiceId);
         tempFiles.push(speechPath);
 
+        // Measure speech duration
+        let speechDur = 0;
+        try {
+          speechDur = await getAudioDuration(speechPath);
+        } catch (e) {
+          speechDur = Math.max(0.5, seg.text.length * 0.06);
+        }
+
+        currentSentenceText += (currentSentenceText ? ' ' : '') + seg.text + (seg.punctuation || '');
+        currentTime += speechDur;
+
         const pauseDur = getPauseDuration(seg.punctuation);
         if (pauseDur > 0) {
           const silencePath = path.join(outputDir, `${uniqueId}_sub_${i}_silence_${langCode}.mp3`);
           await generateSilence(pauseDur, silencePath);
           tempFiles.push(silencePath);
+          currentTime += pauseDur;
+        }
+
+        // If this segment ends with sentence-terminating punctuation (. ! ?), complete the sentence
+        const isSentenceEnd = /[.!?]/.test(seg.punctuation) || (i === segments.length - 1);
+        if (isSentenceEnd) {
+          sentenceTimings.push({
+            index: sentenceTimings.length,
+            text: currentSentenceText.trim(),
+            start: Number(currentSentenceStart.toFixed(2)),
+            end: Number(currentTime.toFixed(2))
+          });
+          currentSentenceStart = currentTime;
+          currentSentenceText = '';
         }
       }
 
@@ -160,7 +199,10 @@ const generateAudio = async (text, outputPath, langCode = 'en', voiceId = null) 
       });
     }
 
-    return outputPath;
+    const resultStr = new String(outputPath);
+    resultStr.outputPath = outputPath;
+    resultStr.sentenceTimings = sentenceTimings;
+    return resultStr;
   } catch (error) {
     console.error('generateAudio main error:', error);
     throw error;
@@ -241,5 +283,6 @@ module.exports = {
   generateAudio,
   getAudioDuration,
   mergeAudioFiles,
-  adjustAudioDuration
+  adjustAudioDuration,
+  splitIntoSentences
 };

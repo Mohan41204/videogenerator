@@ -90,6 +90,29 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     console.log(`[Puppeteer] Using PUPPETEER_EXECUTABLE_PATH env: ${launchOptions.executablePath}`);
+  } else if (process.platform === 'win32') {
+    const winPossiblePaths = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      path.join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+      'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+    ];
+    for (const p of winPossiblePaths) {
+      if (p && fs.existsSync(p)) {
+        launchOptions.executablePath = p;
+        console.log(`[Puppeteer] Using Windows browser binary at ${p}`);
+        break;
+      }
+    }
+
+    if (!launchOptions.executablePath) {
+      const cachedChrome = findChromeInCache();
+      if (cachedChrome) {
+        launchOptions.executablePath = cachedChrome;
+        console.log(`[Puppeteer] Found Chrome binary in project cache at ${cachedChrome}`);
+      }
+    }
   } else {
     try {
       const chromium = require('@sparticuz/chromium');
@@ -143,35 +166,69 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
   await page.goto(templateUrl, { waitUntil: 'domcontentloaded', timeout: 90000 });
   console.log('[Puppeteer] Template HTML loaded (domcontentloaded).');
 
-  // Make sure the animation API is ready
+  // Make sure the animation API and fonts are ready
   console.log('[Puppeteer] Waiting for window.loadSlide and window.renderFrame animation functions...');
   await page.waitForFunction(() => typeof window.loadSlide === 'function' && typeof window.renderFrame === 'function', { timeout: 90000 });
+  try {
+    await page.evaluateHandle('document.fonts.ready');
+  } catch (e) {
+    // Non-fatal if font check fails
+  }
   console.log('[Puppeteer] Template loaded, animation engine ready.');
 
   // Reset diagram injection flag for this new session
   diagramService.reset();
 
+  // If enabled, ensure any legacy diagram slides without a board object are adapted to animated whiteboard
+  const USE_WHITEBOARD_FLOWCHARTS = process.env.USE_WHITEBOARD_FLOWCHARTS !== 'false';
+  if (USE_WHITEBOARD_FLOWCHARTS) {
+    for (const slide of slides) {
+      if (!slide.board) {
+        if (slide.visual && slide.visual.enabled !== false && Array.isArray(slide.visual.nodes) && slide.visual.nodes.length > 0) {
+          const b = diagramService.visualToBoard(slide.visual, slide.heading);
+          if (b) slide.board = b;
+        } else if (slide.mermaid && slide.mermaid.trim()) {
+          const b = diagramService.mermaidToBoard(slide.mermaid, slide.heading);
+          if (b) slide.board = b;
+        }
+      }
+    }
+  }
+
+  // Detect whether this video contains whiteboard drawing slides
+  const hasBoardSlides = slides.some(s => s.board && (
+    (Array.isArray(s.board.nodes) && s.board.nodes.length > 0) ||
+    (Array.isArray(s.board.strokes) && s.board.strokes.length > 0)
+  ));
+
+  // Decision 3: Use VIDEO_RENDER_FPS_BOARD (default 8) when board slides are present, otherwise VIDEO_RENDER_FPS (default 3)
+  const effectiveFPS = hasBoardSlides
+    ? (parseInt(process.env.VIDEO_RENDER_FPS_BOARD, 10) || 8)
+    : (parseInt(process.env.VIDEO_RENDER_FPS, 10) || FPS);
+
+  const tuneSetting = hasBoardSlides ? 'animation' : 'stillimage';
+
   // --- Start FFmpeg process receiving JPEG frames via stdin ---
   const totalDurationSecs = durations.reduce((a, b) => a + b, 0);
-  const totalFrames = Math.ceil(totalDurationSecs * FPS);
-  console.log(`[Puppeteer] Rendering ${totalFrames} frames at ${FPS}fps for ${totalDurationSecs.toFixed(1)}s video...`);
+  const totalFrames = Math.ceil(totalDurationSecs * effectiveFPS);
+  console.log(`[Puppeteer] Rendering ${totalFrames} frames at ${effectiveFPS}fps (tune: ${tuneSetting}) for ${totalDurationSecs.toFixed(1)}s video...`);
 
   const ffmpegArgs = [
     '-y',
     '-f', 'image2pipe',
     '-vcodec', 'mjpeg',
-    '-r', String(FPS),
+    '-r', String(effectiveFPS),
     '-i', 'pipe:0',
     '-c:v', 'libx264',
     '-preset', 'ultrafast',
-    '-tune', 'stillimage',
+    '-tune', tuneSetting,
     '-pix_fmt', 'yuv420p',
     '-threads', '0',
     videoPath
   ];
 
   console.log(`[FFmpeg] Spawning process: ${ffmpegPath} ${ffmpegArgs.join(' ')}`);
-  console.log(`[FFmpeg] Configuration: stdin=pipe:0, input_format=mjpeg, output_fps=${FPS}, target_resolution=1280x720, codec=libx264 (preset=ultrafast), total_expected_frames=${totalFrames}`);
+  console.log(`[FFmpeg] Configuration: stdin=pipe:0, input_format=mjpeg, output_fps=${effectiveFPS}, target_resolution=1280x720, codec=libx264 (preset=ultrafast), total_expected_frames=${totalFrames}`);
   const ffmpegStartTime = Date.now();
 
   const ffmpegProc = spawn(ffmpegPath, ffmpegArgs);
@@ -219,7 +276,7 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
     for (let slideIdx = 0; slideIdx < slides.length; slideIdx++) {
       const slide = slides[slideIdx];
       const duration = durations[slideIdx];
-      const slideTotalFrames = Math.ceil(duration * FPS);
+      const slideTotalFrames = Math.ceil(duration * effectiveFPS);
 
       console.log(`\n[Puppeteer] Slide ${slideIdx + 1}/${slides.length}: "${slide.heading}" (${duration.toFixed(1)}s, ${slideTotalFrames} frames)`);
 
@@ -285,8 +342,8 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       }, slide, prevIsCode);
       console.log(`[Puppeteer] slideData loaded into DOM for slide ${slideIdx + 1}.`);
 
-      // If it is a diagram slide, render the Mermaid SVG into the container
-      const hasDiagram = (slide.isDiagram && slide.mermaid) || (slide.visual && slide.visual.enabled);
+      // If it is a diagram slide without a whiteboard board, render the Mermaid SVG into the container
+      const hasDiagram = !slide.board && ((slide.isDiagram && slide.mermaid) || (slide.visual && slide.visual.enabled));
       if (hasDiagram) {
         console.log(`[Puppeteer]   → Rendering diagram for slide ${slideIdx + 1}...`);
         let mermaidCode = slide.mermaid;
@@ -304,29 +361,62 @@ const renderScreenShareVideo = async (slides, durations, videoPath) => {
       }
 
       console.log(`[Puppeteer] Starting frame capture for slide ${slideIdx + 1} (${slideTotalFrames} frames)...`);
+      const isBoardSlide = !!(slide.board && (
+        (Array.isArray(slide.board.nodes) && slide.board.nodes.length > 0) ||
+        (Array.isArray(slide.board.strokes) && slide.board.strokes.length > 0)
+      ));
+
+      let lastFrameBuffer = null;
+      let last3FpsBucket = -1;
+
       // Capture frames for this slide
       for (let f = 0; f < slideTotalFrames; f++) {
         globalFrameCounter++;
-        const elapsedSecs = f / FPS;
+        const elapsedSecs = f / effectiveFPS;
 
-        // Tell the browser to render this point in time
-        const evaluateStart = Date.now();
-        await page.evaluate((elapsed, total) => {
-          window.renderFrame(elapsed, total);
-        }, elapsedSecs, duration);
-        const evaluateTime = Date.now() - evaluateStart;
-        evaluateTimes.push(evaluateTime);
+        let frameBuffer;
+        let screenshotTime = 0;
+        // Optimization (Decision 3): for non-board slides inside an 8-FPS video, sample on 3-FPS grid and reuse previous frame buffer
+        if (!isBoardSlide && hasBoardSlides) {
+          const current3FpsBucket = Math.floor(elapsedSecs * 3);
+          if (current3FpsBucket === last3FpsBucket && lastFrameBuffer) {
+            frameBuffer = lastFrameBuffer;
+          } else {
+            const evaluateStart = Date.now();
+            await page.evaluate((elapsed, total) => {
+              window.renderFrame(elapsed, total);
+            }, elapsedSecs, duration);
+            evaluateTimes.push(Date.now() - evaluateStart);
 
-        // Screenshot as JPEG (much smaller than PNG, fast enough for our FPS)
-        const screenshotStart = Date.now();
-        const frameBuffer = await page.screenshot({
-          type: 'jpeg',
-          quality: 75,
-          optimizeForSpeed: true,
-          clip: { x: 0, y: 0, width: 1280, height: 720 }
-        });
-        const screenshotTime = Date.now() - screenshotStart;
-        screenshotTimes.push(screenshotTime);
+            const screenshotStart = Date.now();
+            frameBuffer = await page.screenshot({
+              type: 'jpeg',
+              quality: 75,
+              optimizeForSpeed: true,
+              clip: { x: 0, y: 0, width: 1280, height: 720 }
+            });
+            screenshotTime = Date.now() - screenshotStart;
+            screenshotTimes.push(screenshotTime);
+            lastFrameBuffer = frameBuffer;
+            last3FpsBucket = current3FpsBucket;
+          }
+        } else {
+          const evaluateStart = Date.now();
+          await page.evaluate((elapsed, total) => {
+            window.renderFrame(elapsed, total);
+          }, elapsedSecs, duration);
+          evaluateTimes.push(Date.now() - evaluateStart);
+
+          const screenshotStart = Date.now();
+          frameBuffer = await page.screenshot({
+            type: 'jpeg',
+            quality: 75,
+            optimizeForSpeed: true,
+            clip: { x: 0, y: 0, width: 1280, height: 720 }
+          });
+          screenshotTime = Date.now() - screenshotStart;
+          screenshotTimes.push(screenshotTime);
+        }
 
         // Write frame to FFmpeg stdin with back-pressure handling
         const ffmpegStart = Date.now();
