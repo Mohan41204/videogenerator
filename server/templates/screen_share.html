@@ -44,20 +44,26 @@
 
     @keyframes cursorBlink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    /* ---- VS CODE DARK MODERN THEME ---- */
+    /* ---- AUTHENTIC VS CODE DARK MODERN THEME (MATCHING SCREENSHOT) ---- */
     #vscode-window {
       background: #181818;
       color: #cccccc;
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
     }
 
+    /* 1. Title Bar */
     .vscode-titlebar {
       background: #181818;
       height: 35px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 12px;
+      padding: 0 10px;
       flex-shrink: 0;
       border-bottom: 1px solid #2b2b2b;
       position: relative;
@@ -65,22 +71,48 @@
     .vs-title-left {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+    }
+    .vscode-logo-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
     }
     .vscode-menubar {
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: 1px;
     }
     .vscode-menubar span {
-      padding: 2px 8px;
+      padding: 3px 7px;
       font-size: 12px;
       color: #cccccc;
-      cursor: pointer;
+      cursor: default;
       border-radius: 4px;
       transition: background 0.1s ease;
     }
     .vscode-menubar span:hover { background: rgba(255,255,255,0.08); }
+    .vs-nav-arrows {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      margin-left: 4px;
+      color: #858585;
+    }
+    .vs-nav-btn {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      cursor: default;
+      color: #858585;
+    }
+    .vs-nav-btn:hover { background: rgba(255,255,255,0.08); color: #cccccc; }
 
     .vs-title-center {
       position: absolute;
@@ -89,12 +121,13 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: #222222;
-      border: 1px solid #333333;
+      background: #1e1e1e;
+      border: 1px solid #3c3c3c;
       border-radius: 6px;
-      padding: 3px 14px;
-      width: min(440px, 35vw);
+      padding: 3px 12px;
+      width: min(340px, 32vw);
       height: 24px;
+      box-sizing: border-box;
     }
     .vs-title-search-icon {
       color: #858585;
@@ -104,38 +137,33 @@
     }
     .vscode-title-text {
       font-size: 11.5px;
-      color: #999999;
+      color: #cccccc;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       flex: 1;
       text-align: center;
+      font-weight: 400;
     }
+
     .vs-title-right {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       color: #858585;
     }
     .vs-layout-btn {
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 4px;
-      cursor: pointer;
+      cursor: default;
+      color: #858585;
     }
     .vs-layout-btn:hover { background: rgba(255,255,255,0.08); color: #ffffff; }
 
-    .vscode-logo-wrap {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-      flex-shrink: 0;
-    }
     .win-controls-win {
       display: flex;
       align-items: center;
@@ -143,21 +171,27 @@
       height: 100%;
     }
     .win-btn-win {
-      width: 30px;
-      height: 24px;
+      width: 38px;
+      height: 35px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #999999;
-      cursor: pointer;
-      border-radius: 3px;
+      color: #cccccc;
+      cursor: default;
       transition: all 0.1s;
     }
     .win-btn-win:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
     .win-btn-win.close:hover { background: #e81123; color: #ffffff; }
 
-    .vscode-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+    /* 2. Body: Activity Bar + Sidebar + Editor Area */
+    .vscode-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
 
+    /* Activity Bar (Far Left Strip) */
     .vscode-activitybar {
       width: 48px;
       background: #181818;
@@ -165,25 +199,25 @@
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      padding: 6px 0;
+      padding: 4px 0 6px 0;
       flex-shrink: 0;
       border-right: 1px solid #2b2b2b;
+      box-sizing: border-box;
     }
     .act-group {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 2px;
       width: 100%;
     }
     .act-icon {
-      width: 42px;
+      width: 48px;
       height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 5px;
-      cursor: pointer;
+      cursor: default;
       color: #858585;
       position: relative;
       transition: color 0.15s ease;
@@ -197,32 +231,33 @@
       top: 6px;
       bottom: 6px;
       width: 2px;
-      background: #0078d4;
+      background: #ffffff;
       border-radius: 0 1px 1px 0;
     }
-    .act-badge {
-      position: absolute;
-      bottom: 6px;
-      right: 6px;
-      background: #0078d4;
-      color: #ffffff;
-      font-size: 9px;
-      font-weight: 700;
-      padding: 0 4px;
-      border-radius: 10px;
-      min-width: 13px;
-      height: 13px;
+    .act-avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #38bdf8;
       display: flex;
       align-items: center;
       justify-content: center;
-      line-height: 1;
+      color: #ffffff;
+      margin-bottom: 4px;
     }
 
+    /* Primary Sidebar (Explorer) */
     .vscode-sidebar {
-      width: 230px;
+      width: 200px;
       background: #181818;
       flex-shrink: 0;
       border-right: 1px solid #2b2b2b;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+    .sidebar-top {
       display: flex;
       flex-direction: column;
     }
@@ -231,30 +266,28 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 14px;
+      padding: 0 16px;
       font-size: 11px;
-      letter-spacing: 0.08em;
       color: #bbbbbb;
-      font-weight: 600;
-      text-transform: uppercase;
+      font-weight: 400;
+      letter-spacing: 0.5px;
       flex-shrink: 0;
     }
     .sidebar-actions {
       display: flex;
       align-items: center;
-      gap: 6px;
       color: #858585;
+      cursor: default;
     }
-    .sidebar-section-title {
+    .sidebar-folder-title {
       font-size: 11px;
       font-weight: 700;
       color: #cccccc;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      padding: 6px 12px;
+      padding: 4px 14px;
       display: flex;
       align-items: center;
       gap: 6px;
+      cursor: default;
       user-select: none;
     }
     .file-tree {
@@ -265,29 +298,39 @@
     .file-item {
       display: flex;
       align-items: center;
-      height: 25px;
-      padding: 0 12px 0 24px;
-      font-size: 13px;
+      height: 24px;
+      padding: 0 14px 0 24px;
+      font-size: 12.5px;
       color: #cccccc;
-      cursor: pointer;
+      cursor: default;
       gap: 6px;
-      border-radius: 3px;
-      margin: 0 4px;
     }
     .file-item:hover { background: rgba(255,255,255,0.04); }
     .file-item.selected {
-      background: #04395e;
+      background: #2a2d2e;
       color: #ffffff;
     }
     .file-item-icon {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 16px;
-      height: 16px;
+      width: 15px;
+      height: 15px;
       flex-shrink: 0;
     }
+    .sidebar-bottom-timeline {
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #cccccc;
+      border-top: 1px solid #2b2b2b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: default;
+    }
 
+    /* 3. Editor Area */
     .vscode-editor-area {
       flex: 1;
       display: flex;
@@ -297,13 +340,14 @@
       background: #1f1f1f;
     }
 
+    /* Tabs Bar */
     .vscode-tabs {
       height: 35px;
       background: #181818;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #2b2b2b;
+      border-bottom: 1px solid #252526;
       flex-shrink: 0;
     }
     .vs-tab-group {
@@ -312,7 +356,7 @@
       height: 100%;
     }
     .vs-tab {
-      min-width: 140px;
+      min-width: 130px;
       height: 35px;
       display: flex;
       align-items: center;
@@ -322,32 +366,33 @@
       background: #181818;
       border-right: 1px solid #252526;
       gap: 6px;
-      cursor: pointer;
+      cursor: default;
       position: relative;
+      box-sizing: border-box;
     }
     .vs-tab.active {
       background: #1f1f1f;
       color: #ffffff;
-      border-top: 2px solid #0078d4;
+      border-bottom: 1px solid #1f1f1f;
     }
     .vs-tab-icon {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 16px;
-      height: 16px;
+      width: 15px;
+      height: 15px;
       flex-shrink: 0;
     }
     .vs-tab-close {
       margin-left: auto;
       color: #858585;
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       border-radius: 3px;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
+      cursor: default;
     }
     .vs-tab-close:hover { background: rgba(255,255,255,0.1); color: #ffffff; }
 
@@ -355,23 +400,8 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      padding-right: 12px;
+      padding-right: 10px;
     }
-    .vs-run-btn {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      background: #238636;
-      color: #ffffff;
-      border: 1px solid #2ea043;
-      border-radius: 4px;
-      padding: 2px 9px;
-      font-size: 11.5px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.25);
-    }
-    .vs-run-btn:hover { background: #2ea043; }
     .vs-action-btn {
       width: 24px;
       height: 24px;
@@ -380,20 +410,31 @@
       justify-content: center;
       border-radius: 4px;
       color: #858585;
-      cursor: pointer;
+      cursor: default;
     }
     .vs-action-btn:hover { color: #ffffff; background: rgba(255,255,255,0.08); }
+    .vs-editor-mode-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #858585;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: default;
+    }
+    .vs-editor-mode-btn:hover { color: #ffffff; background: rgba(255,255,255,0.08); }
 
+    /* Breadcrumbs */
     .vscode-breadcrumbs {
       height: 22px;
       background: #1f1f1f;
-      border-bottom: 1px solid #282828;
       display: flex;
       align-items: center;
       padding: 0 16px;
-      gap: 5px;
+      gap: 6px;
       font-size: 11.5px;
-      color: #8b949e;
+      color: #858585;
       flex-shrink: 0;
       user-select: none;
     }
@@ -401,47 +442,49 @@
       display: flex;
       align-items: center;
       gap: 4px;
+      color: #999999;
     }
     .bc-sep {
       color: #555555;
       font-size: 10px;
     }
 
-    .vscode-editor {
+    /* Editor Pane with Minimap */
+    .vscode-editor-wrapper {
       flex: 1;
       display: flex;
       overflow: hidden;
       background: #1f1f1f;
       min-height: 0;
+      position: relative;
     }
-
-    pre {
-      white-space: pre;
-      overflow-x: auto;
-      overflow-y: auto;
-      tab-size: 4;
-      -moz-tab-size: 4;
-      font-family: "Fira Code", "Cascadia Code", "JetBrains Mono", monospace;
+    .vscode-editor {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      background: #1f1f1f;
+      min-width: 0;
     }
-
-    code {
-      white-space: inherit;
-    }
-
     #vscode-gutter {
-      width: 52px;
-      min-width: 52px;
+      width: 48px;
+      min-width: 48px;
       background: #1f1f1f;
       color: #6e7681;
-      font-family: "Fira Code", monospace;
-      font-size: 13.5px;
-      line-height: 22px;
-      padding: 12px 14px 12px 0;
+      font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      font-size: 13px;
+      line-height: 20px;
+      padding: 8px 12px 8px 0;
       text-align: right;
       flex-shrink: 0;
-      border-right: 1px solid #282828;
-      white-space: pre;
       user-select: none;
+    }
+    .gutter-line {
+      height: 20px;
+      line-height: 20px;
+      color: #6e7681;
+    }
+    .gutter-line.active {
+      color: #c6c6c6;
     }
     #vscode-code-pane {
       flex: 1;
@@ -449,27 +492,78 @@
       overflow: hidden;
       min-width: 0;
       display: flex;
+      position: relative;
+    }
+    .code-active-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.035);
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      pointer-events: none;
+      z-index: 1;
+      display: none;
     }
     #vscode-code-pane pre {
       margin: 0;
-      padding: 12px 18px;
-      font-size: 13.5px;
-      line-height: 22px;
+      padding: 8px 14px;
+      font-size: 13px;
+      line-height: 20px;
       color: #d4d4d4;
       flex: 1;
+      font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      position: relative;
+      z-index: 2;
     }
     #code-cursor {
       display: inline-block;
       width: 2px;
-      height: 17px;
-      background: #aeafad;
+      height: 18px;
+      background: #ffffff;
       vertical-align: text-bottom;
-      animation: cursorBlink 1.1s step-end infinite;
       margin-left: 1px;
+      margin-right: 1px;
+      box-shadow: 0 0 1px rgba(255, 255, 255, 0.9);
+      animation: cursorBlink 0.8s step-end infinite;
     }
 
+    /* Minimap (Right Side) */
+    .vscode-minimap {
+      width: 68px;
+      background: #1f1f1f;
+      border-left: 1px solid rgba(255,255,255,0.03);
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+      padding: 8px 4px;
+      box-sizing: border-box;
+    }
+    .minimap-slider {
+      position: absolute;
+      top: 6px;
+      left: 0;
+      right: 0;
+      height: 85px;
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 1px solid rgba(255, 255, 255, 0.15);
+      pointer-events: none;
+    }
+    .minimap-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .minimap-line {
+      height: 2px;
+      border-radius: 1px;
+      opacity: 0.7;
+    }
+
+    /* 4. Terminal Panel (Bottom) */
     .vscode-terminal-panel {
-      height: 215px;
+      height: 170px;
       background: #181818;
       border-top: 1px solid #2b2b2b;
       display: flex;
@@ -477,365 +571,570 @@
       flex-shrink: 0;
     }
     .terminal-topbar {
-      height: 33px;
+      height: 32px;
       background: #181818;
       display: flex;
       align-items: center;
       padding: 0 14px;
       gap: 16px;
-      border-bottom: 1px solid #282828;
       flex-shrink: 0;
     }
     .terminal-tab {
-      font-size: 11.5px;
+      font-size: 11px;
       color: #858585;
-      cursor: pointer;
+      cursor: default;
       padding: 6px 0;
       display: flex;
       align-items: center;
       gap: 5px;
+      font-weight: 400;
     }
     .terminal-tab.active {
       color: #ffffff;
-      border-bottom: 2px solid #0078d4;
+      border-bottom: 1px solid #ffffff;
       font-weight: 500;
-    }
-    .terminal-tab-badge {
-      font-size: 10px;
-      background: #252526;
-      color: #8b949e;
-      padding: 0 5px;
-      border-radius: 10px;
-    }
-    .term-instance-pill {
-      font-size: 11.5px;
-      color: #cccccc;
-      background: #222222;
-      padding: 2px 8px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      border: 1px solid #333333;
     }
     .terminal-toolbar {
       margin-left: auto;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 6px;
       color: #858585;
     }
+    .term-instance-pill {
+      font-size: 11px;
+      color: #cccccc;
+      background: #1e1e1e;
+      padding: 2px 8px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid #333333;
+      margin-right: 4px;
+    }
     .term-tool-btn {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 3px;
-      cursor: pointer;
+      cursor: default;
+      color: #858585;
     }
     .term-tool-btn:hover { background: rgba(255,255,255,0.08); color: #ffffff; }
 
     #terminal-body {
       flex: 1;
       padding: 10px 16px;
-      font-family: 'Fira Code', 'Consolas', monospace;
-      font-size: 13px;
-      color: #d4d4d4;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 12.5px;
+      color: #cccccc;
       white-space: pre-wrap;
-      line-height: 1.55;
+      line-height: 1.5;
       overflow: hidden;
       background: #181818;
+      text-align: left;
     }
-    .term-prompt { color: #38bdf8; font-weight: 600; }
-    .term-output { color: #d4d4d4; }
+    #term-text {
+      white-space: pre-wrap;
+    }
+    .term-prompt { color: #cccccc; }
     #terminal-cursor {
       display: inline-block;
-      font-size: 13px;
-      color: #aeafad;
+      width: 7px;
+      height: 13px;
+      background: #ffffff;
+      vertical-align: text-bottom;
       animation: cursorBlink 1.1s step-end infinite;
+      margin-left: 2px;
     }
 
+    /* 5. Status Bar */
     .vscode-statusbar {
       height: 22px;
-      background: #007acc;
+      background: #181818;
+      border-top: 1px solid #2b2b2b;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 10px;
+      padding: 0 10px 0 0;
       flex-shrink: 0;
-      color: #ffffff;
-      font-size: 11.5px;
+      color: #cccccc;
+      font-size: 11px;
     }
     .status-left, .status-right {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
+      height: 100%;
+    }
+    .status-remote-btn {
+      height: 100%;
+      background: #007acc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      cursor: default;
     }
     .status-item {
       display: flex;
       align-items: center;
       gap: 4px;
       white-space: nowrap;
-      cursor: pointer;
+      cursor: default;
+      color: #cccccc;
     }
 
-    /* ---- SYNTAX COLORS (VS Code Dark+ Palette) ---- */
-    .kw   { color: #569cd6; font-weight: 500; }
-    .fn   { color: #dcdcaa; }
-    .str  { color: #ce9178; }
-    .num  { color: #b5cea8; }
-    .cmt  { color: #6a9955; font-style: italic; }
-    .cls  { color: #4ec9b0; }
-    .deco { color: #dcdcaa; }
+    /* Syntax Highlighting (VS Code Dark Modern Theme Matching Screenshot) */
+    .kw    { color: #c586c0; }
+    .tag   { color: #569cd6; }
+    .tag-bracket { color: #808080; }
+    .attr  { color: #9cdcfe; }
+    .prop  { color: #9cdcfe; }
+    .sel   { color: #d7ba7d; }
+    .css-val { color: #ce9178; }
+    .fn    { color: #dcdcaa; }
+    .str   { color: #ce9178; }
+    .num   { color: #b5cea8; }
+    .cmt   { color: #6a9955; font-style: italic; }
+    .cls   { color: #4ec9b0; }
+    .color-box {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 1px;
+      vertical-align: middle;
+      margin-right: 5px;
+      margin-left: 2px;
+    }
 
-    /* ---- WHITEBOARD THEME ---- */
+    /* ---- AUTHENTIC WINDOWS 11 MS PAINT THEME ---- */
     #whiteboard-window {
-      background: #fafbfc;
-      color: #1e293b;
-      font-family: 'Outfit', 'Inter', 'Noto Sans Tamil', 'Noto Sans Devanagari', 'Noto Sans Telugu', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Segoe UI', sans-serif;
+      background: #f9f9fb;
+      color: #1c1c1c;
+      font-family: 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', 'Noto Sans Tamil', 'Noto Sans Devanagari', sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
     }
 
-    .wb-header {
-      background: #ffffff;
-      height: 42px;
+    /* 1. Paint Title Bar */
+    .paint-titlebar {
+      height: 34px;
+      background: #f9f9fb;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 20px;
-      border-bottom: 1px solid #e2e8f0;
+      padding-left: 10px;
       flex-shrink: 0;
+      border-bottom: 1px solid #f0f0f3;
     }
-    .wb-header-left {
+    .paint-titlebar-left {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
-    .wb-back-btn {
-      font-size: 13px;
-      color: #64748b;
-      cursor: pointer;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      transition: color 0.15s;
-    }
-    .wb-back-btn:hover { color: #0f172a; }
-    .wb-header-divider {
-      width: 1px;
+    .paint-app-icon {
+      width: 16px;
       height: 16px;
-      background: #e2e8f0;
-    }
-    .wb-header-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: #0f172a;
-      letter-spacing: -0.01em;
-    }
-    .wb-header-badges {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .wb-badge {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11.5px;
-      font-weight: 600;
-      color: #16a34a;
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      padding: 2px 8px;
-      border-radius: 12px;
-    }
-    .wb-badge-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #22c55e;
-    }
-    .wb-badge-zoom {
-      font-size: 11.5px;
-      color: #64748b;
-      font-weight: 500;
-      padding: 2px 6px;
-      background: #f1f5f9;
-      border-radius: 4px;
-    }
-
-    /* ---- MODERN EDUCATIONAL DIGITAL WHITEBOARD TOOLBAR ---- */
-    .wb-toolbar {
-      background: #ffffff;
-      height: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      border-bottom: 1px solid #e2e8f0;
-      flex-shrink: 0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-      z-index: 20;
-      padding: 0 16px;
     }
-    .wb-tool-group {
+    .paint-window-title {
+      font-size: 12px;
+      font-weight: 400;
+      color: #1b1b1b;
+      letter-spacing: -0.01em;
+    }
+    .paint-caption-controls {
+      display: flex;
+      align-items: center;
+      height: 100%;
+    }
+    .paint-caption-btn {
+      width: 44px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: #1b1b1b;
+      cursor: default;
+      transition: background 0.1s;
+    }
+    .paint-caption-btn:hover {
+      background: #e5e5e5;
+    }
+    .paint-caption-btn.close:hover {
+      background: #e81123;
+      color: #ffffff;
+    }
+
+    /* 2. Paint Menu Bar */
+    .paint-menubar {
+      height: 28px;
+      background: #f9f9fb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      flex-shrink: 0;
+    }
+    .paint-menubar-left {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .paint-menu-item {
+      padding: 3px 8px;
+      font-size: 12px;
+      color: #1b1b1b;
+      border-radius: 4px;
+      cursor: default;
+      background: transparent;
+      border: none;
+      font-family: inherit;
+    }
+    .paint-menu-item:hover {
+      background: #ebebeb;
+    }
+    .paint-menu-divider {
+      width: 1px;
+      height: 14px;
+      background: #e0e0e0;
+      margin: 0 6px;
+    }
+    .paint-icon-btn {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      background: transparent;
+      border: none;
+      color: #444;
+      cursor: default;
+    }
+    .paint-icon-btn:hover {
+      background: #ebebeb;
+    }
+    .paint-menubar-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* 3. Paint Fluent Ribbon Toolbar */
+    .paint-ribbon {
+      height: 98px;
+      background: #f9f9fb;
+      border-top: 1px solid #ebebeb;
+      border-bottom: 1px solid #e1e1e1;
+      display: flex;
+      align-items: stretch;
+      padding: 4px 10px 2px 10px;
+      gap: 0;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    .ribbon-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 5px;
+      position: relative;
+    }
+    .ribbon-section-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ribbon-label {
+      font-size: 10px;
+      color: #606060;
+      font-weight: 400;
+      text-align: center;
+      margin-top: 2px;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+    .ribbon-divider {
+      width: 1px;
+      background: #e5e5e5;
+      margin: 4px 4px 14px 4px;
+      align-self: stretch;
+    }
+
+    /* Selection Section */
+    .ribbon-btn-large {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: default;
+      color: #333;
+    }
+    .ribbon-btn-large:hover {
+      background: #ebebeb;
+    }
+
+    /* Image Section */
+    .ribbon-grid-2x2 {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .ribbon-row {
+      display: flex;
+      gap: 3px;
+    }
+    .ribbon-btn-mini {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: default;
+      color: #333;
+    }
+    .ribbon-btn-mini:hover {
+      background: #ebebeb;
+    }
+    .ribbon-btn-mini.active {
+      background: #e0e8f5;
+      border-color: #005fb8;
+      color: #005fb8;
+    }
+
+    /* Tools Section: 3x2 Grid */
+    .ribbon-tools-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 24px);
+      grid-template-rows: repeat(2, 24px);
+      gap: 2px;
+    }
+
+    /* Shapes Section */
+    .ribbon-shapes-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ribbon-shapes-box {
+      background: #ffffff;
+      border: 1px solid #d4d4d8;
+      border-radius: 4px;
+      padding: 3px 4px;
       display: flex;
       align-items: center;
       gap: 3px;
     }
-    .wb-tools-pill {
-      background: #f8fafc;
-      padding: 2px 4px;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
+    .ribbon-shapes-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 18px);
+      grid-template-rows: repeat(3, 17px);
+      gap: 1px 2px;
     }
-    .wb-tool-btn {
-      width: 30px;
-      height: 30px;
+    .shape-icon {
+      width: 18px;
+      height: 17px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 6px;
-      border: none;
-      background: transparent;
-      color: #475569;
-      cursor: pointer;
-      transition: all 0.15s ease;
+      border-radius: 2px;
+      cursor: default;
+      color: #374151;
     }
-    .wb-tool-btn:hover {
+    .shape-icon:hover {
       background: #f1f5f9;
-      color: #0f172a;
     }
-    .wb-tool-btn.active {
-      background: #eff6ff;
-      color: #2563eb;
-      box-shadow: 0 0 0 1px #bfdbfe;
+    .ribbon-shapes-scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
-    .wb-tool-divider {
-      width: 1px;
-      height: 18px;
-      background: #e2e8f0;
-      margin: 0 4px;
+    .shape-scroll-arrow {
+      width: 12px;
+      height: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      cursor: default;
     }
-    .wb-colors-wrap {
+    .ribbon-shapes-options {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .ribbon-opt-btn {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 4px;
+      font-size: 11px;
+      color: #374151;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor: default;
+    }
+    .ribbon-opt-btn:hover {
+      background: #ebebeb;
+    }
+
+    /* Colors Section */
+    .ribbon-colors-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ribbon-active-colors {
       display: flex;
       align-items: center;
       gap: 5px;
-      padding: 0 4px;
     }
-    .wb-color-dot {
-      width: 13px;
-      height: 13px;
+    .color-box-primary {
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
-      cursor: pointer;
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.12);
-      position: relative;
+      background: #000000;
+      box-shadow: 0 0 0 2px #f9f9fb, 0 0 0 4px #005fb8;
+      cursor: default;
     }
-    .wb-color-dot.active {
-      box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #2563eb;
+    .color-box-secondary {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1px solid #94a3b8;
+      cursor: default;
     }
-    .wb-stroke-wrap {
+    .color-swatches-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 15px);
+      grid-template-rows: repeat(2, 15px);
+      gap: 3px;
+    }
+    .swatch-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+      cursor: default;
+    }
+    .swatch-dot:hover {
+      transform: scale(1.15);
+    }
+    .color-wheel-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+      border: 1px solid #cbd5e1;
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 0 6px 0 8px;
-    }
-    .wb-stroke-dot {
-      border-radius: 50%;
-      background: #64748b;
-      cursor: pointer;
-    }
-    .wb-stroke-dot.fine { width: 3px; height: 3px; }
-    .wb-stroke-dot.med { width: 5px; height: 5px; }
-    .wb-stroke-dot.thick { width: 7px; height: 7px; }
-    .wb-stroke-dot.active { background: #2563eb; box-shadow: 0 0 0 2px #bfdbfe; }
-    .wb-tool-delete:hover {
-      color: #ef4444;
-      background: #fef2f2;
-    }
-
-    .wb-workspace {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-      background: #f8fafc;
+      justify-content: center;
+      cursor: default;
       position: relative;
     }
+    .color-wheel-btn::after {
+      content: "+";
+      font-size: 11px;
+      font-weight: 700;
+      color: #ffffff;
+      text-shadow: 0 0 2px #000;
+    }
 
-    /* Teacher Avatar Column */
-    .wb-teacher-col {
-      display: none !important;
-    }
-    .wb-avatar-card {
-      width: 100%;
-      background: #f8fafc;
-      border-radius: 18px;
-      padding: 28px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
-    }
-    .wb-avatar-circle {
-      width: 110px;
-      height: 110px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-      position: relative;
-      margin-bottom: 18px;
-      box-shadow: 0 10px 20px -3px rgba(59, 130, 246, 0.25);
+    /* Copilot & Layers */
+    .copilot-icon {
+      width: 24px;
+      height: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .wb-avatar-circle::after {
-      content: "🧑‍🏫";
-      font-size: 48px;
-    }
-    .wb-avatar-status {
-      position: absolute;
-      bottom: 4px;
-      right: 4px;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #22c55e;
-      border: 3px solid #ffffff;
-    }
-    .wb-avatar-status.speaking {
-      animation: pulseSpeaking 0.6s infinite alternate;
-    }
-    @keyframes pulseSpeaking {
-      0% { transform: scale(1); box-shadow: 0 0 0 0px rgba(34, 197, 94, 0.7); }
-      100% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-    }
-    .wb-teacher-name {
-      font-size: 16px;
-      font-weight: 600;
-      color: #0f172a;
-      margin-bottom: 4px;
-    }
-    .wb-teacher-role {
-      font-size: 13px;
-      color: #64748b;
-      margin-bottom: 18px;
-    }
-    .wb-teacher-action {
-      font-size: 13px;
-      font-weight: 600;
-      color: #2563eb;
-      background: #eff6ff;
-      padding: 6px 14px;
-      border-radius: 20px;
-      border: 1px solid #bfdbfe;
+    .layers-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #374151;
     }
 
-    /* Infinite Whiteboard Viewport */
+    /* 4. Canvas Desk & Paper Sheet */
+    .wb-workspace {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0f2f5;
+      position: relative;
+      overflow: hidden;
+      padding: 10px 14px;
+      box-sizing: border-box;
+    }
+    .paint-canvas-sheet {
+      width: 100%;
+      height: 100%;
+      max-width: 1252px;
+      max-height: 524px;
+      background: #ffffff;
+      border: 1px solid #d4d4d8;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      position: relative;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* 8 Paint Canvas Resize Handles */
+    .paint-handle {
+      width: 6px;
+      height: 6px;
+      background: #ffffff;
+      border: 1px solid #475569;
+      position: absolute;
+      z-index: 25;
+      box-sizing: border-box;
+    }
+    .paint-handle.top-left { top: -4px; left: -4px; cursor: nwse-resize; }
+    .paint-handle.top-center { top: -4px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+    .paint-handle.top-right { top: -4px; right: -4px; cursor: nesw-resize; }
+    .paint-handle.left-center { top: 50%; left: -4px; transform: translateY(-50%); cursor: ew-resize; }
+    .paint-handle.right-center { top: 50%; right: -4px; transform: translateY(-50%); cursor: ew-resize; }
+    .paint-handle.bottom-left { bottom: -4px; left: -4px; cursor: nesw-resize; }
+    .paint-handle.bottom-center { bottom: -4px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+    .paint-handle.bottom-right { bottom: -4px; right: -4px; cursor: nwse-resize; }
+
+    /* Teacher Avatar Column (Hidden) */
+    .wb-teacher-col {
+      display: none !important;
+    }
+
+    /* Inside the Canvas Sheet */
     .wb-canvas-viewport {
       flex: 1;
+      height: 100%;
       overflow: hidden;
       position: relative;
       background: #ffffff;
@@ -847,12 +1146,11 @@
       background-color: #ffffff;
       background-image: none;
       transform-origin: center center;
-      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      padding: 40px 80px;
+      padding: 24px 44px;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 12px;
       align-items: center;
       word-wrap: break-word;
       overflow-wrap: break-word;
@@ -870,11 +1168,11 @@
     .wb-workspace.wb-has-board .wb-canvas-viewport {
       flex: 0 0 38%;
       max-width: 38%;
-      border-right: 1px solid #e2e8f0;
-      background: #fafafa;
+      border-right: none;
+      background: #ffffff;
     }
     .wb-workspace.wb-has-board .wb-canvas {
-      padding: 24px 28px;
+      padding: 20px 24px;
       align-items: flex-start;
       text-align: left;
     }
@@ -893,6 +1191,77 @@
       width: 100%;
       height: 100%;
       display: block;
+    }
+
+    /* 5. Paint Status Bar */
+    .paint-statusbar {
+      height: 26px;
+      background: #fbfbfd;
+      border-top: 1px solid #e5e5e5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      font-size: 11px;
+      color: #555555;
+      flex-shrink: 0;
+      position: relative;
+      box-sizing: border-box;
+    }
+    .paint-status-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .paint-status-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #52525b;
+    }
+    .paint-status-divider {
+      width: 1px;
+      height: 12px;
+      background: #d4d4d8;
+    }
+    .paint-status-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .paint-status-zoom {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      color: #3f3f46;
+      font-weight: 500;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .paint-zoom-slider {
+      display: flex;
+      align-items: center;
+      width: 70px;
+      height: 10px;
+    }
+    .paint-zoom-track {
+      width: 100%;
+      height: 2px;
+      background: #cbd5e1;
+      position: relative;
+    }
+    .paint-zoom-thumb {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #005fb8;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .paint-timeline-progress {
+      display: none !important;
     }
 
     /* Whiteboard elements container */
@@ -1262,18 +1631,417 @@
       min-width: 90px;
       text-align: right;
     }
+  
+    /* ---- AUTHENTIC MS PAINT ERASER TRANSITION (NOTEPAD TO NOTEPAD) ---- */
+    .paint-canvas-sheet {
+      position: relative;
+    }
+    .wb-erase-whiteout {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 0px;
+      z-index: 45;
+      background: #ffffff;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .wb-erase-whiteout.hidden {
+      display: none !important;
+    }
+    .paint-eraser-cursor {
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      background: #ffffff;
+      border: 1px solid #1e1e1e;
+      box-sizing: border-box;
+      pointer-events: none;
+      z-index: 60;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+    .paint-eraser-cursor.hidden {
+      display: none !important;
+    }
+    .paint-eraser-crosshair {
+      width: 11px;
+      height: 11px;
+      position: relative;
+    }
+    .paint-eraser-crosshair::before {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: 0;
+      width: 11px;
+      height: 1px;
+      background: #404040;
+    }
+    .paint-eraser-crosshair::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 5px;
+      width: 1px;
+      height: 11px;
+      background: #404040;
+    }
+
+    /* ---- WINDOWS 11 ALT + TAB TASK SWITCHER OVERLAY (AUTHENTIC PIXEL-PERFECT) ---- */
+    .alttab-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 99999;
+      background: rgba(0, 0, 0, 0.48);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+    .alttab-backdrop.hidden {
+      display: none !important;
+    }
+    .alttab-modal {
+      background: rgba(28, 28, 28, 0.90);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(0, 0, 0, 0.45);
+      padding: 20px 24px;
+      display: flex;
+      gap: 22px;
+      align-items: center;
+      justify-content: center;
+    }
+    .alttab-card {
+      width: 290px;
+      height: 195px;
+      background: rgba(45, 45, 45, 0.65);
+      border: 2px solid transparent;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-sizing: border-box;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .alttab-card.active {
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.45), 0 10px 28px rgba(0, 0, 0, 0.55);
+      background: rgba(52, 52, 52, 0.95);
+      transform: scale(1.025);
+    }
+    .alttab-card-header {
+      height: 34px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      background: rgba(22, 22, 22, 0.75);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+    }
+    .alttab-card-icon {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .alttab-card-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .alttab-preview {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    /* Miniature Notepad / Paint Screen */
+    .alttab-preview-notepad {
+      background: #ffffff;
+    }
+    .alttab-mini-wb-ribbon {
+      height: 20px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+    .alttab-mini-wb-menu {
+      display: flex;
+      gap: 6px;
+      font-size: 7.5px;
+      color: #64748b;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .alttab-mini-wb-palette {
+      display: flex;
+      gap: 3px;
+      align-items: center;
+    }
+    .alttab-mini-wb-dot {
+      width: 4.5px;
+      height: 4.5px;
+      border-radius: 50%;
+    }
+    .alttab-mini-wb-canvas {
+      flex: 1;
+      padding: 10px 12px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    .alttab-mini-wb-heading {
+      font-size: 11px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: 'Segoe UI Variable Display', 'Segoe UI', sans-serif;
+    }
+    .alttab-mini-wb-subheading {
+      font-size: 8.5px;
+      font-weight: 600;
+      color: #2563eb;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+    }
+    .alttab-mini-wb-bullets {
+      display: flex;
+      flex-direction: column;
+      gap: 3.5px;
+      margin-top: 3px;
+      overflow: hidden;
+    }
+    .alttab-mini-bullet {
+      font-size: 7.5px;
+      color: #334155;
+      line-height: 1.35;
+      display: flex;
+      gap: 4px;
+      align-items: flex-start;
+      font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .alttab-mini-bullet-dot {
+      color: #2563eb;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .alttab-mini-bullet-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Miniature VS Code Screen */
+    .alttab-preview-vscode {
+      background: #181818;
+      display: flex;
+      flex-direction: column;
+    }
+    .alttab-mini-vs-titlebar {
+      height: 16px;
+      background: #181818;
+      border-bottom: 1px solid #2b2b2b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 6px;
+      flex-shrink: 0;
+    }
+    .alttab-mini-vs-search {
+      background: #252525;
+      border: 1px solid #383838;
+      border-radius: 3px;
+      height: 11px;
+      width: 130px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7px;
+      color: #999999;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .alttab-mini-vs-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    .alttab-mini-vs-actbar {
+      width: 14px;
+      background: #181818;
+      border-right: 1px solid #2b2b2b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding-top: 4px;
+      flex-shrink: 0;
+    }
+    .alttab-mini-vs-actdot {
+      width: 6px;
+      height: 6px;
+      border-radius: 1px;
+      background: #555555;
+    }
+    .alttab-mini-vs-actdot.active {
+      background: #ffffff;
+    }
+    .alttab-mini-vs-sidebar {
+      width: 72px;
+      background: #181818;
+      border-right: 1px solid #2b2b2b;
+      padding: 4px 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .alttab-mini-vs-folder {
+      font-size: 7.5px;
+      color: #cccccc;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .alttab-mini-vs-file {
+      font-size: 7px;
+      color: #38bdf8;
+      margin-left: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .alttab-mini-vs-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #1f1f1f;
+    }
+    .alttab-mini-vs-tab {
+      height: 14px;
+      background: #1f1f1f;
+      border-bottom: 1px solid #252525;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 4px;
+      border-top: 1px solid #0078d4;
+      font-size: 7.5px;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+      flex-shrink: 0;
+    }
+    .alttab-mini-vs-code {
+      flex: 1;
+      padding: 4px 6px;
+      background: #1f1f1f;
+      font-family: Consolas, 'Courier New', monospace;
+      font-size: 7.5px;
+      line-height: 11px;
+      overflow: hidden;
+      color: #d4d4d4;
+      white-space: pre;
+    }
+    .alttab-mini-code-line {
+      display: flex;
+      gap: 6px;
+      white-space: pre;
+    }
+    .alttab-mini-lineno {
+      color: #5a5a5a;
+      width: 12px;
+      text-align: right;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .alttab-mini-linecode {
+      white-space: pre;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .alttab-mini-vs-terminal {
+      height: 44px;
+      background: #181818;
+      border-top: 1px solid #2b2b2b;
+      padding: 3px 6px;
+      font-family: Consolas, 'Courier New', monospace;
+      font-size: 6.8px;
+      line-height: 9.5px;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    .alttab-mini-vs-termheader {
+      font-size: 6.5px;
+      color: #858585;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .alttab-mini-vs-termtext {
+      color: #cccccc;
+      white-space: pre-line;
+      overflow: hidden;
+    }
+
   </style>
 </head>
 <body>
 
 <div id="desktop">
 
-  <!-- VS CODE WINDOW (AUTHENTIC VS CODE DARK MODERN UI) -->
+  <!-- VS CODE WINDOW (AUTHENTIC VS CODE DARK MODERN UI MATCHING SCREENSHOT) -->
   <div id="vscode-window" class="window hidden">
-    <!-- VS Code Titlebar -->
+    <!-- 1. VS Code Titlebar -->
     <div class="vscode-titlebar">
       <div class="vs-title-left">
         <div class="vscode-logo-wrap" title="Visual Studio Code">
+          <!-- Official VS Code Logo -->
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z" fill="#007ACC"/>
           </svg>
@@ -1282,370 +2050,824 @@
           <span>File</span><span>Edit</span><span>Selection</span><span>View</span>
           <span>Go</span><span>Run</span><span>Terminal</span><span>Help</span>
         </div>
+        <div class="vs-nav-arrows">
+          <div class="vs-nav-btn" title="Go Back">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 3L5 8l5 5"/></svg>
+          </div>
+          <div class="vs-nav-btn" title="Go Forward">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3l5 5-5 5"/></svg>
+          </div>
+        </div>
       </div>
+
+      <!-- Command Center Search Bar -->
       <div class="vs-title-center">
         <span class="vs-title-search-icon">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         </span>
-        <span class="vscode-title-text" id="vs-title-label">main.py — class_project — Visual Studio Code</span>
+        <span class="vscode-title-text" id="vs-title-label">human_style diagram</span>
       </div>
+
+      <!-- Titlebar Right Controls -->
       <div class="vs-title-right">
+        <!-- Copilot Sparkles -->
+        <div class="vs-layout-btn" title="Copilot">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+            <path d="M9 2a3 3 0 0 1 3 3v2a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3h2z"/><path d="M4 14l2-2"/>
+          </svg>
+        </div>
+        <!-- Layout Split -->
+        <div class="vs-layout-btn" title="Customize Layout">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6"/><path d="M8 2v12" fill="currentColor"/></svg>
+        </div>
+        <!-- Sidebar Toggle (Active) -->
         <div class="vs-layout-btn" title="Toggle Primary Side Bar">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M6 2v12" stroke-width="1.3"/><rect x="2.5" y="2.5" width="3" height="11" fill="currentColor" opacity="0.6"/></svg>
         </div>
+        <!-- Panel Toggle -->
         <div class="vs-layout-btn" title="Toggle Panel">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 15h18"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 10h12"/></svg>
         </div>
+        <!-- Secondary Side Bar Toggle -->
         <div class="vs-layout-btn" title="Toggle Secondary Side Bar">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M10 2v12"/></svg>
         </div>
+
+        <!-- Window Caption Controls -->
         <div class="win-controls-win">
           <span class="win-btn-win" title="Minimize">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="12" x2="20" y2="12"/></svg>
+            <svg width="10" height="1" viewBox="0 0 10 1"><path d="M0 0h10v1H0z" fill="currentColor"/></svg>
           </span>
           <span class="win-btn-win" title="Maximize">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="5" y="5" rx="1"/></svg>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><rect x="0.5" y="0.5" width="9" height="9"/></svg>
           </span>
           <span class="win-btn-win close" title="Close">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><path d="M0 0l10 10M10 0L0 10"/></svg>
           </span>
         </div>
       </div>
     </div>
 
-    <!-- VS Code Body -->
+    <!-- 2. VS Code Body -->
     <div class="vscode-body">
-      <!-- Left Activity Bar -->
+      <!-- Activity Bar (Far Left Strip) -->
       <div class="vscode-activitybar">
         <div class="act-group">
-          <!-- Explorer (Active) -->
-          <div class="act-icon active" title="Explorer (Ctrl+Shift+E)">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 2H8.6c-.4 0-.8.2-1.1.5L4.5 5.5c-.3.3-.5.7-.5 1.1V20c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V6.5L15.5 2z"/><path d="M14 2v6h6"/><path d="M3 7v13a2 2 0 0 0 2 2h13"/></svg>
+          <!-- Explorer (Active with white accent line) -->
+          <div class="act-icon active" title="Explorer">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15.5 2H8.6c-.4 0-.8.2-1.1.5L4.5 5.5c-.3.3-.5.7-.5 1.1V20c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V6.5L15.5 2z"/><path d="M14 2v6h6"/><path d="M3 7v13a2 2 0 0 0 2 2h13"/></svg>
           </div>
           <!-- Search -->
-          <div class="act-icon" title="Search (Ctrl+Shift+F)">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <div class="act-icon" title="Search">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           </div>
           <!-- Source Control -->
-          <div class="act-icon" title="Source Control (Ctrl+Shift+G)">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
-            <span class="act-badge">1</span>
+          <div class="act-icon" title="Source Control">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
           </div>
-          <!-- Run & Debug -->
-          <div class="act-icon" title="Run and Debug (Ctrl+Shift+D)">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><polygon points="11 11 15 13 11 15 11 11"/></svg>
+          <!-- Run and Debug -->
+          <div class="act-icon" title="Run and Debug">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><polygon points="11 11 15 13 11 15 11 11"/></svg>
           </div>
           <!-- Extensions -->
-          <div class="act-icon" title="Extensions (Ctrl+Shift+X)">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></svg>
+          <div class="act-icon" title="Extensions">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="5" y="14" rx="1"/></svg>
+          </div>
+          <!-- Copilot / Chat -->
+          <div class="act-icon" title="Copilot Chat">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <!-- Waves Tool Icon -->
+          <div class="act-icon" title="Testing">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12c3-4 6-4 9 0s6 4 9 0"/><path d="M2 17c3-4 6-4 9 0s6 4 9 0"/></svg>
+          </div>
+          <!-- Database / Containers -->
+          <div class="act-icon" title="Docker / Remote">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
           </div>
         </div>
         <div class="act-group">
-          <!-- Account -->
+          <!-- Normal Standard Accounts Icon (No Profile circle) -->
           <div class="act-icon" title="Accounts">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
           </div>
           <!-- Settings -->
-          <div class="act-icon" title="Manage / Settings">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <div class="act-icon" title="Manage">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </div>
         </div>
       </div>
 
-      <!-- Left Sidebar (Explorer) -->
+      <!-- Primary Sidebar (Explorer) -->
       <div class="vscode-sidebar">
-        <div class="sidebar-header">
-          <span>EXPLORER</span>
-          <div class="sidebar-actions">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        <div class="sidebar-top">
+          <div class="sidebar-header">
+            <span>Explorer</span>
+            <div class="sidebar-actions">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </div>
+          </div>
+          <div class="sidebar-folder-title">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="m6 9 6 6 6-6"/></svg>
+            <span id="vs-sidebar-folder">human_style-diagram</span>
+          </div>
+          <div class="file-tree">
+            <!-- Active Selected File -->
+            <div class="file-item selected">
+              <span class="file-item-icon" id="vs-sidebar-file-icon">
+                <!-- Orange HTML tag icon matching screenshot -->
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M5.5 3.5L1.5 8l4 4.5M10.5 3.5L14.5 8l-4 4.5" stroke="#e44d26" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span id="vs-sidebar-file">index.html</span>
+            </div>
           </div>
         </div>
-        <div class="sidebar-section-title">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="m6 9 6 6 6-6"/></svg>
-          <span>CLASS_PROJECT</span>
-        </div>
-        <div class="file-tree">
-          <!-- Folder src -->
-          <div class="file-item" style="padding-left:14px;color:#858585;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dcb67a" stroke-width="2"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
-            <span style="color:#d4d4d4;font-size:12.5px;">src</span>
-          </div>
-          <!-- Active File -->
-          <div class="file-item selected" style="padding-left:26px;">
-            <span class="file-item-icon" id="vs-sidebar-file-icon">
-              <!-- Dynamically populated language SVG -->
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M11.91 2C6.98 2 7.29 4.14 7.29 4.14L7.3 6.35H12V7.05H5.06C2.26 7.05 2 9.25 2 12.04C2 14.83 2.45 16.64 5.25 16.64H6.72V14.54C6.72 12.02 8.76 12.02 8.76 12.02H13.68C15.82 12.02 16.03 10.15 16.03 10.15V4.14C16.03 4.14 16.27 2 11.91 2ZM9.08 3.51C9.65 3.51 10.11 3.97 10.11 4.54C10.11 5.11 9.65 5.57 9.08 5.57C8.51 5.57 8.05 5.11 8.05 4.54C8.05 3.97 8.51 3.51 9.08 3.51Z" fill="#387eb8"/><path d="M12.09 22C17.02 22 16.71 19.86 16.71 19.86L16.7 17.65H12V16.95H18.94C21.74 16.95 22 14.75 22 11.96C22 9.17 21.55 7.36 18.75 7.36H17.28V9.46C17.28 11.98 15.24 11.98 15.24 11.98H10.32C8.18 11.98 7.97 13.85 7.97 13.85V19.86C7.97 19.86 7.73 22 12.09 22ZM14.92 20.49C14.35 20.49 13.89 20.03 13.89 19.46C13.89 18.89 14.35 18.43 14.92 18.43C15.49 18.43 15.95 18.89 15.95 19.46C15.95 20.03 15.49 20.49 14.92 20.49Z" fill="#ffe052"/></svg>
-            </span>
-            <span id="vs-sidebar-file">main.py</span>
-          </div>
-          <!-- Secondary file -->
-          <div class="file-item" style="padding-left:26px;">
-            <span class="file-item-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </span>
-            <span>helpers.py</span>
-          </div>
-          <!-- Readme -->
-          <div class="file-item" style="padding-left:26px;">
-            <span class="file-item-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
-            </span>
-            <span>README.md</span>
-          </div>
+        <!-- Bottom Timeline Section -->
+        <div class="sidebar-bottom-timeline">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="m9 6 6 6-6 6"/></svg>
+          <span>Timeline</span>
         </div>
       </div>
 
-      <!-- Editor Area -->
+      <!-- 3. Editor Area -->
       <div class="vscode-editor-area">
         <!-- Editor Tabs -->
         <div class="vscode-tabs">
           <div class="vs-tab-group">
             <div class="vs-tab active">
               <span class="vs-tab-icon" id="vs-tab-icon">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M11.91 2C6.98 2 7.29 4.14 7.29 4.14L7.3 6.35H12V7.05H5.06C2.26 7.05 2 9.25 2 12.04C2 14.83 2.45 16.64 5.25 16.64H6.72V14.54C6.72 12.02 8.76 12.02 8.76 12.02H13.68C15.82 12.02 16.03 10.15 16.03 10.15V4.14C16.03 4.14 16.27 2 11.91 2ZM9.08 3.51C9.65 3.51 10.11 3.97 10.11 4.54C10.11 5.11 9.65 5.57 9.08 5.57C8.51 5.57 8.05 5.11 8.05 4.54C8.05 3.97 8.51 3.51 9.08 3.51Z" fill="#387eb8"/><path d="M12.09 22C17.02 22 16.71 19.86 16.71 19.86L16.7 17.65H12V16.95H18.94C21.74 16.95 22 14.75 22 11.96C22 9.17 21.55 7.36 18.75 7.36H17.28V9.46C17.28 11.98 15.24 11.98 15.24 11.98H10.32C8.18 11.98 7.97 13.85 7.97 13.85V19.86C7.97 19.86 7.73 22 12.09 22ZM14.92 20.49C14.35 20.49 13.89 20.03 13.89 19.46C13.89 18.89 14.35 18.43 14.92 18.43C15.49 18.43 15.95 18.89 15.95 19.46C15.95 20.03 15.49 20.49 14.92 20.49Z" fill="#ffe052"/></svg>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M5.5 3.5L1.5 8l4 4.5M10.5 3.5L14.5 8l-4 4.5" stroke="#e44d26" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </span>
-              <span id="vs-tab-filename">main.py</span>
+              <span id="vs-tab-filename">index.html</span>
               <span class="vs-tab-close">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </span>
             </div>
           </div>
-          <!-- Tab Actions (Run / Play button, Split, More) -->
+          <!-- Tab Actions Matching Screenshot -->
           <div class="vs-tab-actions">
-            <button class="vs-run-btn" title="Run Code (F5)">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span>Run Code</span>
-            </button>
             <div class="vs-action-btn" title="Split Editor Right">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/></svg>
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M8 2v12"/></svg>
             </div>
             <div class="vs-action-btn" title="More Actions...">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </div>
+            <div class="vs-editor-mode-btn" title="Editor Layout">
+              <span>Text Editor</span>
+              <svg width="8" height="6" viewBox="0 0 8 6" fill="currentColor"><path d="M1 1.5l3 3 3-3z"/></svg>
             </div>
           </div>
         </div>
 
         <!-- Breadcrumbs Bar -->
         <div class="vscode-breadcrumbs">
-          <span class="bc-item">class_project</span>
-          <span class="bc-sep">›</span>
-          <span class="bc-item">src</span>
-          <span class="bc-sep">›</span>
-          <span class="bc-item">
-            <span id="vs-breadcrumb-icon">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M11.91 2C6.98 2 7.29 4.14 7.29 4.14L7.3 6.35H12V7.05H5.06C2.26 7.05 2 9.25 2 12.04C2 14.83 2.45 16.64 5.25 16.64H6.72V14.54C6.72 12.02 8.76 12.02 8.76 12.02H13.68C15.82 12.02 16.03 10.15 16.03 10.15V4.14C16.03 4.14 16.27 2 11.91 2ZM9.08 3.51C9.65 3.51 10.11 3.97 10.11 4.54C10.11 5.11 9.65 5.57 9.08 5.57C8.51 5.57 8.05 5.11 8.05 4.54C8.05 3.97 8.51 3.51 9.08 3.51Z" fill="#387eb8"/><path d="M12.09 22C17.02 22 16.71 19.86 16.71 19.86L16.7 17.65H12V16.95H18.94C21.74 16.95 22 14.75 22 11.96C22 9.17 21.55 7.36 18.75 7.36H17.28V9.46C17.28 11.98 15.24 11.98 15.24 11.98H10.32C8.18 11.98 7.97 13.85 7.97 13.85V19.86C7.97 19.86 7.73 22 12.09 22ZM14.92 20.49C14.35 20.49 13.89 20.03 13.89 19.46C13.89 18.89 14.35 18.43 14.92 18.43C15.49 18.43 15.95 18.89 15.95 19.46C15.95 20.03 15.49 20.49 14.92 20.49Z" fill="#ffe052"/></svg>
-            </span>
-            <span id="vs-breadcrumb-filename">main.py</span>
+          <span class="bc-item" id="vs-breadcrumb-icon">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M5.5 3.5L1.5 8l4 4.5M10.5 3.5L14.5 8l-4 4.5" stroke="#e44d26" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
+          <span class="bc-item" id="vs-breadcrumb-filename">index.html</span>
+          <span class="bc-sep">&gt;</span>
+          <span class="bc-item" id="vs-breadcrumb-scope">html &gt; head &gt; style</span>
         </div>
 
-        <!-- Code Pane -->
-        <div class="vscode-editor">
-          <div id="vscode-gutter">1</div>
-          <div id="vscode-code-pane">
-            <pre><code id="vs-code-span"></code><span id="code-cursor">&#8203;</span></pre>
+        <!-- Code Pane with Minimap -->
+        <div class="vscode-editor-wrapper">
+          <div class="vscode-editor">
+            <div id="vscode-gutter"></div>
+            <div id="vscode-code-pane">
+              <div class="code-active-line" id="code-active-line"></div>
+              <pre><code id="vs-code-span"></code><span id="code-cursor">&#8203;</span></pre>
+            </div>
+          </div>
+          <!-- Minimap on the right matching screenshot -->
+          <div class="vscode-minimap" id="vscode-minimap">
+            <div class="minimap-slider" id="minimap-slider"></div>
+            <div class="minimap-content" id="minimap-content"></div>
           </div>
         </div>
 
-        <!-- Terminal Panel -->
+        <!-- 4. Terminal Panel -->
         <div class="vscode-terminal-panel">
           <div class="terminal-topbar">
-            <div class="terminal-tab">
-              <span>PROBLEMS</span>
-              <span class="terminal-tab-badge">0</span>
-            </div>
-            <div class="terminal-tab">
-              <span>OUTPUT</span>
-            </div>
-            <div class="terminal-tab">
-              <span>DEBUG CONSOLE</span>
-            </div>
-            <div class="terminal-tab active">
-              <span>TERMINAL</span>
-            </div>
-            <div class="terminal-tab">
-              <span>PORTS</span>
-            </div>
-            <div class="term-instance-pill">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
-              <span>1: bash</span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
+            <div class="terminal-tab">Output</div>
+            <div class="terminal-tab">Debug Console</div>
+            <div class="terminal-tab active">Terminal</div>
+            <div class="terminal-tab">Ports</div>
+            <div class="terminal-tab">Problems</div>
             <div class="terminal-toolbar">
-              <div class="term-tool-btn" title="New Terminal">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <div class="term-instance-pill">
+                <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 4l4 4-4 4M8 12h5"/></svg>
+                <span>powershell</span>
+                <svg width="8" height="6" viewBox="0 0 8 6" fill="currentColor"><path d="M1 1.5l3 3 3-3z"/></svg>
               </div>
-              <div class="term-tool-btn" title="Split Terminal">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/></svg>
+              <div class="term-tool-btn" title="New Terminal">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v12M2 8h12"/></svg>
               </div>
               <div class="term-tool-btn" title="Kill Terminal">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/></svg>
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6 4V2h4v2M5 4v9h6V4"/></svg>
+              </div>
+              <div class="term-tool-btn" title="More">
+                <svg width="8" height="6" viewBox="0 0 8 6" fill="currentColor"><path d="M1 1.5l3 3 3-3z"/></svg>
+              </div>
+              <div class="term-tool-btn" title="More actions">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="4" cy="8" r="1"/><circle cx="8" cy="8" r="1"/><circle cx="12" cy="8" r="1"/></svg>
+              </div>
+              <div class="term-tool-btn" title="Toggle Size">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14l5-5M2 9v5h5"/></svg>
               </div>
               <div class="term-tool-btn" title="Close Panel">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3L3 13"/></svg>
               </div>
             </div>
           </div>
-          <div id="terminal-body">
-            <span id="term-text"></span><span id="terminal-cursor">&#9612;</span>
-          </div>
+          <div id="terminal-body"><span id="term-text"></span><span id="terminal-cursor">&#9612;</span></div>
         </div>
 
-        <!-- Status Bar -->
+        <!-- 5. Status Bar -->
         <div class="vscode-statusbar">
           <div class="status-left">
-            <div class="status-item">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
-              <span>main*</span>
+            <!-- Remote Button (Blue Badge) -->
+            <div class="status-remote-btn" title="Open a Remote Window">
+              <svg width="14" height="10" viewBox="0 0 16 12" fill="none">
+                <path d="M4 2L1 6l3 4M12 2l3 4-3 4M6 10l4-8" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
-            <div class="status-item" title="Synchronize Changes">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
-            </div>
+            <!-- Errors & Warnings -->
             <div class="status-item">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5"/></svg>
               <span>0</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" style="margin-left:4px;"><path d="M8 2l6 11H2z"/><path d="M8 6v4M8 12v.5"/></svg>
               <span>0</span>
             </div>
           </div>
           <div class="status-right">
-            <div class="status-item" id="vs-ln-col">Ln 1, Col 1</div>
+            <div class="status-item" id="vs-ln-col">Ln 19, Col 1</div>
             <div class="status-item">Spaces: 4</div>
             <div class="status-item">UTF-8</div>
             <div class="status-item">CRLF</div>
-            <div class="status-item" id="vs-status-lang">Python 3.11</div>
-            <div class="status-item" title="Prettier Formatter">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Prettier</span>
+            <div class="status-item" id="vs-status-lang">{ } HTML</div>
+            <div class="status-item" title="Live Server">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="2"/><path d="M4.5 4.5a5 5 0 0 0 0 7M11.5 4.5a5 5 0 0 1 0 7"/></svg>
+              <span>Go Live</span>
             </div>
             <div class="status-item" title="Notifications">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   </div>
 
-  <!-- WHITEBOARD WINDOW (DIGITAL EDUCATIONAL WHITEBOARD) -->
+  <!-- WHITEBOARD WINDOW (AUTHENTIC WINDOWS 11 MS PAINT UI) -->
   <div id="whiteboard-window" class="window">
-    <!-- Header -->
-    <div class="wb-header">
-      <div class="wb-header-left">
-        <span class="wb-back-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          Back
+
+    <!-- 1. Window Title Bar -->
+    <div class="paint-titlebar">
+      <div class="paint-titlebar-left">
+        <span class="paint-app-icon">
+          <!-- Windows 11 MS Paint Palette Icon -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C6.48 2 2 6.48 2 12c0 5.52 4.48 10 10 10 1.25 0 2.25-.94 2.25-2.19 0-.58-.23-1.11-.6-1.5-.38-.4-.6-.94-.6-1.53 0-1.25 1-2.28 2.25-2.28H17c3.87 0 7-3.13 7-7 0-4.14-5.37-7.5-12-7.5z" fill="#f0f3f6" stroke="#c0c4cc" stroke-width="0.8"/>
+            <circle cx="6.5" cy="11.5" r="1.8" fill="#e81123"/>
+            <circle cx="9.5" cy="7.2" r="1.8" fill="#ff8c00"/>
+            <circle cx="14.5" cy="7.2" r="1.8" fill="#ffb900"/>
+            <circle cx="17.8" cy="11.5" r="1.8" fill="#00a4ef"/>
+            <circle cx="14" cy="16" r="1.8" fill="#107c41"/>
+            <path d="M19 16.5l2.5 2.5a1.2 1.2 0 0 1-1.7 1.7L17.3 18.2" stroke="#4a5568" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
         </span>
-        <span class="wb-header-divider"></span>
-        <span class="wb-header-title" id="wb-lesson-title-label">Lesson Overview</span>
+        <span class="paint-window-title"><span id="wb-lesson-title-label">Untitled</span> - Paint</span>
       </div>
-    </div>
-
-    <!-- MODERN EDUCATIONAL WHITEBOARD TOOLBAR -->
-    <div class="wb-toolbar">
-      <!-- Group 1: Undo / Redo -->
-      <div class="wb-tool-group">
-        <button class="wb-tool-btn" title="Undo (Ctrl+Z)" type="button">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+      <div class="paint-caption-controls">
+        <button class="paint-caption-btn" title="Minimize" type="button">
+          <svg width="10" height="1" viewBox="0 0 10 1"><path d="M0 0h10v1H0z" fill="currentColor"/></svg>
         </button>
-        <button class="wb-tool-btn" title="Redo (Ctrl+Y)" type="button">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg>
+        <button class="paint-caption-btn" title="Maximize" type="button">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><rect x="0.5" y="0.5" width="9" height="9"/></svg>
         </button>
-      </div>
-
-      <div class="wb-tool-divider"></div>
-
-      <!-- Group 2: Core Tools (Select, Pen, Pencil, Highlighter, Eraser, Text, Shapes, Arrow) -->
-      <div class="wb-tool-group wb-tools-pill">
-        <button class="wb-tool-btn" title="Select (V)" type="button">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 7 18 3-7 7-3L3 3z"/></svg>
-        </button>
-        <button class="wb-tool-btn active" title="Pen (P)" type="button">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18z"/><path d="m2 2 5 5"/></svg>
-        </button>
-        <button class="wb-tool-btn" title="Pencil" type="button">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-        </button>
-        <button class="wb-tool-btn" title="Highlighter (H)" type="button">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h3l6-6"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
-        </button>
-        <button class="wb-tool-btn" title="Eraser (E)" type="button">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
-        </button>
-        <button class="wb-tool-btn" title="Text (T)" type="button">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="12" x2="12" y1="4" y2="20"/></svg>
-        </button>
-        <button class="wb-tool-btn" title="Shapes (S)" type="button">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="11" height="11" x="3" y="3" rx="1.5"/><circle cx="16" cy="16" r="4.5"/></svg>
-        </button>
-        <button class="wb-tool-btn" title="Line / Arrow (A)" type="button">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" x2="19" y1="19" y2="5"/><polyline points="10 5 19 5 19 14"/></svg>
-        </button>
-      </div>
-
-      <div class="wb-tool-divider"></div>
-
-      <!-- Group 3: Color Palette & Stroke Size -->
-      <div class="wb-tool-group">
-        <div class="wb-colors-wrap">
-          <span class="wb-color-dot" style="background:#0f172a;" title="Black"></span>
-          <span class="wb-color-dot active" style="background:#2563eb;" title="Blue"></span>
-          <span class="wb-color-dot" style="background:#dc2626;" title="Red"></span>
-          <span class="wb-color-dot" style="background:#16a34a;" title="Green"></span>
-          <span class="wb-color-dot" style="background:#eab308;" title="Yellow"></span>
-          <span class="wb-color-dot" style="background:#9333ea;" title="Purple"></span>
-        </div>
-        <div class="wb-stroke-wrap">
-          <span class="wb-stroke-dot fine" title="Fine (1px)"></span>
-          <span class="wb-stroke-dot med active" title="Medium (2px)"></span>
-          <span class="wb-stroke-dot thick" title="Thick (4px)"></span>
-        </div>
-      </div>
-
-      <div class="wb-tool-divider"></div>
-
-      <!-- Group 4: Clear / Delete -->
-      <div class="wb-tool-group">
-        <button class="wb-tool-btn wb-tool-delete" title="Clear Canvas" type="button">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        <button class="paint-caption-btn close" title="Close" type="button">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><path d="M0 0l10 10M10 0L0 10"/></svg>
         </button>
       </div>
     </div>
 
-    <!-- Workspace -->
-    <div class="wb-workspace" id="wb-workspace">
-      <div class="wb-teacher-col">
-        <div class="wb-avatar-card">
-          <div class="wb-avatar-circle">
-            <span class="wb-avatar-status speaking" id="wb-teacher-pulse"></span>
+    <!-- 2. Menu Bar & Quick Actions -->
+    <div class="paint-menubar">
+      <div class="paint-menubar-left">
+        <button class="paint-menu-item" type="button">File</button>
+        <button class="paint-menu-item" type="button">Edit</button>
+        <button class="paint-menu-item" type="button">View</button>
+        <span class="paint-menu-divider"></span>
+        <button class="paint-icon-btn" title="Save (Ctrl+S)" type="button">
+          <!-- Floppy Disk -->
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+            <path d="M3 2h8l3 3v9H2V2h1z"/>
+            <rect x="4" y="2" width="6" height="4"/>
+            <rect x="4" y="9" width="8" height="5"/>
+          </svg>
+        </button>
+        <button class="paint-icon-btn" title="Share" type="button">
+          <!-- Share / Export -->
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+            <path d="M9 3l4 4-4 4"/>
+            <path d="M13 7H6a4 4 0 0 0-4 4v2"/>
+          </svg>
+        </button>
+        <button class="paint-icon-btn" title="Undo (Ctrl+Z)" type="button">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <path d="M6 4L2 8l4 4"/><path d="M2 8h8a4 4 0 0 1 4 4v1"/>
+          </svg>
+        </button>
+        <button class="paint-icon-btn" title="Redo (Ctrl+Y)" type="button">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <path d="M10 4l4 4-4 4"/><path d="M14 8H6a4 4 0 0 0-4 4v1"/>
+          </svg>
+        </button>
+      </div>
+      <div class="paint-menubar-right">
+        <button class="paint-icon-btn" title="What's new" type="button">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+            <path d="M12 2l-6 4H3v4h3l6 4V2z"/><path d="M14 6a3 3 0 0 1 0 4"/>
+          </svg>
+        </button>
+        <button class="paint-icon-btn" title="Account" type="button">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+            <circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/>
+          </svg>
+        </button>
+        <button class="paint-icon-btn" title="Settings" type="button">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
+            <circle cx="8" cy="8" r="2.5"/>
+            <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Fluent Ribbon Toolbar -->
+    <div class="paint-ribbon">
+      <!-- Section: Selection -->
+      <div class="ribbon-section">
+        <div class="ribbon-section-content">
+          <button class="ribbon-btn-large" type="button" title="Select">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+              <rect x="3" y="3" width="18" height="18" stroke-dasharray="3 2" rx="1"/>
+            </svg>
+            <svg width="8" height="6" viewBox="0 0 8 6" fill="currentColor"><path d="M1 1.5l3 3 3-3z"/></svg>
+          </button>
+        </div>
+        <span class="ribbon-label">Selection</span>
+      </div>
+
+      <div class="ribbon-divider"></div>
+
+      <!-- Section: Image -->
+      <div class="ribbon-section">
+        <div class="ribbon-section-content">
+          <div class="ribbon-grid-2x2">
+            <div class="ribbon-row">
+              <button class="ribbon-btn-mini" type="button" title="Crop">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+                  <path d="M4 1v11h11M1 4h11v11"/>
+                </svg>
+              </button>
+              <button class="ribbon-btn-mini" type="button" title="Resize and skew">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+                  <rect x="2" y="2" width="7" height="7"/>
+                  <rect x="7" y="7" width="7" height="7"/>
+                </svg>
+              </button>
+            </div>
+            <div class="ribbon-row">
+              <button class="ribbon-btn-mini" type="button" title="Rotate or flip">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#005fb8" stroke-width="1.4">
+                  <path d="M13 8A5 5 0 1 1 8 3"/><path d="M8 1l3 2-3 2"/>
+                </svg>
+              </button>
+            </div>
           </div>
-          <div class="wb-teacher-name">AI Instructor</div>
-          <div class="wb-teacher-role">Interactive Whiteboard</div>
-          <div class="wb-teacher-action" id="wb-teacher-status">Explaining...</div>
         </div>
+        <span class="ribbon-label">Image</span>
       </div>
-      <div class="wb-canvas-viewport" id="wb-viewport">
-        <div class="wb-canvas" id="wb-canvas">
-          <!-- Dynamically populated card structure -->
+
+      <div class="ribbon-divider"></div>
+
+      <!-- Section: Tools -->
+      <div class="ribbon-section">
+        <div class="ribbon-section-content">
+          <div class="ribbon-tools-grid">
+            <!-- Pencil (Active) -->
+            <button class="ribbon-btn-mini active" id="paint-tool-pencil" type="button" title="Pencil">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M12.5 1.5l2 2-9 9-2.5.5.5-2.5 9-9z" fill="#ffca28" stroke="#333" stroke-width="0.8"/>
+                <path d="M3.5 10.5l2 2" stroke="#333" stroke-width="0.8"/>
+                <path d="M3 13l-1.5.5.5-1.5L3 13z" fill="#222"/>
+              </svg>
+            </button>
+            <!-- Fill Bucket -->
+            <button class="ribbon-btn-mini" type="button" title="Fill with color">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#2563eb" stroke-width="1.2">
+                <path d="M3 7l6-6 5 5-6 6-5-5z"/><path d="M1 13c1 1 2 1 3 0s2-1 3 0" fill="#2563eb"/>
+              </svg>
+            </button>
+            <!-- Text Tool -->
+            <button class="ribbon-btn-mini" type="button" title="Text">
+              <span style="font-size: 13px; font-weight: 700; color: #1e293b; font-family: serif;">A</span>
+            </button>
+            <!-- Eraser -->
+            <button class="ribbon-btn-mini" id="paint-tool-eraser" type="button" title="Eraser">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M4 12l-2-2 7-7 4 4-7 7-2-2z" fill="#f48fb1" stroke="#333" stroke-width="0.8"/>
+                <path d="M1 14h14" stroke="#333" stroke-width="1"/>
+              </svg>
+            </button>
+            <!-- Color Picker -->
+            <button class="ribbon-btn-mini" type="button" title="Color picker">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#333" stroke-width="1.2">
+                <path d="M14 2a2 2 0 0 0-2.8 0L9 4.2 11.8 7l2.2-2.2A2 2 0 0 0 14 2zM8 5.2L2 11.2V14h2.8l6-6L8 5.2z"/>
+              </svg>
+            </button>
+            <!-- Magnifier -->
+            <button class="ribbon-btn-mini" type="button" title="Magnifier">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#333" stroke-width="1.3">
+                <circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.5 4.5"/>
+              </svg>
+            </button>
+          </div>
         </div>
-        <div id="wb-pointer" class="wb-pointer"></div>
+        <span class="ribbon-label">Tools</span>
       </div>
-      <!-- Whiteboard Drawing Board Panel (Right ~60%) -->
-      <div class="wb-board-panel" id="wb-board-panel">
-        <canvas id="board-canvas"></canvas>
+
+      <div class="ribbon-divider"></div>
+
+      <!-- Section: Brushes -->
+      <div class="ribbon-section">
+        <div class="ribbon-section-content">
+          <button class="ribbon-btn-large" type="button" title="Brushes">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.4">
+              <path d="M18 3l3 3-9 9H8v-4l10-8z"/>
+              <path d="M4 21c2 0 4-1 4-3s-2-3-4-3-4 1-4 3 2 3 4 3z" fill="#4a5568"/>
+            </svg>
+            <svg width="8" height="6" viewBox="0 0 8 6" fill="currentColor"><path d="M1 1.5l3 3 3-3z"/></svg>
+          </button>
+        </div>
+        <span class="ribbon-label">Brushes</span>
+      </div>
+
+      <div class="ribbon-divider"></div>
+
+      <!-- Section: Shapes -->
+      <div class="ribbon-section">
+        <div class="ribbon-section-content">
+          <div class="ribbon-shapes-wrap">
+            <div class="ribbon-shapes-box">
+              <div class="ribbon-shapes-grid">
+                <!-- Line, Curve, Oval, Rect, RoundedRect, Polygon, Triangle -->
+                <span class="shape-icon" title="Line"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M2 14L14 2" stroke="currentColor" stroke-width="1.4"/></svg></span>
+                <span class="shape-icon" title="Curve"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M2 12C6 14 10 2 14 4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>
+                <span class="shape-icon" title="Oval"><svg width="12" height="12" viewBox="0 0 16 16"><ellipse cx="8" cy="8" rx="6" ry="4.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>
+                <span class="shape-icon" title="Rectangle"><svg width="12" height="12" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>
+                <span class="shape-icon" title="Rounded Rectangle"><svg width="12" height="12" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>
+                <span class="shape-icon" title="Polygon"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 2l6 4-2 7H4L2 6z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>
+                <span class="shape-icon" title="Triangle"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 2l6 11H2z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>
+                <!-- Row 2: RightTriangle, Diamond, Pentagon, Hexagon, RightArrow, LeftArrow, UpArrow -->
+                <span class="shape-icon" title="Right Triangle"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M2 2v11h11z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>
+                <span class="shape-icon" title="Diamond"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 2l5 6-5 6-5-6z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>
+                <span class="shape-icon" title="Pentagon"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 2l5 4-2 7H5L3 6z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>
+                <span class="shape-icon" title="Hexagon"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M5 2h6l4 6-4 6H5L1 8z" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span>
+                <span class="shape-icon" title="Right Arrow"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M2 6h7V3l5 5-5 5v-3H2z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                <span class="shape-icon" title="Left Arrow"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M14 6H7V3L2 8l5 5v-3h7z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                <span class="shape-icon" title="Up Arrow"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M6 14V7H3l5-5 5 5h-3v7z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                <!-- Row 3: DownArrow, 4-Star, 5-Star, Bubble, Cloud, Lightning, Heart -->
+                <span class="shape-icon" title="Down Arrow"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M6 2v7H3l5 5 5-5h-3V2z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                <span class="shape-icon" title="4-Point Star"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 1l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                <span class="shape-icon" title="5-Point Star"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 1.5l2 4 4.5.7-3.2 3.2.8 4.6L8 11.8l-4.1 2.2.8-4.6L1.5 6.2l4.5-.7z" fill="none" stroke="currentColor" stroke-width="1.1"/></svg></span>
+                <span class="shape-icon" title="Speech Bubble"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M2 3h12v7H6l-3 3v-3H2z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                <span class="shape-icon" title="Cloud"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M4 12h8a3 3 0 0 0 1-5.8 4 4 0 0 0-7.8-1A3 3 0 0 0 4 12z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                <span class="shape-icon" title="Lightning"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M9 1L3 9h5l-1 6 6-8H8z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                <span class="shape-icon" title="Heart"><svg width="12" height="12" viewBox="0 0 16 16"><path d="M8 14s-6-3.5-6-7.5a3.5 3.5 0 0 1 6-2 3.5 3.5 0 0 1 6 2c0 4-6 7.5-6 7.5z" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+              </div>
+              <div class="ribbon-shapes-scroll">
+                <span class="shape-scroll-arrow"><svg width="8" height="6" viewBox="0 0 8 6"><path d="M1 4.5l3-3 3 3z" fill="currentColor"/></svg></span>
+                <span class="shape-scroll-arrow"><svg width="8" height="6" viewBox="0 0 8 6"><path d="M1 1.5l3 3 3-3z" fill="currentColor"/></svg></span>
+              </div>
+            </div>
+            <div class="ribbon-shapes-options">
+              <button class="ribbon-opt-btn" type="button" title="Outline">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2 14l10-10 2 2L4 16H2v-2z"/></svg>
+                <svg width="6" height="5" viewBox="0 0 8 6" fill="currentColor"><path d="M1 1.5l3 3 3-3z"/></svg>
+              </button>
+              <button class="ribbon-opt-btn" type="button" title="Fill">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 7l6-6 5 5-6 6z"/><path d="M1 13c1 1 2 1 3 0"/></svg>
+                <svg width="6" height="5" viewBox="0 0 8 6" fill="currentColor"><path d="M1 1.5l3 3 3-3z"/></svg>
+              </button>
+              <button class="ribbon-opt-btn" type="button" title="Size">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                  <rect x="1" y="2" width="14" height="1"/>
+                  <rect x="1" y="6" width="14" height="2"/>
+                  <rect x="1" y="11" width="14" height="3"/>
+                </svg>
+                <svg width="6" height="5" viewBox="0 0 8 6" fill="currentColor"><path d="M1 1.5l3 3 3-3z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <span class="ribbon-label">Shapes</span>
+      </div>
+
+      <div class="ribbon-divider"></div>
+
+      <!-- Section: Colors -->
+      <div class="ribbon-section">
+        <div class="ribbon-section-content">
+          <div class="ribbon-colors-wrap">
+            <div class="ribbon-active-colors">
+              <span class="color-box-primary" title="Color 1 (Foreground)"></span>
+              <span class="color-box-secondary" title="Color 2 (Background)"></span>
+            </div>
+            <div class="color-swatches-grid">
+              <!-- Row 1: 10 Colors -->
+              <span class="swatch-dot" style="background:#000000;" title="Black"></span>
+              <span class="swatch-dot" style="background:#7f7f7f;" title="Gray-50%"></span>
+              <span class="swatch-dot" style="background:#880015;" title="Dark red"></span>
+              <span class="swatch-dot" style="background:#ed1c24;" title="Red"></span>
+              <span class="swatch-dot" style="background:#ff7f27;" title="Orange"></span>
+              <span class="swatch-dot" style="background:#fff200;" title="Yellow"></span>
+              <span class="swatch-dot" style="background:#22b14c;" title="Green"></span>
+              <span class="swatch-dot" style="background:#00a2e8;" title="Turquoise"></span>
+              <span class="swatch-dot" style="background:#3f48cc;" title="Indigo"></span>
+              <span class="swatch-dot" style="background:#a349a4;" title="Purple"></span>
+              <!-- Row 2: 10 Colors -->
+              <span class="swatch-dot" style="background:#ffffff;" title="White"></span>
+              <span class="swatch-dot" style="background:#c3c3c3;" title="Light gray"></span>
+              <span class="swatch-dot" style="background:#b97a57;" title="Brown"></span>
+              <span class="swatch-dot" style="background:#ffaec9;" title="Rose"></span>
+              <span class="swatch-dot" style="background:#ffc90e;" title="Gold"></span>
+              <span class="swatch-dot" style="background:#efe4b0;" title="Light yellow"></span>
+              <span class="swatch-dot" style="background:#b5e61d;" title="Lime"></span>
+              <span class="swatch-dot" style="background:#99d9ea;" title="Light turquoise"></span>
+              <span class="swatch-dot" style="background:#7092be;" title="Blue gray"></span>
+              <span class="swatch-dot" style="background:#c8bfe7;" title="Lavender"></span>
+            </div>
+            <button class="color-wheel-btn" type="button" title="Edit colors"></button>
+          </div>
+        </div>
+        <span class="ribbon-label">Colors</span>
+      </div>
+
+      <div class="ribbon-divider"></div>
+
+      <!-- Section: Copilot -->
+      <div class="ribbon-section">
+        <div class="ribbon-section-content">
+          <button class="ribbon-btn-large" type="button" title="Copilot">
+            <span class="copilot-icon">
+              <!-- Microsoft Copilot ribbon SVG -->
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2C6.5 2 3 5.5 3 10.5c0 3.2 1.6 5.8 4.2 7.2l-.7 2.8 3.4-1.4c.7.2 1.4.3 2.1.3 5.5 0 9-3.5 9-8.5S17.5 2 12 2z" fill="url(#copilot-grad)"/>
+                <defs>
+                  <linearGradient id="copilot-grad" x1="3" y1="2" x2="21" y2="21" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#0078d4"/>
+                    <stop offset="0.5" stop-color="#8764b8"/>
+                    <stop offset="1" stop-color="#f7630c"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </span>
+          </button>
+        </div>
+        <span class="ribbon-label">Copilot</span>
+      </div>
+
+      <div class="ribbon-divider"></div>
+
+      <!-- Section: Layers -->
+      <div class="ribbon-section">
+        <div class="ribbon-section-content">
+          <button class="ribbon-btn-large" type="button" title="Layers">
+            <span class="layers-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 12l10 5 10-5"/><path d="M2 17l10 5 10-5"/>
+              </svg>
+            </span>
+          </button>
+        </div>
+        <span class="ribbon-label">Layers</span>
+      </div>
+
+      <!-- Far Right: Collapse Ribbon -->
+      <div style="margin-left: auto; display: flex; align-items: flex-end; padding-bottom: 6px;">
+        <button class="paint-icon-btn" title="Collapse ribbon" type="button">
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="currentColor"><path d="M1 1l4 4 4-4z"/></svg>
+        </button>
       </div>
     </div>
-    <div class="wb-timeline-bar">
-      <div class="wb-timeline-progress-container">
-        <div class="wb-timeline-progress" id="wb-progress-fill"></div>
+
+    <!-- 4. Canvas Desk & Centered Paper Sheet -->
+    <div class="wb-workspace" id="wb-workspace">
+      <div class="paint-canvas-sheet" id="paint-canvas-sheet">
+        <!-- 8 Resize Handles (Windows 11 MS Paint style) -->
+        <span class="paint-handle top-left"></span>
+        <span class="paint-handle top-center"></span>
+        <span class="paint-handle top-right"></span>
+        <span class="paint-handle left-center"></span>
+        <span class="paint-handle right-center"></span>
+        <span class="paint-handle bottom-left"></span>
+        <span class="paint-handle bottom-center"></span>
+        <span class="paint-handle bottom-right"></span>
+
+        <!-- Erase Layer (Snapshots previous slide for authentic MS Paint Eraser wipe) -->
+        <div id="wb-erase-whiteout" class="wb-erase-whiteout hidden"></div>
+
+        <!-- Authentic MS Paint Square Eraser Cursor -->
+        <div id="paint-eraser-cursor" class="paint-eraser-cursor hidden">
+          <div class="paint-eraser-crosshair"></div>
+        </div>
+
+        <!-- Viewport & Typographic Educational Canvas -->
+        <div class="wb-canvas-viewport" id="wb-viewport">
+          <div class="wb-canvas" id="wb-canvas">
+            <!-- Dynamically populated card structure -->
+          </div>
+          <div id="wb-pointer" class="wb-pointer"></div>
+        </div>
+
+        <!-- Whiteboard Drawing Board Panel (Right ~60% when board is present) -->
+        <div class="wb-board-panel" id="wb-board-panel">
+          <canvas id="board-canvas"></canvas>
+        </div>
       </div>
-      <div class="wb-timeline-text" id="wb-timeline-time">0:00 / 0:00</div>
     </div>
+
+    <!-- 5. Paint Status Bar -->
+    <div class="paint-statusbar">
+      <div class="paint-status-left">
+        <span class="paint-status-item">
+          <!-- Crosshair Cursor -->
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+            <path d="M8 1v5M8 10v5M1 8h5M10 8h5M8 7a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+          </svg>
+          <span id="wb-status-coords-text">562, 195px</span>
+        </span>
+        <span class="paint-status-divider"></span>
+        <span class="paint-status-item" title="Selection">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+            <rect x="2" y="2" width="12" height="12" stroke-dasharray="2 2" rx="1"/>
+          </svg>
+        </span>
+        <span class="paint-status-divider"></span>
+        <span class="paint-status-item">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+            <rect x="2" y="3" width="12" height="10" rx="1"/>
+          </svg>
+          1801 × 648px
+        </span>
+
+      </div>
+      <div class="paint-status-right">
+        <button class="paint-icon-btn" style="width:20px;height:20px;" title="Fit to window" type="button">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+            <path d="M2 5V2h3M14 5V2h-3M2 11v3h3M14 11v3h-3"/>
+          </svg>
+        </button>
+        <span class="paint-status-zoom">100% <svg width="7" height="5" viewBox="0 0 8 6" fill="currentColor"><path d="M1 1.5l3 3 3-3z"/></svg></span>
+        <button class="paint-icon-btn" style="width:20px;height:20px;" title="Zoom out" type="button">
+          <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10"/></svg>
+        </button>
+        <div class="paint-zoom-slider">
+          <div class="paint-zoom-track">
+            <div class="paint-zoom-thumb"></div>
+          </div>
+        </div>
+        <button class="paint-icon-btn" style="width:20px;height:20px;" title="Zoom in" type="button">
+          <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+        </button>
+      </div>
+
+
+    </div>
+
   </div>
 
-</div>
 
-<!-- Whiteboard Drawing Board Scripts -->
+    <!-- Windows 11 Alt + Tab Task Switcher Overlay -->
+    <div id="alttab-overlay" class="alttab-backdrop hidden">
+      <div class="alttab-modal">
+        <!-- 1. Notepad / Paint Whiteboard Tile (Live Exact Content) -->
+        <div class="alttab-card" id="alttab-card-notepad">
+          <div class="alttab-card-header">
+            <div class="alttab-card-icon">
+              <!-- Fluent Modern Notepad Icon -->
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                <defs>
+                  <linearGradient id="npCoverGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#0078d4"/>
+                    <stop offset="100%" stop-color="#005a9e"/>
+                  </linearGradient>
+                </defs>
+                <rect x="3" y="2" width="18" height="20" rx="3" fill="url(#npCoverGrad)"/>
+                <rect x="6.5" y="4.5" width="13" height="15" rx="1.5" fill="#ffffff"/>
+                <rect x="8.5" y="7" width="7" height="1.5" rx="0.75" fill="#0078d4"/>
+                <rect x="8.5" y="10.5" width="9" height="1.5" rx="0.75" fill="#64748b"/>
+                <rect x="8.5" y="14" width="6.5" height="1.5" rx="0.75" fill="#64748b"/>
+                <path d="M5.5 2h1.5v20H5.5a2.5 2.5 0 0 1-2.5-2.5V4.5A2.5 2.5 0 0 1 5.5 2z" fill="#004e8c" opacity="0.3"/>
+              </svg>
+            </div>
+            <span class="alttab-card-title" id="alttab-title-notepad">Notes - Notepad</span>
+          </div>
+          <div class="alttab-preview alttab-preview-notepad">
+            <!-- Miniature Ribbon -->
+            <div class="alttab-mini-wb-ribbon">
+              <div class="alttab-mini-wb-menu">
+                <span>File</span>
+                <span>Edit</span>
+                <span>View</span>
+              </div>
+              <div class="alttab-mini-wb-palette">
+                <span class="alttab-mini-wb-dot" style="background:#0f172a;"></span>
+                <span class="alttab-mini-wb-dot" style="background:#ef4444;"></span>
+                <span class="alttab-mini-wb-dot" style="background:#3b82f6;"></span>
+                <span class="alttab-mini-wb-dot" style="background:#22c55e;"></span>
+                <span class="alttab-mini-wb-dot" style="background:#eab308;"></span>
+                <span class="alttab-mini-wb-dot" style="background:#a855f7;"></span>
+              </div>
+            </div>
+            <!-- Canvas with EXACT Slide Text -->
+            <div class="alttab-mini-wb-canvas">
+              <div class="alttab-mini-wb-heading" id="alttab-mini-wb-title">Course Overview</div>
+              <div class="alttab-mini-wb-subheading" id="alttab-mini-wb-sub">Introduction & Agenda</div>
+              <div class="alttab-mini-wb-bullets" id="alttab-mini-wb-bullets">
+                <div class="alttab-mini-bullet"><span class="alttab-mini-bullet-dot">•</span><span class="alttab-mini-bullet-text">Core mechanisms and concepts</span></div>
+                <div class="alttab-mini-bullet"><span class="alttab-mini-bullet-dot">•</span><span class="alttab-mini-bullet-text">Hands-on coding examples</span></div>
+                <div class="alttab-mini-bullet"><span class="alttab-mini-bullet-dot">•</span><span class="alttab-mini-bullet-text">Real-world practical projects</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Visual Studio Code Tile (Live Exact Content) -->
+        <div class="alttab-card" id="alttab-card-vscode">
+          <div class="alttab-card-header">
+            <div class="alttab-card-icon">
+              <!-- Official VS Code Logo -->
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                <path d="M17.5 2.5L7.5 10.5L3.5 7.5L1.5 8.5L5 12L1.5 15.5L3.5 16.5L7.5 13.5L17.5 21.5L22.5 19V5L17.5 2.5Z" fill="#007acc"/>
+                <path d="M17.5 2.5L7.5 10.5L11 12L17.5 5.5V2.5Z" fill="#1f9cf0"/>
+                <path d="M17.5 21.5L7.5 13.5L11 12L17.5 18.5V21.5Z" fill="#0066b8"/>
+              </svg>
+            </div>
+            <span class="alttab-card-title" id="alttab-title-vscode">main.py - Visual Studio Code</span>
+          </div>
+          <div class="alttab-preview alttab-preview-vscode">
+            <!-- Titlebar -->
+            <div class="alttab-mini-vs-titlebar">
+              <div class="alttab-mini-vs-search" id="alttab-mini-vs-search">main.py - workspace</div>
+            </div>
+            <div class="alttab-mini-vs-body">
+              <!-- Activity Bar -->
+              <div class="alttab-mini-vs-actbar">
+                <div class="alttab-mini-vs-actdot active"></div>
+                <div class="alttab-mini-vs-actdot"></div>
+                <div class="alttab-mini-vs-actdot"></div>
+                <div class="alttab-mini-vs-actdot"></div>
+              </div>
+              <!-- Explorer Sidebar -->
+              <div class="alttab-mini-vs-sidebar">
+                <div class="alttab-mini-vs-folder">📁 <span id="alttab-mini-vs-folder">workspace</span></div>
+                <div class="alttab-mini-vs-file">📄 <span id="alttab-mini-vs-file">main.py</span></div>
+              </div>
+              <!-- Main Editor + Terminal -->
+              <div class="alttab-mini-vs-main">
+                <div class="alttab-mini-vs-tab">
+                  <span>📄</span>
+                  <span id="alttab-mini-vs-tab">main.py</span>
+                  <span style="color:#858585; margin-left:auto;">×</span>
+                </div>
+                <!-- Real Code with Line Numbers -->
+                <div class="alttab-mini-vs-code" id="alttab-mini-vs-code">
+                  <div class="alttab-mini-code-line"><span class="alttab-mini-lineno">1</span><span class="alttab-mini-linecode"><span style="color:#569cd6;">def</span> <span style="color:#dcdcaa;">main</span>():</span></div>
+                  <div class="alttab-mini-code-line"><span class="alttab-mini-lineno">2</span><span class="alttab-mini-linecode">    <span style="color:#dcdcaa;">print</span>(<span style="color:#ce9178;">"Hello, World!"</span>)</span></div>
+                  <div class="alttab-mini-code-line"><span class="alttab-mini-lineno">3</span><span class="alttab-mini-linecode"></span></div>
+                  <div class="alttab-mini-code-line"><span class="alttab-mini-lineno">4</span><span class="alttab-mini-linecode"><span style="color:#dcdcaa;">main</span>()</span></div>
+                </div>
+                <!-- Real Terminal Panel -->
+                <div class="alttab-mini-vs-terminal">
+                  <div class="alttab-mini-vs-termheader">TERMINAL</div>
+                  <div class="alttab-mini-vs-termtext" id="alttab-mini-vs-terminal-text">PS D:\Desktop\workspace&gt; python main.py
+Hello, World!</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <!-- Whiteboard Drawing Board Scripts -->
 <script src="board/rough.min.js"></script>
 <script src="board/hershey-font.js"></script>
 <script src="board/board-engine.js"></script>
@@ -1675,44 +2897,148 @@ function _escapeHtml(str) {
 }
 
 function _highlight(codeStr) {
-  var h = _escapeHtml(codeStr);
-  var placeholders = [];
+  if (!codeStr) return '';
 
-  h = h.replace(/("""[\s\S]*?"""|'''[\s\S]*?'''|`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, function(m) {
-    placeholders.push('<span class="str">' + m + '</span>');
-    return '\x00S' + (placeholders.length - 1) + '\x00';
-  });
-
-  h = h.replace(/(\/\/[^\n]*|#[^\n]*|\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->)/g, function(m) {
-    placeholders.push('<span class="cmt">' + m + '</span>');
-    return '\x00S' + (placeholders.length - 1) + '\x00';
-  });
-
-  var kwRegex = /\b(def|function|class|struct|enum|interface|type|import|from|export|return|if|else|elif|for|while|do|switch|case|break|continue|default|try|catch|finally|throw|raise|except|const|let|var|val|pub|public|private|protected|static|final|async|await|yield|new|this|self|super|null|nil|true|false|True|False|None|void|int|float|double|string|bool|boolean|char|auto|fn|impl|trait|use|package|namespace|using|include|select|from|where|insert|update|delete|create|table|drop|alter)\b/g;
-  h = h.replace(kwRegex, '<span class="kw">$1</span>');
-  h = h.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="num">$1</span>');
-
-  for (var i = 0; i < placeholders.length; i++) {
-    h = h.replace('\x00S' + i + '\x00', placeholders[i]);
+  var text = _escapeHtml(codeStr);
+  var tokens = [];
+  function save(html) {
+    tokens.push(html);
+    return '___TOK' + (tokens.length - 1) + '___';
   }
-  return h;
+
+  // 1. Strings: "..." or '...' or `...`
+  text = text.replace(/(&quot;[\s\S]*?&quot;|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g, function(m) {
+    return save('<span class="str">' + m + '</span>');
+  });
+
+  // 2. Comments: HTML comments, C-style comments, Python comments (excluding hex colors)
+  text = text.replace(/(&lt;!--[\s\S]*?--&gt;|\/\*[\s\S]*?\*\/|\/\/[^\n]*|#(?!([0-9a-fA-F]{3,8})\b)[^\n]*)/g, function(m) {
+    return save('<span class="cmt">' + m + '</span>');
+  });
+
+  // 3. Hex colors with swatch (e.g. #f0f0f0, #ffffff)
+  text = text.replace(/(#([0-9a-fA-F]{3,8})\b)/gi, function(m) {
+    return save('<span class="color-box" style="background:' + m + ';"></span><span class="str">' + m + '</span>');
+  });
+
+  // 4. Color keywords with swatch (e.g. white, black)
+  text = text.replace(/\b(white|black)\b(?=\s*[;,])/gi, function(m) {
+    var bg = m.toLowerCase() === 'white' ? '#ffffff' : '#000000';
+    return save('<span class="color-box" style="background:' + bg + ';"></span><span class="str">' + m + '</span>');
+  });
+
+  // 5. HTML Tags
+  text = text.replace(/&lt;!DOCTYPE\s+([a-zA-Z0-9_-]+)&gt;/gi, function(m, tag) {
+    return save('<span class="tag-bracket">&lt;</span><span class="tag">!DOCTYPE</span> <span class="attr">' + tag + '</span><span class="tag-bracket">&gt;</span>');
+  });
+
+  text = text.replace(/&lt;\/([a-zA-Z0-9_-]+)&gt;/gi, function(m, tag) {
+    return save('<span class="tag-bracket">&lt;/</span><span class="tag">' + tag + '</span><span class="tag-bracket">&gt;</span>');
+  });
+
+  text = text.replace(/&lt;([a-zA-Z0-9_-]+)([\s\S]*?)(&gt;)/g, function(m, tag, attrs, close) {
+    var formattedAttrs = attrs.replace(/\b([a-zA-Z0-9_-]+)=/g, '<span class="attr">$1</span>=');
+    return save('<span class="tag-bracket">&lt;</span><span class="tag">' + tag + '</span>' + formattedAttrs + '<span class="tag-bracket">&gt;</span>');
+  });
+
+  // 6. CSS Selectors: body {, canvas {, div {, etc.
+  text = text.replace(/\b(body|canvas|html|head|style|div|span|p|h1|h2|h3|header|footer|nav|section|button|input)\s*(?=\{)/g, function(m, sel) {
+    return save('<span class="sel">' + sel + '</span> ');
+  });
+
+  // 7. CSS Properties
+  text = text.replace(/\b([a-zA-Z0-9_-]+)\s*:/g, function(m, prop) {
+    return save('<span class="prop">' + prop + '</span>:');
+  });
+
+  // 8. CSS Values
+  text = text.replace(/\b(flex|center|sans-serif|serif|monospace|inline|block|none|pointer|bold|normal|relative|absolute|fixed)\b/g, function(m, val) {
+    return save('<span class="css-val">' + val + '</span>');
+  });
+
+  // 9. Numbers & dimensions
+  text = text.replace(/\b(\d+(?:\.\d+)?(?:px|vh|vw|em|rem|%)?)\b/g, function(m, num) {
+    return save('<span class="num">' + num + '</span>');
+  });
+
+  // 10. General Keywords
+  var kwList = ['def','function','class','struct','enum','interface','type','import','from','export','return','if','else','elif','for','while','do','switch','case','break','continue','default','try','catch','finally','throw','raise','except','const','let','var','val','pub','public','private','protected','static','final','async','await','yield','new','this','self','super','null','nil','true','false','True','False','None','void','int','float','double','string','bool','boolean','char','auto','fn','impl','trait','use','package','namespace','using','include','select','where','insert','update','delete','create','table','drop','alter'];
+  var kwRegex = new RegExp('\\b(' + kwList.join('|') + ')\\b', 'g');
+  text = text.replace(kwRegex, function(m, kw) {
+    return save('<span class="kw">' + kw + '</span>');
+  });
+
+  // Restore tokens recursively
+  while (text.includes('___TOK')) {
+    text = text.replace(/___TOK(\d+)___/g, function(m, id) {
+      return tokens[parseInt(id, 10)] || '';
+    });
+  }
+
+  return text;
+}
+
+function _updateMinimap(code) {
+  var minimap = document.getElementById('minimap-content');
+  if (!minimap) return;
+  var lines = code.split('\n');
+  var html = '';
+  for (var i = 0; i < Math.min(lines.length, 30); i++) {
+    var line = lines[i];
+    var trimmed = line.trim();
+    if (!trimmed) {
+      html += '<div class="minimap-line empty" style="height:3px;"></div>';
+      continue;
+    }
+    var indent = (line.search(/\S|$/) || 0) * 2;
+    var len = Math.max(10, Math.min(50, trimmed.length * 1.4));
+    var color = '#569cd6';
+    if (trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('#') || trimmed.startsWith('&lt;!--')) color = '#6a9955';
+    else if (trimmed.includes('{') || trimmed.includes('}')) color = '#d7ba7d';
+    else if (trimmed.includes(':')) color = '#9cdcfe';
+    else if (trimmed.startsWith('<') || trimmed.endsWith('>')) color = '#569cd6';
+    else if (trimmed.includes('"') || trimmed.includes("'")) color = '#ce9178';
+    html += '<div class="minimap-line" style="margin-left:' + indent + 'px; width:' + len + 'px; background:' + color + ';"></div>';
+  }
+  minimap.innerHTML = html;
+}
+
+function _setGutter(lineCount, activeLine) {
+  var el = document.getElementById('vscode-gutter');
+  if (!el) return;
+  var count = Math.max(1, lineCount);
+  var html = '';
+  var cur = activeLine || count;
+  for (var i = 1; i <= count; i++) {
+    var cls = (i === cur) ? 'gutter-line active' : 'gutter-line';
+    html += '<div class="' + cls + '">' + i + '</div>';
+  }
+  el.innerHTML = html;
 }
 
 function _setCodeText(code, totalLines) {
   var el = document.getElementById('vs-code-span');
   if (!el) return;
-  if (totalLines > 0) _setGutter(totalLines);
-  el.innerHTML = _highlight(code);
-}
 
-function _setGutter(lineCount) {
-  var el = document.getElementById('vscode-gutter');
-  var numbers = [];
-  var count = Math.max(1, lineCount);
-  for (var i = 1; i <= count; i++) {
-    numbers.push(String(i));
+  var lines = code.split('\n');
+  var activeLine = lines.length;
+  var count = totalLines > 0 ? totalLines : activeLine;
+  _setGutter(count, activeLine);
+
+  var lineHighlight = document.getElementById('code-active-line');
+  if (lineHighlight) {
+    lineHighlight.style.display = 'block';
+    lineHighlight.style.top = (8 + (activeLine - 1) * 20) + 'px';
   }
-  el.textContent = numbers.join('\n');
+
+  var statusPosEl = document.getElementById('vs-ln-col');
+  if (statusPosEl) {
+    var col = (lines[lines.length - 1] || '').length + 1;
+    statusPosEl.textContent = 'Ln ' + activeLine + ', Col ' + col;
+  }
+
+  el.innerHTML = _highlight(code);
+  _updateMinimap(code);
 }
 
 function _parseCode(rawText) {
@@ -1734,7 +3060,8 @@ function _parseCode(rawText) {
 function _setTerminal(cmd, output) {
   var el = document.getElementById('term-text');
   if (!el) return;
-  var prompt = '<span style="color:#85c46c">PS C:\\Project&gt;</span> ';
+  var folder = (_slide && (_slide.folderName || _slide.heading)) ? (_slide.folderName || _slide.heading.toLowerCase().replace(/[^a-z0-9_-]/g, '')) : 'workspace';
+  var prompt = '<span class="term-prompt">PS D:\\Desktop\\' + folder + '&gt;</span> ';
   if (cmd === null && output === null) {
     el.innerHTML = prompt;
     return;
@@ -1882,7 +3209,7 @@ function _getFileIconSvg(fileName) {
     return '<svg width="15" height="15" viewBox="0 0 24 24"><rect width="22" height="22" x="1" y="1" rx="4" fill="#68217a"/><text x="12" y="16" font-family="Segoe UI, sans-serif" font-weight="bold" font-size="10" fill="#ffffff" text-anchor="middle">C#</text></svg>';
   }
   if (fn.endsWith('.html')) {
-    return '<svg width="15" height="15" viewBox="0 0 24 24"><rect width="22" height="22" x="1" y="1" rx="4" fill="#e34f26"/><text x="12" y="16" font-family="Segoe UI, sans-serif" font-weight="bold" font-size="8" fill="#ffffff" text-anchor="middle">&lt;/&gt;</text></svg>';
+    return '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M5.5 3.5L1.5 8l4 4.5M10.5 3.5L14.5 8l-4 4.5" stroke="#e44d26" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
   if (fn.endsWith('.json')) {
     return '<svg width="15" height="15" viewBox="0 0 24 24"><rect width="22" height="22" x="1" y="1" rx="4" fill="#f59e0b"/><text x="12" y="16" font-family="Segoe UI, sans-serif" font-weight="bold" font-size="9" fill="#ffffff" text-anchor="middle">{}</text></svg>';
@@ -1906,8 +3233,399 @@ function _getLanguageName(fileName) {
 }
 
 // ---- PUBLIC INTERFACE ----
+
+function _isRealCode(str) {
+  if (!str || typeof str !== 'string') return false;
+  var s = str.trim();
+  if (s.includes('==== OUTPUT ====')) return true;
+  var codeIndicators = /\b(def\s+|function\s+|class\s+|import\s+|from\s+|const\s+|let\s+|var\s+|if\s+|elif\s+|else:|for\s+|while\s+|return\s+|public\s+|private\s+|static\s+|void\s+|int\s+|float\s+|double\s+|print\(|console\.log|System\.out|#include|<!DOCTYPE|<html)\b/;
+  var looksLikeBullet = /^(Variable\s+|First\s+|Next\s+|Then\s+|Finally\s+|Prints\s+|In this\s+|This slide\s+|Note that\s+|Notice how\s+|Step \d|Example of|Flowchart|Sequential|Understood|Mastered)\b/i.test(s);
+  return codeIndicators.test(s) && (s.includes('\n') || s.includes('\\N') || s.includes(';')) && !looksLikeBullet;
+}
+
+function _synthesizeRealCodeForSlide(slide) {
+  var fn = (slide && slide.fileName) ? slide.fileName : 'main.py';
+  var isPy = fn.endsWith('.py') || /python/i.test(slide.heading || '');
+  var heading = (slide && slide.heading) ? slide.heading : 'Programming';
+  var subheading = (slide && slide.subheading) ? slide.subheading : 'Code Example';
+  var narration = (slide && slide.narration) ? slide.narration : '';
+  var bullets = (slide && Array.isArray(slide.bullets)) ? slide.bullets.join(' ') : '';
+  var combined = bullets + ' ' + narration;
+
+  if (/if\s+statement|condition/i.test(subheading) || /if\s+condition|conditional/i.test(combined)) {
+    var varName = 'temperature';
+    var varVal = '25';
+    var varMatch = combined.match(/variable\s+[`'"]?([a-zA-Z_][a-zA-Z0-9_]*)[`'"]?\s+(?:is\s+set\s+to|=)\s+[`'"]?([^`'",.\s]+)/i);
+    if (varMatch) {
+      varName = varMatch[1];
+      varVal = varMatch[2];
+    }
+    if (isPy) {
+      return {
+        code: '# Practical ' + (subheading || 'Conditional Logic') + '\n' +
+              varName + ' = ' + varVal + '\n\n' +
+              'if ' + varName + ' > 30:\n' +
+              '    print("It\'s a hot day!")\n' +
+              'elif ' + varName + ' > 20:\n' +
+              '    print("It\'s a warm day.")\n' +
+              'else:\n' +
+              '    print("It\'s a cool day.")',
+        output: "It's a warm day."
+      };
+    } else {
+      return {
+        code: '// Practical ' + (subheading || 'Conditional Logic') + '\n' +
+              'let ' + varName + ' = ' + varVal + ';\n\n' +
+              'if (' + varName + ' > 30) {\n' +
+              '    console.log("It\'s a hot day!");\n' +
+              '} else if (' + varName + ' > 20) {\n' +
+              '    console.log("It\'s a warm day.");\n' +
+              '} else {\n' +
+              '    console.log("It\'s a cool day.");\n' +
+              '}',
+        output: "It's a warm day."
+      };
+    }
+  }
+
+  if (isPy) {
+    return {
+      code: '# ' + heading + ' - ' + subheading + '\n' +
+            'def run_example():\n' +
+            '    data = [10, 20, 30, 40, 50]\n' +
+            '    total = sum(data)\n' +
+            '    print(f"Computed total: {total}")\n\n' +
+            'if __name__ == "__main__":\n' +
+            '    run_example()',
+      output: "Computed total: 150"
+    };
+  } else {
+    return {
+      code: '// ' + heading + ' - ' + subheading + '\n' +
+            'function runExample() {\n' +
+            '    const data = [10, 20, 30, 40, 50];\n' +
+            '    const total = data.reduce((a, b) => a + b, 0);\n' +
+            '    console.log("Computed total:", total);\n' +
+            '}\n\n' +
+            'runExample();',
+      output: "Computed total: 150"
+    };
+  }
+}
+
+
+function _formatNotepadTitle(heading, subheading) {
+  var h = (heading || '').trim();
+  if (!h || h.toLowerCase() === 'untitled') return 'Untitled - Notepad';
+  if (h.toLowerCase() === 'c') return 'C Programming - Notepad';
+  if (h.toLowerCase() === 'python' || h.toLowerCase() === 'py') return 'Python - Notepad';
+  if (h.length <= 2) return h.toUpperCase() + ' Notes - Notepad';
+  h = h.charAt(0).toUpperCase() + h.slice(1);
+  return h + ' - Notepad';
+}
+
+function _highlightMiniCode(line) {
+  if (!line) return '&nbsp;';
+  if (/^\s*(#|\/\/)/.test(line)) {
+    return '<span style="color:#6a9955;">' + _escapeHtml(line) + '</span>';
+  }
+  var tokenRegex = /("[^"]*"|'[^']*'|#.*$|\/\/.*$|\b(?:def|class|if|else|elif|return|import|from|for|while|in|as|with|try|except|int|float|void|char|double|include|const|let|var|function)\b|\b(?:print|printf|console\.log|range|len|append|main|malloc|free)\b(?=\()|\b\d+\b)/g;
+  var parts = line.split(tokenRegex);
+  return parts.map(function(part) {
+    if (!part) return '';
+    if (/^("[^"]*"|'[^']*')$/.test(part)) return '<span style="color:#ce9178;">' + _escapeHtml(part) + '</span>';
+    if (/^(#|\/\/)/.test(part)) return '<span style="color:#6a9955;">' + _escapeHtml(part) + '</span>';
+    if (/^\d+$/.test(part)) return '<span style="color:#b5cea8;">' + _escapeHtml(part) + '</span>';
+    if (/^(def|class|if|else|elif|return|import|from|for|while|in|as|with|try|except|int|float|void|char|double|include|const|let|var|function)$/.test(part)) {
+      return '<span style="color:#569cd6;">' + _escapeHtml(part) + '</span>';
+    }
+    if (/^(print|printf|console\.log|range|len|append|main|malloc|free)$/.test(part)) {
+      return '<span style="color:#dcdcaa;">' + _escapeHtml(part) + '</span>';
+    }
+    return _escapeHtml(part);
+  }).join('');
+}
+
+function _updateAltTabPreviews(currentSlide) {
+  var isCode = !!currentSlide.isCode;
+  if (isCode) {
+    window._lastCodeSlide = currentSlide;
+  } else {
+    window._lastWbSlide = currentSlide;
+  }
+
+  var wbSlide = window._lastWbSlide || currentSlide;
+  var codeSlide = window._lastCodeSlide || currentSlide;
+
+  // 1. Notepad Card (Live Exact Text from Slide)
+  var cleanWbTitle = _formatNotepadTitle(wbSlide.heading, wbSlide.subheading);
+  var wbTitleEl = document.getElementById('alttab-title-notepad');
+  if (wbTitleEl) wbTitleEl.textContent = cleanWbTitle;
+
+  var displayHeading = (wbSlide.heading || 'Notes').trim();
+  if (displayHeading.toLowerCase() === 'c') {
+    displayHeading = 'C Programming';
+  } else if (displayHeading.toLowerCase() === 'python') {
+    displayHeading = 'Python';
+  } else if (displayHeading.length > 0) {
+    displayHeading = displayHeading.charAt(0).toUpperCase() + displayHeading.slice(1);
+  }
+
+  var miniWbTitle = document.getElementById('alttab-mini-wb-title');
+  if (miniWbTitle) miniWbTitle.textContent = displayHeading;
+
+  var miniWbSub = document.getElementById('alttab-mini-wb-sub');
+  if (miniWbSub) {
+    miniWbSub.textContent = wbSlide.subheading || '';
+    miniWbSub.style.display = wbSlide.subheading ? 'block' : 'none';
+  }
+
+  var miniWbBullets = document.getElementById('alttab-mini-wb-bullets');
+  if (miniWbBullets) {
+    var bullets = wbSlide.bullets || [];
+    if (bullets.length > 0) {
+      miniWbBullets.innerHTML = bullets.slice(0, 4).map(function(b) {
+        var cleanB = String(b).replace(/[`*]/g, '');
+        return '<div class="alttab-mini-bullet"><span class="alttab-mini-bullet-dot">•</span><span class="alttab-mini-bullet-text">' + _escapeHtml(cleanB) + '</span></div>';
+      }).join('');
+    } else if (wbSlide.narration) {
+      miniWbBullets.innerHTML = '<div class="alttab-mini-bullet"><span class="alttab-mini-bullet-dot">•</span><span class="alttab-mini-bullet-text">' + _escapeHtml(wbSlide.narration.substring(0, 100)) + '...</span></div>';
+    } else {
+      miniWbBullets.innerHTML = '';
+    }
+  }
+
+  // 2. VS Code Card (Live Exact Screen of VS Code)
+  var fileName = (codeSlide.isCode ? codeSlide.fileName : null) || window._lastCodeFileName || 'main.py';
+  var vsTitle = fileName + ' - Visual Studio Code';
+  var vsTitleEl = document.getElementById('alttab-title-vscode');
+  if (vsTitleEl) vsTitleEl.textContent = vsTitle;
+
+  var folderName = codeSlide.folderName || ((codeSlide.heading || 'workspace').toLowerCase().replace(/[^a-z0-9_-]/g, ''));
+  if (!folderName) folderName = 'workspace';
+
+  var vsSearchEl = document.getElementById('alttab-mini-vs-search');
+  if (vsSearchEl) vsSearchEl.textContent = fileName + ' - ' + folderName;
+
+  var vsFolderEl = document.getElementById('alttab-mini-vs-folder');
+  if (vsFolderEl) vsFolderEl.textContent = folderName;
+
+  var vsFileEl = document.getElementById('alttab-mini-vs-file');
+  if (vsFileEl) vsFileEl.textContent = fileName;
+
+  var vsTabEl = document.getElementById('alttab-mini-vs-tab');
+  if (vsTabEl) vsTabEl.textContent = fileName;
+
+  var vsCodeEl = document.getElementById('alttab-mini-vs-code');
+  if (vsCodeEl) {
+    var rawCode = (codeSlide.isCode && codeSlide.code) ? codeSlide.code : (window._lastCodeText || '# Python script\ndef main():\n    print("Hello world")\n\nmain()');
+    window._lastCodeText = rawCode;
+    var lines = rawCode.split('\n').slice(0, 7);
+    vsCodeEl.innerHTML = lines.map(function(line, idx) {
+      var lineNum = idx + 1;
+      var highlighted = _highlightMiniCode(line);
+      return '<div class="alttab-mini-code-line"><span class="alttab-mini-lineno">' + lineNum + '</span><span class="alttab-mini-linecode">' + highlighted + '</span></div>';
+    }).join('');
+  }
+
+  var vsTermEl = document.getElementById('alttab-mini-vs-terminal-text');
+  if (vsTermEl) {
+    var termOut = (codeSlide.isCode && codeSlide.terminalOutput) ? codeSlide.terminalOutput : ('PS D:\\Desktop\\' + folderName + '> python ' + fileName + '\nSuccess.');
+    var termLines = termOut.split('\n').slice(0, 3).join('\n');
+    vsTermEl.textContent = termLines;
+  }
+}
+
+function _buildWhiteboardSlide(slide) {
+  if (!slide) return;
+  var titleLabel = document.getElementById('wb-lesson-title-label');
+  if (titleLabel) titleLabel.textContent = slide.heading || 'Theory / Concept';
+
+  var workspace = document.getElementById('wb-workspace');
+  var hasBoard = !!(slide.board && (slide.board.nodes || slide.board.strokes || slide.board.heading));
+  if (hasBoard) {
+    if (workspace) workspace.classList.add('wb-has-board');
+    var boardCanvas = document.getElementById('board-canvas');
+    if (boardCanvas && window.Board) {
+      var panel = document.getElementById('wb-board-panel');
+      var panelW = (panel && panel.clientWidth && panel.clientWidth > 100) ? panel.clientWidth : Math.floor(1280 * 0.62);
+      var panelH = (panel && panel.clientHeight && panel.clientHeight > 100) ? panel.clientHeight : 640;
+      window.Board.load(slide.board, panelW, panelH, { slideHeading: slide.heading });
+    }
+  } else {
+    if (workspace) workspace.classList.remove('wb-has-board');
+  }
+
+  var canvas = document.getElementById('wb-canvas');
+  if (!canvas) return;
+  canvas.innerHTML = '';
+
+  // Board and Mermaid/Diagrams are mutually exclusive (Decision 4)
+  var hasDiagram = !hasBoard && !!(slide.isDiagram || slide.mermaid || (slide.visual && slide.visual.enabled));
+  var hasRealWorld = !hasDiagram && !hasBoard && !!(slide.realWorldVisual && slide.realWorldVisual.enabled === true && (slide.imagePath || slide.imageUrl));
+  window._hasRealWorld = hasRealWorld;
+  window._imageAppearSecond = 0;
+
+  // Safety fallback: ensure whiteboard text slides are never blank if bullets was empty
+  if (!hasDiagram && !hasBoard && !hasRealWorld) {
+    if (!Array.isArray(slide.bullets) || slide.bullets.length === 0) {
+      if (slide.narration && typeof slide.narration === 'string') {
+        var rawSentences = slide.narration.split(/(?<=[.!?])\s+/);
+        var cleanPoints = rawSentences
+          .map(function(s) { return s.trim(); })
+          .filter(function(s) {
+            return s.length >= 20 && !/^(welcome|hello|today|in this|let'?s\s+(begin|start|look)|imagine)/i.test(s);
+          });
+        if (cleanPoints.length >= 2) {
+          slide.bullets = cleanPoints.slice(0, 3);
+        } else if (cleanPoints.length === 1) {
+          slide.bullets = [
+            cleanPoints[0],
+            'Core overview and essential principles of ' + (slide.subheading || slide.heading || 'the topic'),
+            'Key implementation patterns and structured design'
+          ];
+        } else {
+          slide.bullets = [
+            'Core overview and essential principles of ' + (slide.subheading || slide.heading || 'the topic'),
+            'Structured execution, parameters, and practical usage',
+            'Best practices and common programming patterns'
+          ];
+        }
+      } else {
+        slide.bullets = [
+          'Core overview and essential principles of ' + (slide.subheading || slide.heading || 'the topic'),
+          'Structured execution, parameters, and practical usage',
+          'Best practices and common programming patterns'
+        ];
+      }
+    }
+  }
+
+  // Adjust canvas padding for maximum visual display area when diagram or real-world image is shown
+  if (hasRealWorld) {
+    canvas.style.padding = '20px 40px';
+    canvas.style.gap = '8px';
+  } else {
+    canvas.style.padding = '';
+    canvas.style.gap = '';
+  }
+  
+  // Build Text Card Element
+  var textCard = document.createElement('div');
+  textCard.className = 'wb-element wb-card visible';
+  textCard.id = 'wb-main-text-card';
+  textCard.style.width = '100%';
+  textCard.style.maxWidth = '1350px';
+  textCard.style.padding = (hasDiagram || hasRealWorld) ? '10px 24px 4px 24px' : '28px 32px';
+  
+  // Create Title
+  var titleEl = document.createElement('h1');
+  titleEl.className = 'wb-title';
+  titleEl.id = 'wb-main-title';
+  if (hasDiagram || hasRealWorld) {
+    titleEl.style.fontSize = '30px';
+    titleEl.style.marginBottom = '4px';
+  }
+  textCard.appendChild(titleEl);
+  
+  // Create Subtitle/Heading if present
+  if (slide.subheading) {
+    var subHeadingEl = document.createElement('div');
+    subHeadingEl.className = 'wb-section-heading';
+    subHeadingEl.id = 'wb-main-subheading';
+    if (hasDiagram || hasRealWorld) {
+      subHeadingEl.style.fontSize = '18px';
+      subHeadingEl.style.marginTop = '2px';
+      subHeadingEl.style.marginBottom = '4px';
+    }
+    textCard.appendChild(subHeadingEl);
+  }
+  
+  canvas.appendChild(textCard);
+  
+  // If Diagram is present, build diagram container element directly in the main educational area!
+  if (hasDiagram) {
+    window._diagramAppearSecond = 4;
+    if (slide.visualTiming && slide.visualTiming.enabled !== false && typeof slide.visualTiming.appearAtSecond === 'number') {
+      window._diagramAppearSecond = slide.visualTiming.appearAtSecond;
+    } else if (!slide.visualTiming || slide.visualTiming.enabled === false) {
+      window._diagramAppearSecond = 0;
+    }
+    
+    var diagramCard = document.createElement('div');
+    diagramCard.className = 'wb-element wb-diagram-container';
+    diagramCard.id = 'wb-diagram-card';
+    canvas.appendChild(diagramCard);
+  } else {
+    window._diagramAppearSecond = 0;
+  }
+
+  if (hasRealWorld) {
+    window._imageAppearSecond = 4;
+    if (slide.realWorldVisualTiming && slide.realWorldVisualTiming.enabled !== false && typeof slide.realWorldVisualTiming.appearAtSecond === 'number') {
+      window._imageAppearSecond = slide.realWorldVisualTiming.appearAtSecond;
+    }
+
+    var imageCard = document.createElement('div');
+    imageCard.className = 'wb-element wb-image-container';
+    imageCard.id = 'wb-image-card';
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'wb-image-wrapper';
+
+    var imgEl = document.createElement('img');
+    imgEl.className = 'wb-scenario-img';
+    imgEl.id = 'wb-scenario-image';
+
+    var imgSrc = slide.imagePath || slide.imageUrl || '';
+    if (imgSrc && !imgSrc.startsWith('http') && !imgSrc.startsWith('data:') && !imgSrc.startsWith('file://')) {
+      imgSrc = 'file:///' + imgSrc.replace(/\\/g, '/');
+    }
+    imgEl.src = imgSrc;
+    imgEl.alt = (slide.realWorldVisual && slide.realWorldVisual.scenario) ? slide.realWorldVisual.scenario : 'Real-World Visual Scenario';
+    wrapper.appendChild(imgEl);
+
+    window._scenarioAnnotations = [];
+    imageCard.appendChild(wrapper);
+    canvas.appendChild(imageCard);
+  }
+  
+  // Container for bullets/blocks
+  var blockContainer = document.createElement('div');
+  blockContainer.id = 'wb-blocks-container';
+  if (hasDiagram) {
+    blockContainer.className = 'wb-element visible';
+    blockContainer.style.width = '100%';
+    blockContainer.style.maxWidth = '1300px';
+    blockContainer.style.marginTop = '4px';
+    canvas.appendChild(blockContainer);
+  } else {
+    textCard.appendChild(blockContainer);
+  }
+}
+
 window.loadSlide = function(slide) {
-  _prevIsCode = _slide ? !!_slide.isCode : null;
+  var isCode = !!slide.isCode;
+  var prev = (window._prevIsCode !== undefined && window._prevIsCode !== null) ? window._prevIsCode : _prevIsCode;
+  var isAppSwitch = (prev !== null && prev !== isCode);
+  var isWbToWb = (prev !== null && !prev && !isCode);
+
+  window._isSwitchingWindow = isAppSwitch;
+  window._isErasingWindow = isWbToWb;
+  window._switchDuration = (isAppSwitch || isWbToWb) ? 1.0 : 0;
+  window._eraserDuration = 1.0;
+  window._switchFromCode = prev;
+  window._switchToCode = isCode;
+
+  // Track titles and update live Alt+Tab previews
+  if (isCode) {
+    window._lastCodeFileName = slide.fileName || 'main.py';
+  } else {
+    window._lastWbHeading = slide.heading || 'Notes';
+  }
+  _updateAltTabPreviews(slide);
+
+  _prevIsCode = isCode;
   _slide = slide;
   
   // Cleanly reset bullet animation state across slide transitions
@@ -1917,11 +3635,17 @@ window.loadSlide = function(slide) {
   if (slide.isCode) {
     _showVSCode();
     var fileName = slide.fileName || 'main.py';
+    var folderName = slide.folderName || ((slide.heading || 'workspace').toLowerCase().replace(/[^a-z0-9_-]/g, ''));
+    if (!folderName) folderName = 'workspace';
+    var titleFolder = slide.titleFolder || (slide.heading + ' - ' + (slide.subheading || 'Code'));
     var iconSvg = _getFileIconSvg(fileName);
     var langName = _getLanguageName(fileName);
     
     var titleEl = document.getElementById('vs-title-label');
-    if (titleEl) titleEl.textContent = fileName + ' — class_project — Visual Studio Code';
+    if (titleEl) titleEl.textContent = titleFolder;
+
+    var folderEl = document.getElementById('vs-sidebar-folder');
+    if (folderEl) folderEl.textContent = folderName;
 
     var tabNameEl = document.getElementById('vs-tab-filename');
     if (tabNameEl) tabNameEl.textContent = fileName;
@@ -1931,6 +3655,14 @@ window.loadSlide = function(slide) {
 
     var breadcrumbNameEl = document.getElementById('vs-breadcrumb-filename');
     if (breadcrumbNameEl) breadcrumbNameEl.textContent = fileName;
+
+    var breadcrumbScopeEl = document.getElementById('vs-breadcrumb-scope');
+    if (breadcrumbScopeEl) {
+      if (fileName.endsWith('.py')) breadcrumbScopeEl.textContent = '...';
+      else if (fileName.endsWith('.js') || fileName.endsWith('.ts')) breadcrumbScopeEl.textContent = '...';
+      else if (fileName.endsWith('.html')) breadcrumbScopeEl.textContent = 'html > head > style';
+      else breadcrumbScopeEl.textContent = '...';
+    }
 
     var tabIconEl = document.getElementById('vs-tab-icon');
     if (tabIconEl) tabIconEl.innerHTML = iconSvg;
@@ -1942,178 +3674,20 @@ window.loadSlide = function(slide) {
     if (breadcrumbIconEl) breadcrumbIconEl.innerHTML = iconSvg;
 
     var statusLangEl = document.getElementById('vs-status-lang');
-    if (statusLangEl) statusLangEl.textContent = langName;
+    if (statusLangEl) statusLangEl.textContent = '{ } ' + langName;
   } else {
     _showWhiteboard();
-    document.getElementById('wb-lesson-title-label').textContent = slide.heading || 'Theory / Concept';
-    
-    // Toggle whiteboard drawing board split layout
-    var workspace = document.getElementById('wb-workspace');
-    var hasBoard = !!(slide.board && (slide.board.nodes || slide.board.strokes || slide.board.heading));
-    if (hasBoard) {
-      if (workspace) workspace.classList.add('wb-has-board');
-      var boardCanvas = document.getElementById('board-canvas');
-      if (boardCanvas && window.Board) {
-        var panel = document.getElementById('wb-board-panel');
-        var panelW = (panel && panel.clientWidth && panel.clientWidth > 100) ? panel.clientWidth : Math.floor(1280 * 0.62);
-        var panelH = (panel && panel.clientHeight && panel.clientHeight > 100) ? panel.clientHeight : 640;
-        window.Board.load(slide.board, panelW, panelH, { slideHeading: slide.heading });
+    if (isWbToWb) {
+      // Keep previous slide content intact; prepare whiteout layer for authentic MS Paint erase wipe
+      var whiteout = document.getElementById('wb-erase-whiteout');
+      if (whiteout) {
+        whiteout.style.height = '0px';
+        whiteout.classList.remove('hidden');
       }
+      window._pendingSlideBuild = true;
     } else {
-      if (workspace) workspace.classList.remove('wb-has-board');
-    }
-
-    // Clear and build the whiteboard canvas elements
-    var canvas = document.getElementById('wb-canvas');
-    canvas.innerHTML = '';
-    
-    // Board and Mermaid/Diagrams are mutually exclusive (Decision 4)
-    var hasDiagram = !hasBoard && !!(slide.isDiagram || slide.mermaid || (slide.visual && slide.visual.enabled));
-    var hasRealWorld = !hasDiagram && !hasBoard && !!(slide.realWorldVisual && slide.realWorldVisual.enabled === true && (slide.imagePath || slide.imageUrl));
-    window._hasRealWorld = hasRealWorld;
-    window._imageAppearSecond = 0;
-
-    // Safety fallback: ensure whiteboard text slides are never blank if bullets was empty
-    if (!hasDiagram && !hasBoard && !hasRealWorld) {
-      if (!Array.isArray(slide.bullets) || slide.bullets.length === 0) {
-        if (slide.narration && typeof slide.narration === 'string') {
-          var rawSentences = slide.narration.split(/(?<=[.!?])\s+/);
-          var cleanPoints = rawSentences
-            .map(function(s) { return s.trim(); })
-            .filter(function(s) {
-              return s.length >= 20 && !/^(welcome|hello|today|in this|let'?s\s+(begin|start|look)|imagine)/i.test(s);
-            });
-          if (cleanPoints.length >= 2) {
-            slide.bullets = cleanPoints.slice(0, 3);
-          } else if (cleanPoints.length === 1) {
-            slide.bullets = [
-              cleanPoints[0],
-              'Core overview and essential principles of ' + (slide.subheading || slide.heading || 'the topic'),
-              'Key implementation patterns and structured design'
-            ];
-          } else {
-            slide.bullets = [
-              'Core overview and essential principles of ' + (slide.subheading || slide.heading || 'the topic'),
-              'Structured execution, parameters, and practical usage',
-              'Best practices and common programming patterns'
-            ];
-          }
-        } else {
-          slide.bullets = [
-            'Core overview and essential principles of ' + (slide.subheading || slide.heading || 'the topic'),
-            'Structured execution, parameters, and practical usage',
-            'Best practices and common programming patterns'
-          ];
-        }
-      }
-    }
-
-    // Adjust canvas padding for maximum visual display area when diagram or real-world image is shown
-    if (hasRealWorld) {
-      canvas.style.padding = '20px 40px';
-      canvas.style.gap = '8px';
-    } else {
-      canvas.style.padding = '';
-      canvas.style.gap = '';
-    }
-    
-    // Build Text Card Element
-    var textCard = document.createElement('div');
-    textCard.className = 'wb-element wb-card visible';
-    textCard.id = 'wb-main-text-card';
-    textCard.style.width = '100%';
-    textCard.style.maxWidth = '1350px';
-    textCard.style.padding = (hasDiagram || hasRealWorld) ? '10px 24px 4px 24px' : '28px 32px';
-    
-    // Create Title
-    var titleEl = document.createElement('h1');
-    titleEl.className = 'wb-title';
-    titleEl.id = 'wb-main-title';
-    if (hasDiagram || hasRealWorld) {
-      titleEl.style.fontSize = '30px';
-      titleEl.style.marginBottom = '4px';
-    }
-    textCard.appendChild(titleEl);
-    
-    // Create Subtitle/Heading if present
-    if (slide.subheading) {
-      var subHeadingEl = document.createElement('div');
-      subHeadingEl.className = 'wb-section-heading';
-      subHeadingEl.id = 'wb-main-subheading';
-      if (hasDiagram || hasRealWorld) {
-        subHeadingEl.style.fontSize = '18px';
-        subHeadingEl.style.marginTop = '2px';
-        subHeadingEl.style.marginBottom = '4px';
-      }
-      textCard.appendChild(subHeadingEl);
-    }
-    
-    canvas.appendChild(textCard);
-    
-    // If Diagram is present, build diagram container element directly in the main educational area!
-    if (hasDiagram) {
-      // Set appear time from visualTiming, or default to 0 for legacy scripts without visualTiming
-      window._diagramAppearSecond = 4;
-      if (slide.visualTiming && slide.visualTiming.enabled !== false && typeof slide.visualTiming.appearAtSecond === 'number') {
-        window._diagramAppearSecond = slide.visualTiming.appearAtSecond;
-      } else if (!slide.visualTiming || slide.visualTiming.enabled === false) {
-        window._diagramAppearSecond = 0; // Legacy scripts show diagram from beginning
-      }
-      
-      var diagramCard = document.createElement('div');
-      diagramCard.className = 'wb-element wb-diagram-container';
-      diagramCard.id = 'wb-diagram-card';
-      canvas.appendChild(diagramCard);
-    } else {
-      window._diagramAppearSecond = 0;
-    }
-
-    if (hasRealWorld) {
-      window._imageAppearSecond = 4;
-      if (slide.realWorldVisualTiming && slide.realWorldVisualTiming.enabled !== false && typeof slide.realWorldVisualTiming.appearAtSecond === 'number') {
-        window._imageAppearSecond = slide.realWorldVisualTiming.appearAtSecond;
-      }
-
-      var imageCard = document.createElement('div');
-      imageCard.className = 'wb-element wb-image-container';
-      imageCard.id = 'wb-image-card';
-
-      var wrapper = document.createElement('div');
-      wrapper.className = 'wb-image-wrapper';
-
-      var imgEl = document.createElement('img');
-      imgEl.className = 'wb-scenario-img';
-      imgEl.id = 'wb-scenario-image';
-
-      var imgSrc = slide.imagePath || slide.imageUrl || '';
-      if (imgSrc && !imgSrc.startsWith('http') && !imgSrc.startsWith('data:') && !imgSrc.startsWith('file://')) {
-        imgSrc = 'file:///' + imgSrc.replace(/\\/g, '/');
-      }
-      imgEl.src = imgSrc;
-      imgEl.alt = slide.realWorldVisual.scenario || 'Real-World Visual Scenario';
-      wrapper.appendChild(imgEl);
-
-      // Annotation overlay removed — the generated infographic image itself
-      // now contains all educational labels, arrows, and visual structure.
-      // No overlay text is needed on top of the image.
-      window._scenarioAnnotations = [];
-
-      imageCard.appendChild(wrapper);
-
-      canvas.appendChild(imageCard);
-    }
-    
-    // Container for bullets/blocks (below diagram if diagram exists, or inside textCard if normal)
-    var blockContainer = document.createElement('div');
-    blockContainer.id = 'wb-blocks-container';
-    if (hasDiagram) {
-      blockContainer.className = 'wb-element visible';
-      blockContainer.style.width = '100%';
-      blockContainer.style.maxWidth = '1300px';
-      blockContainer.style.marginTop = '4px';
-      canvas.appendChild(blockContainer);
-    } else {
-      textCard.appendChild(blockContainer);
+      window._pendingSlideBuild = false;
+      _buildWhiteboardSlide(slide);
     }
   }
 };
@@ -2121,15 +3695,157 @@ window.loadSlide = function(slide) {
 window.renderFrame = function(elapsedSecs, totalDuration) {
   if (!_slide) return;
   var isCode = !!_slide.isCode;
-  var progress = Math.min(1, elapsedSecs / totalDuration);
+
+  // --- AUTHENTIC MS PAINT ERASER TRANSITION (NOTEPAD TO NOTEPAD) ---
+  var isErasing = window._isErasingWindow && (elapsedSecs < (window._eraserDuration || 1.0));
+  var eraserCursor = document.getElementById('paint-eraser-cursor');
+  var toolEraser = document.getElementById('paint-tool-eraser');
+  var toolPencil = document.getElementById('paint-tool-pencil');
+  var coordsEl = document.getElementById('wb-status-coords-text');
+  var whiteout = document.getElementById('wb-erase-whiteout');
+
+  if (isErasing) {
+    var eraseProgress = Math.min(1, elapsedSecs / (window._eraserDuration || 1.0));
+
+    // Activate Eraser tool button in toolbar
+    if (toolEraser) toolEraser.classList.add('active');
+    if (toolPencil) toolPencil.classList.remove('active');
+
+    // Show whiteout layer and eraser cursor
+    if (whiteout) whiteout.classList.remove('hidden');
+    if (eraserCursor) eraserCursor.classList.remove('hidden');
+
+    // Natural sweeping zig-zag motion across the text/canvas area
+    var startX = 180, endX = 750;
+    var startY = 60, endY = 480;
+    var sweepAngle = eraseProgress * Math.PI * 6; // 3 zig-zag passes
+    var curX = (startX + endX) / 2 + Math.sin(sweepAngle) * ((endX - startX) / 2);
+    var curY = startY + eraseProgress * (endY - startY);
+
+    if (eraserCursor) {
+      eraserCursor.style.left = Math.round(curX) + 'px';
+      eraserCursor.style.top = Math.round(curY) + 'px';
+    }
+
+    // Whiteout layer smoothly paints white over previous slide's text
+    if (whiteout) {
+      whiteout.style.height = Math.round(curY + 70) + 'px';
+    }
+
+    // Update live cursor coordinates in status bar
+    if (coordsEl) {
+      coordsEl.textContent = Math.round(curX) + ', ' + Math.round(curY) + 'px';
+    }
+
+    // Return early while erasing so new slide typing does not run prematurely
+    return;
+  } else {
+    if (whiteout) {
+      whiteout.classList.add('hidden');
+      whiteout.style.height = '0px';
+    }
+    if (eraserCursor) eraserCursor.classList.add('hidden');
+    if (toolEraser) toolEraser.classList.remove('active');
+    if (toolPencil) toolPencil.classList.add('active');
+    if (coordsEl) coordsEl.textContent = '562, 195px';
+
+    // Trigger deferred build of new slide once eraser completes
+    if (window._pendingSlideBuild) {
+      _buildWhiteboardSlide(_slide);
+      window._pendingSlideBuild = false;
+    }
+  }
+
+  // --- WINDOWS 11 ALT + TAB TASK SWITCHER ORCHESTRATION ---
+  var isSwitching = window._isSwitchingWindow && (elapsedSecs < window._switchDuration);
+  var overlayEl = document.getElementById('alttab-overlay');
+  var cardNotepad = document.getElementById('alttab-card-notepad');
+  var cardVscode = document.getElementById('alttab-card-vscode');
+
+  if (isSwitching) {
+    if (overlayEl) overlayEl.classList.remove('hidden');
+
+    // Keep source window visible behind the blurred switcher overlay
+    if (window._switchFromCode) {
+      _showVSCode();
+    } else {
+      _showWhiteboard();
+    }
+
+    // Task switcher navigation:
+    // First 0.3s: source app is selected (user just pressed Alt+Tab)
+    // 0.3s - 1.0s: selection jumps to target app with cyan highlight (user selected target)
+    var selectTarget = (elapsedSecs >= 0.3);
+
+    if (window._switchToCode) {
+      if (selectTarget) {
+        if (cardVscode) cardVscode.classList.add('active');
+        if (cardNotepad) cardNotepad.classList.remove('active');
+      } else {
+        if (cardNotepad) cardNotepad.classList.add('active');
+        if (cardVscode) cardVscode.classList.remove('active');
+      }
+    } else {
+      if (selectTarget) {
+        if (cardNotepad) cardNotepad.classList.add('active');
+        if (cardVscode) cardVscode.classList.remove('active');
+      } else {
+        if (cardVscode) cardVscode.classList.add('active');
+        if (cardNotepad) cardNotepad.classList.remove('active');
+      }
+    }
+    return;
+  } else {
+    // Switch finished (or no switch needed for consecutive same-type slides)
+    if (overlayEl) overlayEl.classList.add('hidden');
+    if (cardNotepad) cardNotepad.classList.remove('active');
+    if (cardVscode) cardVscode.classList.remove('active');
+
+    // Show target window
+    if (isCode) {
+      _showVSCode();
+    } else {
+      _showWhiteboard();
+    }
+  }
+
+  var hasIntroTransition = (window._isSwitchingWindow || window._isErasingWindow);
+  var effectiveElapsed = hasIntroTransition ? Math.max(0, elapsedSecs - window._switchDuration) : elapsedSecs;
+  var effectiveTotal = hasIntroTransition ? Math.max(1, totalDuration - window._switchDuration) : totalDuration;
+  var progress = Math.min(1, effectiveElapsed / effectiveTotal);
   
-  // VS Code rendering flow
+  // Continuous cursor blink driven by elapsedSecs (500ms cycle: 500ms visible, 500ms hidden)
   if (isCode) {
-    var bullets = _slide.bullets || [];
-    if (bullets.length === 0) return;
-    var parsed = _parseCode(bullets[0]);
-    var code = parsed.code, output = parsed.output;
-    var cmd = _slide.runCommand || 'python main.py';
+    var isCursorBlinkOn = (Math.floor(elapsedSecs * 2) % 2 === 0);
+    var codeCursorEl = document.getElementById('code-cursor');
+    if (codeCursorEl) {
+      codeCursorEl.style.opacity = isCursorBlinkOn ? '1' : '0';
+    }
+    var termCursorEl = document.getElementById('terminal-cursor');
+    if (termCursorEl) {
+      termCursorEl.style.opacity = isCursorBlinkOn ? '1' : '0';
+    }
+    var rawCode = _slide.code || '';
+    var rawOutput = _slide.codeOutput !== undefined ? _slide.codeOutput : '';
+
+    if (!rawCode && _slide.bullets && _slide.bullets.length > 0) {
+      if (_slide.bullets.length === 1 && _isRealCode(_slide.bullets[0])) {
+        var parsed = _parseCode(_slide.bullets[0]);
+        rawCode = parsed.code;
+        if (!rawOutput) rawOutput = parsed.output;
+      }
+    }
+
+    // If still not valid real code, synthesize genuine executable code!
+    if (!_isRealCode(rawCode)) {
+      var synth = _synthesizeRealCodeForSlide(_slide);
+      rawCode = synth.code;
+      if (!rawOutput) rawOutput = synth.output;
+    }
+
+    var code = rawCode;
+    var output = rawOutput;
+    var cmd = _slide.runCommand || ('python ' + (_slide.fileName || 'main.py'));
     var totalLines = code.split('\n').length;
     
     if (progress <= 0.65) {
@@ -2152,73 +3868,110 @@ window.renderFrame = function(elapsedSecs, totalDuration) {
     return;
   }
   
-  // Whiteboard rendering flow
-  if (_slide && _slide.board && window.Board) {
-    window.Board.render(elapsedSecs, totalDuration);
+  // Whiteboard rendering flow — STRICTLY SEQUENTIAL TYPING (ONE line at a time):
+  // 1. Heading types from 0% to 100% first.
+  // 2. Subheading starts typing ONLY AFTER heading is 100% complete.
+  // 3. Bullet lines type one by one ONLY AFTER subheading is 100% complete.
+  // 4. Drawing board starts ONLY AFTER all text typing is 100% finished.
+  // Faster typing speed: text completes within 24% of slide (or 45% when text-only).
+
+  var titleText = (_slide.heading || '').trim();
+  var subheadingText = (_slide.subheading || '').trim();
+  var rawBullets = Array.isArray(_slide.bullets) ? _slide.bullets : [];
+  var bullets = rawBullets.map(function(b) { return String(b || '').trim(); }).filter(Boolean);
+  var hasBoard = !!(_slide && _slide.board && (_slide.board.nodes || _slide.board.strokes || _slide.board.heading) && window.Board);
+
+  var textEndProgress = hasBoard ? 0.24 : 0.45;
+  var boardStartProgress = 0.27;
+  var boardEndProgress = 0.92;
+
+  // Remap progress for text typing to [0..1]
+  var textPhaseProgress = Math.min(1, Math.max(0, progress / textEndProgress));
+
+  // Build sequential list of text units to type in strict non-overlapping order
+  var textUnits = [];
+  if (titleText) {
+    textUnits.push({ type: 'title', text: titleText, len: Math.max(1, titleText.length) });
+  }
+  if (subheadingText) {
+    textUnits.push({ type: 'subheading', text: subheadingText, len: Math.max(1, subheadingText.length) });
+  }
+  for (var bi = 0; bi < bullets.length; bi++) {
+    textUnits.push({ type: 'bullet', index: bi, text: bullets[bi], len: Math.max(1, bullets[bi].length) });
   }
 
-  var titleText = _slide.heading || '';
-  var subheadingText = _slide.subheading || '';
-  var bullets = _slide.bullets || [];
-  
-  // Progress Timeline Allocations:
-  // 0% - 8%: Title reveals smoothly
-  // 6% - 13%: Subheading reveals smoothly
-  // 8% - 75%: Bullet/Paragraph blocks build sequentially (no awkward 15s blank period!)
-  // 75% - 90%: Inline Diagram fades in / animates (if present)
-  // 90% - 100%: Review / Settle
-  
+  var totalChars = 0;
+  for (var u = 0; u < textUnits.length; u++) {
+    totalChars += textUnits[u].len;
+  }
+
+  // Calculate character budget based on textPhaseProgress
+  var currentTypedChars = totalChars > 0 ? Math.floor(textPhaseProgress * totalChars) : 0;
+  var remainingBudget = currentTypedChars;
+
+  for (var k = 0; k < textUnits.length; k++) {
+    var unit = textUnits[k];
+    if (remainingBudget >= unit.len) {
+      unit.visibleChars = unit.len;
+      remainingBudget -= unit.len;
+    } else if (remainingBudget > 0) {
+      unit.visibleChars = remainingBudget;
+      remainingBudget = 0;
+    } else {
+      unit.visibleChars = 0;
+    }
+  }
+
   // 1. Render Title
   var titleEl = document.getElementById('wb-main-title');
-  if (titleEl) {
-    var titleProgress = Math.min(1, progress / 0.08);
-    titleEl.textContent = titleText.substring(0, Math.floor(titleProgress * titleText.length));
+  var titleUnit = null;
+  for (var tIdx = 0; tIdx < textUnits.length; tIdx++) {
+    if (textUnits[tIdx].type === 'title') { titleUnit = textUnits[tIdx]; break; }
   }
-  
-  // 2. Render Subheading
+  if (titleEl) {
+    if (titleUnit && titleUnit.visibleChars > 0) {
+      titleEl.textContent = titleText.substring(0, titleUnit.visibleChars);
+    } else {
+      titleEl.textContent = '';
+    }
+  }
+
+  // 2. Render Subheading (starts ONLY after title reaches 100%)
   var subHeadingEl = document.getElementById('wb-main-subheading');
-  if (subHeadingEl && subheadingText) {
-    if (progress > 0.06) {
-      var subProgress = Math.min(1, (progress - 0.06) / 0.07);
-      subHeadingEl.innerHTML = _parseFormattedTextToHtml(subheadingText, Math.floor(subProgress * subheadingText.length));
+  var subUnit = null;
+  for (var sIdx = 0; sIdx < textUnits.length; sIdx++) {
+    if (textUnits[sIdx].type === 'subheading') { subUnit = textUnits[sIdx]; break; }
+  }
+  if (subHeadingEl) {
+    if (subUnit && subUnit.visibleChars > 0) {
+      subHeadingEl.innerHTML = _parseFormattedTextToHtml(subheadingText, subUnit.visibleChars);
     } else {
       subHeadingEl.innerHTML = '';
     }
   }
-  
-  // 3. Render Bullet blocks sequentially (only update DOM when active bullet index changes)
+
+  // 3. Render Bullet blocks (each bullet starts ONLY after previous is 100% complete)
   var blockContainer = document.getElementById('wb-blocks-container');
-  if (blockContainer && bullets.length > 0) {
-    var bulletStart = 0.08;
-    var hasDiag = !!(_slide.isDiagram || _slide.mermaid || (_slide.visual && _slide.visual.enabled));
-    var bulletSpan = hasDiag ? 0.35 : 0.65;
-    if (progress > bulletStart) {
-      var totalTextProgress = Math.min(1, (progress - bulletStart) / bulletSpan);
-      var bulletsCount = bullets.length;
-      var activeBulletIdx = Math.floor(totalTextProgress * bulletsCount);
-      if (activeBulletIdx >= bulletsCount) activeBulletIdx = bulletsCount - 1;
-      
-      // Rebuild blocks only when current active bullet index changes
-      if (window._lastActiveBulletIdx !== activeBulletIdx || !window._blocksRendered) {
-        blockContainer.innerHTML = '';
-        for (var i = 0; i <= activeBulletIdx; i++) {
-          var bulletVal = bullets[i];
-          var blockHtml = _renderBlock(bulletVal, 1);
-          var div = document.createElement('div');
-          div.innerHTML = blockHtml;
-          while (div.firstChild) {
-            blockContainer.appendChild(div.firstChild);
-          }
-        }
-        window._lastActiveBulletIdx = activeBulletIdx;
-        window._blocksRendered = true;
+  if (blockContainer) {
+    var bulletsHtml = '';
+    for (var bk = 0; bk < textUnits.length; bk++) {
+      var bUnit = textUnits[bk];
+      if (bUnit.type === 'bullet' && bUnit.visibleChars > 0) {
+        var charFraction = bUnit.visibleChars / bUnit.len;
+        bulletsHtml += _renderBlock(bUnit.text, charFraction);
       }
+    }
+    blockContainer.innerHTML = bulletsHtml;
+  }
+
+  // 4. Whiteboard Canvas Drawing: Starts ONLY after all text typing has completely finished
+  if (hasBoard) {
+    if (progress >= boardStartProgress) {
+      var boardProgress = Math.min(1, Math.max(0, (progress - boardStartProgress) / (boardEndProgress - boardStartProgress)));
+      window.Board.render(boardProgress * totalDuration, totalDuration);
     } else {
-      if (window._blocksRendered) {
-        blockContainer.innerHTML = '';
-        window._blocksRendered = false;
-        window._lastActiveBulletIdx = -1;
-      }
+      // While text is still typing, canvas stays completely clean without pen cursor
+      window.Board.render(0, totalDuration);
     }
   }
   

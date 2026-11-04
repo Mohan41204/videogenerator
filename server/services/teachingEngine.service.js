@@ -69,9 +69,40 @@ function classifyDomain(topic, subTopic) {
 }
 
 /**
+ * Splits raw subtopic string into individual subtopic items.
+ * Handles multiline, multi-space (e.g. 2+ spaces), semicolons, commas, bullets, and numbering.
+ */
+function parseUserSubtopics(subTopicRaw) {
+  if (!subTopicRaw || typeof subTopicRaw !== 'string' || subTopicRaw.trim() === '') {
+    return [];
+  }
+
+  let candidates = [];
+  if (subTopicRaw.includes('\n')) {
+    candidates = subTopicRaw.split('\n');
+  } else if (/\s{2,}/.test(subTopicRaw)) {
+    candidates = subTopicRaw.split(/\s{2,}/);
+  } else if (subTopicRaw.includes(';')) {
+    candidates = subTopicRaw.split(';');
+  } else if (subTopicRaw.includes(' | ')) {
+    candidates = subTopicRaw.split(' | ');
+  } else if (/\d+\.\s+/.test(subTopicRaw)) {
+    candidates = subTopicRaw.split(/\d+\.\s+/);
+  } else if (subTopicRaw.includes(',')) {
+    candidates = subTopicRaw.split(',');
+  } else {
+    candidates = [subTopicRaw];
+  }
+
+  return candidates
+    .map(s => s.trim().replace(/^[\d+.*\-•\s]+/, '').trim())
+    .filter(s => s.length > 2);
+}
+
+/**
  * Computes duration-aware scene planning parameters.
  */
-function getDurationPlan(durationMinutes) {
+function getDurationPlan(durationMinutes, userSubtopicsCount = 0) {
   const mins = Math.max(1, parseInt(durationMinutes, 10) || 5);
   const totalTargetWords = mins * WORDS_PER_MINUTE;
 
@@ -80,29 +111,41 @@ function getDurationPlan(durationMinutes) {
   let depthDescription;
   let stagePlan = [];
 
-  if (mins <= 2) {
-    sceneCount = 4;
+  if (mins <= 3) {
+    sceneCount = Math.max(userSubtopicsCount > 0 ? userSubtopicsCount + 1 : 4, 4);
     depthTier = 'MICRO_LESSON';
-    depthDescription = 'Distilled core lesson: Topic Introduction → Core Concept → Real-World Annotated Visual → Recap.';
+    depthDescription = 'Distilled core lesson (~3 mins).';
     stagePlan = ['introduction', 'concept_explanation', 'real_world_application', 'recap'];
-  } else if (mins <= 6) {
-    sceneCount = 6;
+  } else if (mins <= 7) {
+    sceneCount = Math.max(userSubtopicsCount > 0 ? userSubtopicsCount + 1 : 6, 6);
     depthTier = 'STANDARD_LESSON';
-    depthDescription = 'Standard lesson: Introduction → Core Concept Explanation → Technical Diagram / Code → Diagram Explanation → Real-World Annotated Scenario → Final Recap.';
+    depthDescription = 'Standard lesson: Introduction → Core Concept Explanation → Technical Diagram / Code → Diagram Explanation → Real-World Scenario → Final Recap (~5-7 mins).';
     stagePlan = ['introduction', 'concept_explanation', 'technical_visual', 'diagram_explanation', 'real_world_application', 'recap'];
-  } else if (mins <= 20) {
-    sceneCount = Math.max(8, Math.min(14, Math.round(mins * 0.8)));
+  } else if (mins <= 15) {
+    sceneCount = Math.max(userSubtopicsCount > 0 ? userSubtopicsCount + 2 : 10, 10);
     depthTier = 'COMPREHENSIVE_DEEP_DIVE';
-    depthDescription = 'In-depth mastery: Introduction → Core Concept → Technical Visual → Diagram Explanation → Concrete Example → Real-World Application → Concept Mapping → Recap.';
+    depthDescription = 'In-depth mastery: Introduction → Core Concept → Technical Visual → Concrete Example → Real-World Application → Recap (~12-15 mins).';
     stagePlan = ['introduction', 'concept_explanation', 'technical_visual', 'diagram_explanation', 'example', 'real_world_application', 'concept_mapping', 'recap'];
+  } else if (mins <= 30) {
+    sceneCount = Math.max(userSubtopicsCount > 0 ? userSubtopicsCount + 4 : 16, 16);
+    depthTier = 'EXTENDED_DEEP_DIVE';
+    depthDescription = 'Extended in-depth masterclass (~25-30 mins).';
+    stagePlan = ['introduction', 'concept_explanation', 'technical_visual', 'diagram_explanation', 'example', 'real_world_application', 'concept_mapping', 'recap'];
+  } else if (mins <= 45) {
+    sceneCount = Math.max(userSubtopicsCount > 0 ? userSubtopicsCount + 6 : 20, 20);
+    depthTier = 'FULL_MASTERCLASS';
+    depthDescription = 'Full Masterclass Course (~40-45 mins).';
+    stagePlan = ['introduction', 'concept_explanation', 'technical_visual', 'diagram_explanation', 'example', 'real_world_application', 'real_world_annotation', 'concept_mapping', 'recap'];
   } else {
-    sceneCount = Math.max(14, Math.min(25, Math.round(mins * 0.5)));
+    // 50-60 mins
+    sceneCount = Math.max(userSubtopicsCount > 0 ? userSubtopicsCount + 8 : 25, 20);
+    sceneCount = Math.min(sceneCount, 25);
     depthTier = 'MASTERCLASS_COURSE';
-    depthDescription = 'Full Masterclass Course tier: Exhaustive step-by-step topic breakdown, technical visuals, real-world scenarios, and end-to-end synthesis.';
+    depthDescription = 'Comprehensive 60-Minute Masterclass Course (~50-60 mins).';
     stagePlan = ['introduction', 'concept_explanation', 'technical_visual', 'diagram_explanation', 'example', 'real_world_application', 'real_world_annotation', 'concept_mapping', 'recap'];
   }
 
-  const avgWordsPerScene = Math.round(totalTargetWords / sceneCount);
+  const avgWordsPerScene = Math.max(140, Math.round(totalTargetWords / sceneCount));
 
   return {
     mins,
@@ -113,6 +156,135 @@ function getDurationPlan(durationMinutes) {
     avgWordsPerScene,
     stagePlan
   };
+}
+
+/**
+ * Constructs an explicit, numbered scene-by-scene syllabus for the lesson.
+ * This ensures that for a multi-topic 60m course, every single subtopic is given
+ * dedicated deep-dive scenes, diagrams, real-world applications, and recap.
+ */
+function createBatchSyllabus(topic, userSubtopics, totalScenes, targetWordsPerScene, domain) {
+  const syllabus = [];
+  const cleanTopic = (topic || 'Core Subject').trim();
+  const subtopics = Array.isArray(userSubtopics) && userSubtopics.length > 0 
+    ? userSubtopics 
+    : [`Fundamentals of ${cleanTopic}`, `Architecture and Mechanism`, `Practical Application and Examples`];
+
+  // Scene 1: Course Introduction & Overview
+  syllabus.push({
+    sceneIndex: 1,
+    heading: cleanTopic,
+    subheading: subtopics[0] ? `Introduction & ${subtopics[0]}` : 'Introduction & Course Roadmap',
+    teachingStage: 'introduction',
+    sceneType: 'hook',
+    targetWords: Math.max(160, Math.min(260, targetWordsPerScene)),
+    guidance: `Introduce ${cleanTopic} with high energy. Present the course vision, roadmap, and fundamental motivation. Hook the student with why this topic is essential.`
+  });
+
+  // Allocate intermediate scenes (2 to totalScenes - 1)
+  const remainingScenesCount = totalScenes - 2;
+  const stagesCycle = [
+    'concept_explanation',
+    'technical_visual',
+    'diagram_explanation',
+    'example',
+    'real_world_application',
+    'real_world_annotation',
+    'concept_mapping'
+  ];
+
+  for (let i = 0; i < remainingScenesCount; i++) {
+    const sceneNum = i + 2;
+    // Map to user subtopic
+    const subIdx = Math.floor((i / remainingScenesCount) * subtopics.length);
+    const currentSubtopic = subtopics[Math.min(subIdx, subtopics.length - 1)];
+    const stage = stagesCycle[i % stagesCycle.length];
+
+    let visualFocus = '';
+    let sceneType = 'concept';
+    if (stage === 'technical_visual') {
+      visualFocus = 'Must provide an interactive whiteboard diagram or technical flow representing the concept architecture.';
+      sceneType = 'diagram';
+    } else if (stage === 'example') {
+      visualFocus = domain === 'PROGRAMMING' 
+        ? 'Provide executable code example with clean comments.' 
+        : 'Provide a concrete visual walkthrough example.';
+      sceneType = domain === 'PROGRAMMING' ? 'code' : 'concept';
+    } else if (stage === 'real_world_application' || stage === 'real_world_annotation') {
+      visualFocus = 'Provide an industry-grade real-world production scenario with realWorldVisual enabled.';
+      sceneType = 'concept';
+    }
+
+    syllabus.push({
+      sceneIndex: sceneNum,
+      heading: cleanTopic,
+      subheading: currentSubtopic,
+      teachingStage: stage,
+      sceneType,
+      targetWords: targetWordsPerScene,
+      guidance: `Deep-dive teaching on "${currentSubtopic}". Focus on stage: ${stage}. ${visualFocus} Explain the inner mechanics thoroughly and naturally for an advanced learner.`
+    });
+  }
+
+  // Final Scene: Comprehensive Course Synthesis & Recap
+  syllabus.push({
+    sceneIndex: totalScenes,
+    heading: cleanTopic,
+    subheading: 'Mastery Summary & Key Takeaways',
+    teachingStage: 'recap',
+    sceneType: 'summary',
+    targetWords: Math.max(160, Math.min(260, targetWordsPerScene)),
+    guidance: `Synthesize the entire course covering all modules: ${subtopics.slice(0, 5).join(', ')}. Connect the concepts together into an end-to-end mental model and provide final professional takeaways.`
+  });
+
+  return syllabus;
+}
+
+/**
+ * Builds the focused pedagogical prompt for a batch of scenes.
+ */
+function buildBatchPrompt(topic, batchSyllabus, totalCourseScenes, durationMinutes, domain) {
+  const domainStrategy = getDomainTeachingStrategy(domain);
+
+  const sceneSpecs = batchSyllabus.map(s => {
+    return `### SCENE ${s.sceneIndex} of ${totalCourseScenes}:
+- Heading: "${s.heading}"
+- Subheading: "${s.subheading}"
+- Stage: "${s.teachingStage}" (Type: "${s.sceneType}")
+- Target Narration Word Count: ${s.targetWords} words (CRITICAL: write in-depth narration matching this word count; DO NOT summarize or write short 20-word snippets!)
+- Pedagogical Objective: ${s.guidance}`;
+  }).join('\n\n');
+
+  return `You are an elite educational instructor and senior software engineer designing scenes for a high-production educational video course on "${topic}".
+Total Course Duration: ${durationMinutes} Minutes across ${totalCourseScenes} Comprehensive Scenes.
+Domain: ${domain}
+
+${domainStrategy}
+
+YOUR ASSIGNMENT:
+Generate the JSON scene definitions for the following ${batchSyllabus.length} scenes (Scenes ${batchSyllabus[0].sceneIndex} to ${batchSyllabus[batchSyllabus.length - 1].sceneIndex} of ${totalCourseScenes}):
+
+${sceneSpecs}
+
+STRICT NARRATION & TEACHING GUIDELINES:
+1. IN-DEPTH NARRATION:
+   - Each scene's narration MUST be thorough and comprehensive (~${batchSyllabus[0].targetWords} words per scene).
+   - Talk like an engaging, experienced human mentor explaining a real system to students.
+   - Use one-way teaching: ask rhetorical questions and immediately explain them ("Why do we need this? Because without it...").
+   - NEVER say "Pause the video", "Comment below", or "Leave your answers in the chat".
+2. ACCURATE SLIDE HEADINGS:
+   - Use the exact Heading ("${topic}") and Subheading specified for each scene in the syllabus.
+   - DO NOT concatenate or paste multiple topics into a single subheading.
+3. VISUALS & WHITEBOARD:
+   - For technical/architecture scenes, provide structured whiteboard nodes or Mermaid diagrams.
+   - For real-world application scenes, set realWorldVisual.enabled = true with clear visual scenarios.
+4. CODE SCENES (When sceneType is 'code' or isCode is true):
+   - VS Code is ONLY for actual executable programming source code! NEVER put bullet points, descriptions, or text into VS Code!
+   - In "code": Provide the complete, clean, executable source code snippet (6 to 15 lines) matching fileName (e.g. valid Python, JavaScript, Java, C++, HTML/CSS).
+   - In "codeOutput": Provide the exact terminal stdout result when the code executes.
+   - In "bullets": Set to [code] or leave empty [].
+4. VALID JSON ONLY:
+   - Return ONLY a JSON array with exactly ${batchSyllabus.length} scene objects conforming to the provided schema.`;
 }
 
 /**
@@ -375,13 +547,15 @@ For EACH scene, perform a visual planning analysis and ask:
    - Do NOT create decorative diagrams just to have a visual.
    - For a 5-minute video, generate approximately 2 to 4 meaningful diagrams where they genuinely help understanding.
 
-3. CODE SLIDES:
-   - When isCode is true:
-     * Keep code short, concise, and focused (6 to 10 lines max).
-     * The 'bullets' array MUST contain exactly ONE string with the code AND output separated by '\\N\\N==== OUTPUT ====\\N'.
-     * Use literal '\\N' for newlines so whitespace and indentation are perfectly preserved on screen.
-     * Provide valid 'fileName' (e.g., 'main.py', 'index.js', 'Main.java') and 'runCommand' (e.g., 'python main.py', 'node index.js').
-     * Set 'isDiagram': false, 'mermaid': '', and 'visual': { 'enabled': false }.
+3. CODE SLIDES (When isCode is true or sceneType is 'code'):
+   - VS Code is ONLY for actual executable programming source code!
+   - NEVER put bullet point text, English descriptions, or notes into VS Code!
+   - In "code": Provide the complete, clean, executable source code snippet (6 to 15 lines) with proper indentation matching fileName.
+   - In "codeOutput": Provide the exact terminal stdout result when the code executes.
+   - In "bullets": Set to [code] or leave empty []. DO NOT put bullet point text in code slides!
+   - In "fileName": e.g. "weather_check.py", "index.js", "Main.java".
+   - In "runCommand": e.g. "python weather_check.py".
+   - Set "isDiagram": false, "mermaid": "", and "visual": { "enabled": false }.
 
 4. WHITEBOARD THEORY & DRAWING SLIDES:
    - When isCode is false and isDiagram is false:
@@ -732,6 +906,200 @@ function visualToMermaid(visual) {
 /**
  * Post-processes and validates generated slides.
  */
+
+/**
+ * Checks whether a string represents actual executable programming source code
+ * rather than explanatory bullet points or plain prose.
+ */
+function isRealCodeString(str) {
+  if (!str || typeof str !== 'string') return false;
+  const s = str.trim();
+  if (s.includes('==== OUTPUT ====')) return true;
+  const lines = s.split(/\r?\n|\\N/);
+  const codeIndicators = /\b(def\s+|function\s+|class\s+|import\s+|from\s+|const\s+|let\s+|var\s+|if\s+|elif\s+|else:|for\s+|while\s+|return\s+|public\s+|private\s+|static\s+|void\s+|int\s+|float\s+|double\s+|print\(|console\.log|System\.out|#include|<!DOCTYPE|<html)\b/;
+  const looksLikeBulletList = /^(Variable\s+|First\s+|Next\s+|Then\s+|Finally\s+|Prints\s+|In this\s+|This slide\s+|Note that\s+|Notice how\s+|Step \d|Example of|Flowchart|Sequential|Understood|Mastered)\b/i.test(s);
+
+  if (codeIndicators.test(s) && (lines.length > 1 || s.includes(';') || s.includes('print(') || s.includes('console.log(')) && !looksLikeBulletList) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Synthesizes clean, executable code matching the slide's topic, subheading, and narration
+ * when Gemini or the user provided bullet descriptions instead of actual source code.
+ */
+function synthesizeRealCode(slide, domain) {
+  const fileName = slide.fileName || (domain === 'PROGRAMMING' || /python/i.test(slide.heading) ? 'main.py' : 'index.js');
+  const isPython = fileName.endsWith('.py') || /python/i.test(slide.heading || '');
+  const isJs = fileName.endsWith('.js') || fileName.endsWith('.ts') || /javascript|node|react/i.test(slide.heading || '');
+  const isJava = fileName.endsWith('.java') || /java/i.test(slide.heading || '');
+  const isCpp = fileName.endsWith('.cpp') || fileName.endsWith('.c') || /c\+\+/i.test(slide.heading || '');
+
+  const heading = slide.heading || '';
+  const subheading = slide.subheading || '';
+  const narration = slide.narration || '';
+  const bullets = Array.isArray(slide.bullets) ? slide.bullets : [];
+  const combined = `${bullets.join(' ')} ${narration}`;
+
+  // 1. If statement / conditional logic
+  if (/if\s+statement|condition/i.test(subheading) || /if\s+condition|conditional/i.test(combined)) {
+    let varName = 'temperature';
+    let varVal = '25';
+    const varMatch = combined.match(/variable\s+[`'"]?([a-zA-Z_][a-zA-Z0-9_]*)[`'"]?\s+(?:is\s+set\s+to|=)\s+[`'"]?([^`'",.\s]+)/i);
+    if (varMatch) {
+      varName = varMatch[1];
+      varVal = varMatch[2];
+    }
+
+    if (isPython) {
+      const code = `# Practical ${subheading || 'Conditional Logic'}
+${varName} = ${varVal}
+
+if ${varName} > 30:
+    print("It's a hot day!")
+elif ${varName} > 20:
+    print("It's a warm day.")
+else:
+    print("It's a cool day.")`;
+      return { code, output: "It's a warm day." };
+    } else if (isJs) {
+      const code = `// Practical ${subheading || 'Conditional Logic'}
+let ${varName} = ${varVal};
+
+if (${varName} > 30) {
+    console.log("It's a hot day!");
+} else if (${varName} > 20) {
+    console.log("It's a warm day.");
+} else {
+    console.log("It's a cool day.");
+}`;
+      return { code, output: "It's a warm day." };
+    } else if (isJava) {
+      const code = `public class Main {
+    public static void main(String[] args) {
+        int ${varName} = ${varVal};
+        if (${varName} > 30) {
+            System.out.println("It's a hot day!");
+        } else if (${varName} > 20) {
+            System.out.println("It's a warm day.");
+        } else {
+            System.out.println("It's a cool day.");
+        }
+    }
+}`;
+      return { code, output: "It's a warm day." };
+    }
+  }
+
+  // 2. Loops / iteration
+  if (/loop|iteration|while/i.test(subheading) || /for\s+loop|while\s+loop/i.test(combined)) {
+    if (isPython) {
+      const code = `# Practical Python Iteration
+items = ["apple", "banana", "cherry"]
+print("Processing collection:")
+for index, item in enumerate(items, 1):
+    print(f"  Item {index}: {item}")`;
+      return { code, output: "Processing collection:\n  Item 1: apple\n  Item 2: banana\n  Item 3: cherry" };
+    } else {
+      const code = `// Practical JavaScript Iteration
+const items = ["apple", "banana", "cherry"];
+console.log("Processing collection:");
+items.forEach((item, index) => {
+    console.log(\`  Item \${index + 1}: \${item}\`);
+});`;
+      return { code, output: "Processing collection:\n  Item 1: apple\n  Item 2: banana\n  Item 3: cherry" };
+    }
+  }
+
+  // 3. Functions
+  if (/function|method|call/i.test(subheading)) {
+    if (isPython) {
+      const code = `# Function Definition and Invocation
+def calculate_metrics(values):
+    total = sum(values)
+    avg = total / len(values) if values else 0
+    return {"total": total, "average": avg}
+
+result = calculate_metrics([15, 25, 35, 45])
+print("Metrics result:", result)`;
+      return { code, output: "Metrics result: {'total': 120, 'average': 30.0}" };
+    } else {
+      const code = `// Function Definition and Invocation
+function calculateMetrics(values) {
+    const total = values.reduce((sum, n) => sum + n, 0);
+    const avg = values.length ? total / values.length : 0;
+    return { total, average: avg };
+}
+
+const result = calculateMetrics([15, 25, 35, 45]);
+console.log("Metrics result:", result);`;
+      return { code, output: "Metrics result: { total: 120, average: 30 }" };
+    }
+  }
+
+  // 4. Default clean fallback
+  if (isPython) {
+    const cleanSub = (subheading || heading || 'solution').toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/^_+|_+$/g, '');
+    const code = `# ${heading} - ${subheading || 'Implementation'}
+def run_${cleanSub || 'process'}():
+    dataset = [10, 20, 30, 40, 50]
+    total = sum(dataset)
+    print(f"Processed {len(dataset)} items with sum: {total}")
+
+if __name__ == "__main__":
+    run_${cleanSub || 'process'}()`;
+    return { code, output: "Processed 5 items with sum: 150" };
+  } else if (isJs) {
+    const code = `// ${heading} - ${subheading || 'Implementation'}
+function runProcess() {
+    const dataset = [10, 20, 30, 40, 50];
+    const total = dataset.reduce((a, b) => a + b, 0);
+    console.log(\`Processed \${dataset.length} items with sum: \${total}\`);
+}
+
+runProcess();`;
+    return { code, output: "Processed 5 items with sum: 150" };
+  } else if (isJava) {
+    const code = `public class Main {
+    public static void main(String[] args) {
+        int[] dataset = {10, 20, 30, 40, 50};
+        int sum = 0;
+        for (int n : dataset) sum += n;
+        System.out.println("Processed " + dataset.length + " items with sum: " + sum);
+    }
+}`;
+    return { code, output: "Processed 5 items with sum: 150" };
+  } else if (isCpp) {
+    const code = `#include <iostream>
+#include <vector>
+#include <numeric>
+
+int main() {
+    std::vector<int> dataset = {10, 20, 30, 40, 50};
+    int sum = std::accumulate(dataset.begin(), dataset.end(), 0);
+    std::cout << "Processed " << dataset.size() << " items with sum: " << sum << std::endl;
+    return 0;
+}`;
+    return { code, output: "Processed 5 items with sum: 150" };
+  } else {
+    const code = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>${heading} Demo</title>
+</head>
+<body>
+    <h1>${subheading || heading}</h1>
+    <script>
+        console.log("Demo loaded successfully");
+    </script>
+</body>
+</html>`;
+    return { code, output: "Demo loaded successfully" };
+  }
+}
+
 function postProcessSlides(slides, plan, domain, topic, subTopic) {
   if (!Array.isArray(slides)) {
     throw new Error('Teaching engine expected an array of slides');
@@ -801,9 +1169,14 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
     slide.narration = sanitizeNarration(slide.narration || '');
 
     // Strict preservation of user topic and subtopic as heading and subheading
+    const parsedSubtopics = parseUserSubtopics(subTopic);
     if (idx === 0) {
       slide.heading = topic ? topic.trim() : (slide.heading || 'Lesson Overview');
-      slide.subheading = (subTopic && subTopic.trim()) ? subTopic.trim() : (slide.subheading || topic.trim());
+      if (parsedSubtopics.length > 1) {
+        slide.subheading = parsedSubtopics[0];
+      } else {
+        slide.subheading = (subTopic && subTopic.trim()) ? subTopic.trim() : (slide.subheading || topic.trim());
+      }
     } else if (topic && topic.trim()) {
       const cleanTopic = topic.trim();
       if (!slide.heading || /blueprint|restaurant|magic|journey|adventure|story|mystery|secret|intro|welcome/i.test(slide.heading)) {
@@ -815,6 +1188,17 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
         }
         slide.heading = cleanTopic;
       }
+      // If the slide ended up with the entire raw multi-subtopic string, clean it up
+      if (slide.subheading && subTopic && slide.subheading.trim() === subTopic.trim() && parsedSubtopics.length > 1) {
+        const subIdx = Math.min(idx, parsedSubtopics.length - 1);
+        slide.subheading = parsedSubtopics[subIdx] || slide.subheading;
+      }
+    }
+
+    // Guard against excessively long subheadings (e.g. accidental syllabus dump)
+    if (slide.subheading && slide.subheading.length > 80) {
+      const firstPart = slide.subheading.split(/[\n;]| {2,}/)[0].trim();
+      slide.subheading = firstPart.length > 5 ? firstPart : slide.subheading.slice(0, 75);
     }
 
     // Word count and timing estimate
@@ -1181,9 +1565,12 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
       slide.realWorldVisualTiming = { enabled: false, appearAtSecond: 0, triggerPhrase: '' };
     }
 
-    if (slide.isCode) {
+    if (slide.isCode || slide.sceneType === 'code' || slide.visualType === 'code_editor') {
+      slide.isCode = true;
       slide.isDiagram = false;
       slide.mermaid = '';
+      if (slide.visual) slide.visual.enabled = false;
+      if (slide.realWorldVisual) slide.realWorldVisual = { enabled: false };
 
       if (!slide.fileName) {
         if (domain === 'PROGRAMMING' || /python/i.test(slide.heading)) slide.fileName = 'main.py';
@@ -1201,10 +1588,27 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
         else slide.runCommand = `python ${slide.fileName}`;
       }
 
-      // Ensure code block is single string in bullets array
-      if (!Array.isArray(slide.bullets) || slide.bullets.length === 0) {
-        slide.bullets = [slide.code || '# Code example\\Nprint("Hello world")\\N\\N==== OUTPUT ====\\nHello world'];
+      let validCode = '';
+      let validOutput = slide.codeOutput || '';
+
+      if (slide.code && isRealCodeString(slide.code)) {
+        validCode = slide.code;
+      } else if (Array.isArray(slide.bullets) && slide.bullets.length === 1 && isRealCodeString(slide.bullets[0])) {
+        const parts = slide.bullets[0].split(/\n\n==== OUTPUT ====\n|\n==== OUTPUT ====\n|\\N\\N==== OUTPUT ====\\N/);
+        validCode = parts[0].replace(/\\N/g, '\n');
+        if (!validOutput && parts.length > 1) validOutput = parts[1].replace(/\\N/g, '\n');
       }
+
+      // If no valid code found (e.g. bullets contained descriptive English sentences), synthesize real executable code!
+      if (!validCode) {
+        const synthesized = synthesizeRealCode(slide, domain);
+        validCode = synthesized.code;
+        if (!validOutput) validOutput = synthesized.output;
+      }
+
+      slide.code = validCode;
+      slide.codeOutput = validOutput;
+      slide.bullets = [validCode + (validOutput ? `\n\n==== OUTPUT ====\n${validOutput}` : '')];
     } else {
       // For non-code slides: ensure bullets array is valid
       if (!Array.isArray(slide.bullets)) {
@@ -1262,11 +1666,10 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
   }
 
   const domain = classifyDomain(topic, subTopic);
-  const plan = getDurationPlan(durationMinutes);
+  const userSubtopics = parseUserSubtopics(subTopic);
+  const plan = getDurationPlan(durationMinutes, userSubtopics.length);
 
-  console.log(`[TeachingEngine] Planning lesson: Topic="${topic}", SubTopic="${subTopic}", Duration=${plan.mins}m, Domain=${domain}, Scenes=${plan.sceneCount}, TargetWords=~${plan.totalTargetWords}`);
-
-  const prompt = buildPedagogicalPrompt(topic, subTopic, plan, domain);
+  console.log(`[TeachingEngine] Planning lesson: Topic="${topic}", SubTopic="${subTopic}", Duration=${plan.mins}m, Domain=${domain}, Scenes=${plan.sceneCount}, TargetWords=~${plan.totalTargetWords}, ParsedSubtopics=${userSubtopics.length}`);
 
   // Initialize @google/genai client with proper Vertex AI / API Key precedence
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -1465,6 +1868,14 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
         },
         fileName: { type: 'string' },
         runCommand: { type: 'string' },
+        code: {
+          type: 'string',
+          description: 'When isCode is true, provide the complete, clean, executable source code snippet (6 to 15 lines) matching fileName. MUST be real valid programming code with proper indentation. NEVER put bullet points, descriptions, or plain text here.'
+        },
+        codeOutput: {
+          type: 'string',
+          description: 'Expected console output when running runCommand (e.g. "It\'s a warm day.")'
+        },
         sceneType: { type: 'string' },
         teachingStage: {
           type: 'string',
@@ -1503,122 +1914,147 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
     }
   };
 
-  let result = null;
-  let lastError = null;
+  const callModelWithRetry = async (batchPrompt) => {
+    let result = null;
+    let lastError = null;
+    const MAX_ATTEMPTS = 3;
+    const backoffDelays = [2000, 5000, 10000];
 
-  const MAX_ATTEMPTS = 3;
-  const backoffDelays = [2000, 5000, 10000];
+    for (const modelName of candidateModels) {
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        console.log(`[TeachingEngine] Attempt ${attempt}/${MAX_ATTEMPTS} with ${modelName}`);
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  for (const modelName of candidateModels) {
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      console.log(`[TeachingEngine] Attempt ${attempt}/${MAX_ATTEMPTS} with ${modelName}`);
+        try {
+          result = await client.models.generateContent({
+            model: modelName,
+            contents: batchPrompt,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: jsonSchema,
+              abortSignal: controller.signal
+            }
+          });
 
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+          clearTimeout(timer);
 
-      try {
-        result = await client.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: jsonSchema,
-            abortSignal: controller.signal
+          if (result) {
+            console.log(`[TeachingEngine] Successfully received response`);
+            if (result.usageMetadata) {
+              console.log(`[Token Usage] Provider: ${useVertexAi ? 'vertex-ai' : 'api-key'}, Model: ${modelName}, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
+            }
+            return result.text;
           }
-        });
+        } catch (err) {
+          clearTimeout(timer);
+          lastError = err;
+          const errMsg = err.message || String(err);
+          const isAbort = controller.signal.aborted || /abort|timeout/i.test(errMsg);
+          const status = err.status || err.statusCode || err.response?.status;
 
-        clearTimeout(timer);
-
-        if (result) {
-          console.log(`[TeachingEngine] Successfully received response`);
-          if (result.usageMetadata) {
-            console.log(`[Token Usage] Provider: ${useVertexAi ? 'vertex-ai' : 'api-key'}, Model: ${modelName}, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
+          if (isAbort) {
+            console.warn(`[TeachingEngine] Gemini request timed out`);
+          } else {
+            console.warn(`[TeachingEngine] Model ${modelName} failed (${errMsg})`);
           }
-          break;
-        }
-      } catch (err) {
-        clearTimeout(timer);
-        lastError = err;
-        const errMsg = err.message || String(err);
-        const isAbort = controller.signal.aborted || /abort|timeout/i.test(errMsg);
-        const status = err.status || err.statusCode || err.response?.status;
 
-        if (isAbort) {
-          console.warn(`[TeachingEngine] Gemini request timed out`);
-        } else {
-          console.warn(`[TeachingEngine] Model ${modelName} failed (${errMsg})`);
-        }
+          const is404 = /404|not found|Publisher model/i.test(errMsg) || status === 404;
+          const isPermanent = !isAbort && (
+            is404 ||
+            (status && Number(status) >= 400 && Number(status) < 500 && Number(status) !== 429) ||
+            /400|invalid argument|bad request|401|unauthorized|403|permission denied|forbidden/i.test(errMsg)
+          );
 
-        const is404 = /404|not found|Publisher model/i.test(errMsg) || status === 404;
-        const isPermanent = !isAbort && (
-          is404 ||
-          (status && Number(status) >= 400 && Number(status) < 500 && Number(status) !== 429) ||
-          /400|invalid argument|bad request|401|unauthorized|403|permission denied|forbidden/i.test(errMsg)
-        );
+          if (isPermanent) {
+            console.warn(`[TeachingEngine] Permanent error for ${modelName} (${errMsg}). Skipping further retries for this model.`);
+            break;
+          }
 
-        if (isPermanent) {
-          console.warn(`[TeachingEngine] Permanent error encountered for ${modelName} (${errMsg}). Skipping further retries for this model.`);
-          break;
-        }
-
-        if (attempt < MAX_ATTEMPTS) {
-          const delay = backoffDelays[attempt - 1] || 10000;
-          console.log(`[TeachingEngine] Retrying after ${delay} ms`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          if (attempt < MAX_ATTEMPTS) {
+            const delay = backoffDelays[attempt - 1] || 10000;
+            console.log(`[TeachingEngine] Retrying after ${delay} ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
         }
       }
+
+      if (result) break;
     }
 
-    if (result) {
-      break;
+    if (!result) {
+      throw new Error(`All Gemini attempts failed. Last error: ${lastError ? lastError.message : 'Unknown'}`);
     }
-  }
 
-  if (!result) {
-    console.error('[TeachingEngine] All Gemini attempts failed');
-    throw new Error(`All Gemini attempts failed. Last error: ${lastError ? lastError.message : 'Unknown'}`);
-  }
+    return result.text;
+  };
 
-  const rawText = result.text;
-  const cleaned = extractJson(rawText);
-
-  let rawParsed;
-  try {
-    rawParsed = JSON.parse(cleaned);
-  } catch (parseErr) {
-    console.warn('[TeachingEngine] Initial JSON parse failed:', parseErr.message, 'Attempting auto-repair...');
+  const parseSlideJson = (rawText) => {
+    const cleaned = extractJson(rawText);
     try {
-      let repaired = cleaned
-        // 1. Remove literal control characters (like unescaped tabs or newlines inside strings)
-        .replace(/[\u0000-\u0009\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, ' ')
-        // 2. Remove invalid backslashes (any backslash not followed by a valid JSON escape character)
-        .replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '');
-        
-      rawParsed = JSON.parse(repaired);
-    } catch (retryErr) {
-      console.error('[TeachingEngine] JSON parse auto-repair failed:', retryErr.message);
-      // Log some context around the error position to help debugging
-      const match = retryErr.message.match(/position (\d+)/);
-      if (match && match[1]) {
-         const pos = parseInt(match[1], 10);
-         const snippet = cleaned.substring(Math.max(0, pos - 30), Math.min(cleaned.length, pos + 30));
-         console.error(`[TeachingEngine] Error context near pos ${pos}: "${snippet}"`);
+      return JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.warn('[TeachingEngine] Initial JSON parse failed:', parseErr.message, 'Attempting auto-repair...');
+      try {
+        let repaired = cleaned
+          .replace(/[\u0000-\u0009\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, ' ')
+          .replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '');
+        return JSON.parse(repaired);
+      } catch (retryErr) {
+        throw new Error(`Failed to parse AI-generated script JSON: ${parseErr.message}`);
       }
-      throw new Error(`Failed to parse AI-generated script JSON: ${parseErr.message} (Repair error: ${retryErr.message})`);
+    }
+  };
+
+  let rawSlides = [];
+
+  // If sceneCount <= 7 (short lessons 2-7 mins), run in a single high-quality call
+  if (plan.sceneCount <= 7) {
+    const syllabus = createBatchSyllabus(topic, userSubtopics, plan.sceneCount, plan.avgWordsPerScene, domain);
+    const prompt = buildBatchPrompt(topic, syllabus, plan.sceneCount, plan.mins, domain);
+    console.log(`[TeachingEngine] Generating ${syllabus.length} scenes in single prompt for ${plan.mins}m lesson...`);
+    const rawText = await callModelWithRetry(prompt);
+    const parsed = parseSlideJson(rawText);
+    rawSlides = Array.isArray(parsed) ? parsed : (parsed.scenes || []);
+  } else {
+    // Multi-batch chunked generation for comprehensive masterclass lessons (15m, 30m, 40m, 60m)
+    const syllabus = createBatchSyllabus(topic, userSubtopics, plan.sceneCount, plan.avgWordsPerScene, domain);
+    const BATCH_SIZE = 5;
+    const batches = [];
+    for (let i = 0; i < syllabus.length; i += BATCH_SIZE) {
+      batches.push(syllabus.slice(i, i + BATCH_SIZE));
+    }
+
+    console.log(`[TeachingEngine] Multi-batch mode: Generating ${syllabus.length} scenes in ${batches.length} batches for ${plan.mins}m course...`);
+
+    for (let bIdx = 0; bIdx < batches.length; bIdx++) {
+      const batchSyllabus = batches[bIdx];
+      const startScene = batchSyllabus[0].sceneIndex;
+      const endScene = batchSyllabus[batchSyllabus.length - 1].sceneIndex;
+      console.log(`[TeachingEngine] Generating Batch ${bIdx + 1}/${batches.length} (Scenes ${startScene} to ${endScene})...`);
+
+      const batchPrompt = buildBatchPrompt(topic, batchSyllabus, plan.sceneCount, plan.mins, domain);
+      try {
+        const rawText = await callModelWithRetry(batchPrompt);
+        const parsed = parseSlideJson(rawText);
+        const batchSlides = Array.isArray(parsed) ? parsed : (parsed.scenes || []);
+        console.log(`[TeachingEngine] Batch ${bIdx + 1} successfully generated ${batchSlides.length} scenes.`);
+        rawSlides.push(...batchSlides);
+      } catch (batchErr) {
+        console.error(`[TeachingEngine] Error in batch ${bIdx + 1}: ${batchErr.message}`);
+      }
     }
   }
 
-  // If top-level object with scenes array, extract scenes
-  let rawSlides = rawParsed;
-  if (!Array.isArray(rawParsed) && rawParsed.scenes && Array.isArray(rawParsed.scenes)) {
-    rawSlides = rawParsed.scenes;
+  if (!rawSlides || rawSlides.length === 0) {
+    throw new Error('Failed to generate any valid lesson scenes from model.');
   }
 
   // Validate and post-process
   const processedSlides = postProcessSlides(rawSlides, plan, domain, topic, subTopic);
   const formattedJsonText = JSON.stringify(processedSlides, null, 2);
 
-  console.log(`[TeachingEngine] Successfully generated ${processedSlides.length} educational scenes for "${topic}".`);
+  console.log(`[TeachingEngine] Successfully generated ${processedSlides.length} educational scenes for "${topic}" (Duration: ${plan.mins}m).`);
 
   return {
     success: true,
@@ -1630,10 +2066,14 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
 }
 
 module.exports = {
+  isRealCodeString,
+  synthesizeRealCode,
   generateTeachingScript,
   classifyDomain,
   getDurationPlan,
   sanitizeNarration,
   visualToMermaid,
-  postProcessSlides
+  postProcessSlides,
+  parseUserSubtopics,
+  createBatchSyllabus
 };

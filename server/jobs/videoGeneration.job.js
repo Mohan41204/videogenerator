@@ -40,6 +40,7 @@ const storageService = require('../services/storage.service');
 const imageGenService = require('../services/imageGeneration.service');
 const rendererFactory = require('../renderer/rendererFactory');
 const translationService = require('../services/translation.service');
+const { isRealCodeString, synthesizeRealCode } = require('../services/teachingEngine.service');
 const SUPPORTED_LANGUAGES = require('../config/languages');
 const { mapConcurrent } = require('../utils/promisePool');
 
@@ -62,6 +63,8 @@ const cleanJsonString = (str) => {
     }
   }
   str = str.replace(/^```json\s*/gi, '').replace(/\s*```$/gi, '');
+  // In JSON, \' is an invalid escape sequence (causes "Bad escaped character in JSON")
+  str = str.replace(/\\'/g, "'");
   str = str.replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '\\\\');
   return str.trim();
 };
@@ -199,21 +202,51 @@ async function main() {
           slide.bullets = [slide.code];
         }
         if (slide.isCode === undefined) {
-          slide.isCode = /code|program|example|syntax/i.test(slide.heading || slide.subheading || '') ||
+          slide.isCode = (slide.sceneType === 'code' || slide.visualType === 'code_editor') ||
+            /code|program|example|syntax/i.test(slide.heading || slide.subheading || '') ||
             (slide.bullets && slide.bullets.length === 1 && (slide.bullets[0].includes('\\N') || slide.bullets[0].includes('\n')));
         }
         if (slide.isCode) {
-          const codeText = (slide.bullets && slide.bullets[0]) ? slide.bullets[0] : '';
-          if (!slide.fileName || !slide.runCommand) {
-            let fn = 'main.py';
-            let cmd = 'python main.py';
-            if (/public\s+class|System\.out\.print/i.test(codeText)) fn = 'Main.java', cmd = 'java Main';
-            else if (/#include|std::/i.test(codeText)) fn = 'main.cpp', cmd = 'g++ main.cpp -o main && ./main';
-            else if (/console\.log|const\s+|let\s+|function\s+/i.test(codeText)) fn = 'index.js', cmd = 'node index.js';
-            else if (/using\s+System|Console\.WriteLine/i.test(codeText)) fn = 'Program.cs', cmd = 'dotnet run';
-            if (!slide.fileName) slide.fileName = fn;
-            if (!slide.runCommand) slide.runCommand = cmd;
+          slide.isDiagram = false;
+          slide.mermaid = '';
+          if (slide.visual) slide.visual.enabled = false;
+          if (slide.realWorldVisual) slide.realWorldVisual = { enabled: false };
+
+          if (!slide.fileName) {
+            if (/python/i.test(slide.heading)) slide.fileName = 'main.py';
+            else if (/javascript|node|react/i.test(slide.heading)) slide.fileName = 'index.js';
+            else if (/java/i.test(slide.heading)) slide.fileName = 'Main.java';
+            else if (/c\+\+/i.test(slide.heading)) slide.fileName = 'main.cpp';
+            else slide.fileName = 'main.py';
           }
+          if (!slide.runCommand) {
+            if (slide.fileName.endsWith('.py')) slide.runCommand = `python ${slide.fileName}`;
+            else if (slide.fileName.endsWith('.js')) slide.runCommand = `node ${slide.fileName}`;
+            else if (slide.fileName.endsWith('.java')) slide.runCommand = `java Main`;
+            else if (slide.fileName.endsWith('.cpp')) slide.runCommand = `g++ main.cpp -o main && ./main`;
+            else slide.runCommand = `python ${slide.fileName}`;
+          }
+
+          let validCode = '';
+          let validOutput = slide.codeOutput || '';
+
+          if (slide.code && isRealCodeString(slide.code)) {
+            validCode = slide.code;
+          } else if (Array.isArray(slide.bullets) && slide.bullets.length === 1 && isRealCodeString(slide.bullets[0])) {
+            const parts = slide.bullets[0].split(/\n\n==== OUTPUT ====\n|\n==== OUTPUT ====\n|\\N\\N==== OUTPUT ====\\N/);
+            validCode = parts[0].replace(/\\N/g, '\n');
+            if (!validOutput && parts.length > 1) validOutput = parts[1].replace(/\\N/g, '\n');
+          }
+
+          if (!validCode) {
+            const synthesized = synthesizeRealCode(slide, 'PROGRAMMING');
+            validCode = synthesized.code;
+            if (!validOutput) validOutput = synthesized.output;
+          }
+
+          slide.code = validCode;
+          slide.codeOutput = validOutput;
+          slide.bullets = [validCode + (validOutput ? `\n\n==== OUTPUT ====\n${validOutput}` : '')];
         }
         return slide;
       });
@@ -408,6 +441,17 @@ async function main() {
             const transStartTime = Date.now();
             console.log(`[VideoJob] Translating slides for ${langName}...`);
             const langSlides = await translationService.translateSlides(slides, langName);
+            // Ensure code slides keep identical code across all languages
+            langSlides.forEach((lSlide, sIdx) => {
+              if (slides[sIdx] && slides[sIdx].isCode) {
+                lSlide.isCode = true;
+                lSlide.code = slides[sIdx].code;
+                lSlide.codeOutput = slides[sIdx].codeOutput;
+                lSlide.bullets = slides[sIdx].bullets;
+                lSlide.fileName = slides[sIdx].fileName;
+                lSlide.runCommand = slides[sIdx].runCommand;
+              }
+            });
             console.log(`[PERF] Translation - ${lang}: ${((Date.now() - transStartTime) / 1000).toFixed(1)}s`);
 
             // Step B: TTS Generation
@@ -417,7 +461,9 @@ async function main() {
 
             // Perform controlled concurrent chunk TTS generation for this language
             await mapConcurrent(langSlides, TTS_CONCURRENCY, async (slide, i) => {
-              const translatedNarration = await translationService.translateText(slide.narration || ' ', langName);
+              const originalNarration = (slides && slides[i] && slides[i].narration) ? slides[i].narration : (slide.narration || ' ');
+              const translatedNarration = await translationService.translateText(originalNarration, langName);
+              slide.narration = translatedNarration;
               const rawChunkPath = path.join(langDir, `${jobId}_rawchunk_${i}_${lang}.mp3`);
               await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, resolvedVoiceId);
 

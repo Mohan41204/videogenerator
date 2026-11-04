@@ -9,12 +9,42 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
 
 let customVoiceProvider = null;
+let geminiVoiceProvider = null;
+
 const getCustomVoiceProvider = () => {
   if (!customVoiceProvider) {
     const GoogleCustomVoiceProvider = require('./tts/GoogleCustomVoiceProvider');
     customVoiceProvider = new GoogleCustomVoiceProvider();
   }
   return customVoiceProvider;
+};
+
+const getGeminiTTSProvider = () => {
+  if (!geminiVoiceProvider) {
+    const GeminiTTSProvider = require('./tts/GeminiTTSProvider');
+    geminiVoiceProvider = new GeminiTTSProvider();
+  }
+  return geminiVoiceProvider;
+};
+
+const isGeminiTTSVoice = (voiceId) => {
+  if (!voiceId || voiceId === 'default') return true; // Default to Gemini 3.8 Flash TTS
+  if (typeof voiceId !== 'string') return false;
+  const vid = voiceId.trim().toLowerCase();
+  if (vid.startsWith('gemini') || vid.startsWith('voice_')) return true;
+  if (['aoede', 'achird', 'alnilam', 'achernar', 'puck', 'charon', 'kore', 'fenrir'].includes(vid)) return true;
+
+  try {
+    const VOICES_FILE = path.join(__dirname, '..', 'voices.json');
+    if (fs.existsSync(VOICES_FILE)) {
+      const voices = JSON.parse(fs.readFileSync(VOICES_FILE, 'utf8'));
+      if (voices[voiceId] || (voices[vid] && voices[vid].type === 'gemini-replicated')) {
+        return true;
+      }
+    }
+  } catch (e) {}
+
+  return false;
 };
 
 const GTTS_SUPPORTED_LANGUAGES = ['en', 'ta', 'hi', 'ml', 'kn'];
@@ -27,7 +57,7 @@ const generateSingleAudioWithGTTS = (text, outputPath, langCode = 'en') => {
       }
       const gtts = new gTTS(text, langCode);
       if (langCode === 'en') {
-        gtts.lang = 'en-in'; // Set to Indian English accent
+        gtts.lang = 'en-in';
       } else {
         gtts.lang = langCode;
       }
@@ -45,17 +75,26 @@ const generateSingleAudioWithGTTS = (text, outputPath, langCode = 'en') => {
 };
 
 const generateSingleAudio = async (text, outputPath, langCode = 'en', voiceId = null) => {
-  // Use GoogleCustomVoiceProvider as the primary TTS for ALL languages to avoid the robotic gTTS voice.
+  // 1. Try Gemini 3.8 Flash TTS first if requested or default
+  if (isGeminiTTSVoice(voiceId)) {
+    try {
+      const gemini = getGeminiTTSProvider();
+      await gemini.generateSpeech({ text, language: langCode, voiceId, outputPath });
+      return outputPath;
+    } catch (geminiError) {
+      console.warn(`[TTS] Gemini 3.8 Flash TTS single error: ${geminiError.message}. Falling back to Google Cloud TTS...`);
+    }
+  }
+
+  // 2. Try Google Cloud TTS (Wavenet)
   try {
     const provider = getCustomVoiceProvider();
-    
-    // Determine if it's a specific custom voice request
     const isCustomVoice = voiceId && typeof voiceId === 'string' && voiceId.trim() !== '' && voiceId !== 'default' && voiceId !== 'default-computer';
     const isGoogleCloud = voiceId && typeof voiceId === 'string' && voiceId.startsWith('google-cloud-tts');
-    
+
     const passedVoiceId = isGoogleCloud ? null : (isCustomVoice ? voiceId : null);
     const voiceGender = isGoogleCloud && voiceId.includes('male') && !voiceId.includes('female') ? 'male' : 'female';
-    
+
     await provider.generateSpeech({ text, language: langCode, voiceId: passedVoiceId, voiceGender, outputPath });
     return outputPath;
   } catch (error) {
@@ -71,7 +110,6 @@ const generateSingleAudio = async (text, outputPath, langCode = 'en', voiceId = 
 const generateSilence = (duration, outputPath) => {
   return new Promise((resolve, reject) => {
     try {
-      // Generate genuine silent MP3 frames (MPEG-1 Layer 3, 44100 Hz, 128 kbps, Joint Stereo)
       const silentFrameHeader = Buffer.from([0xff, 0xfb, 0x90, 0x64]);
       const frameSize = 417;
       const singleFrame = Buffer.alloc(frameSize, 0);
@@ -95,26 +133,48 @@ const generateSilence = (duration, outputPath) => {
 const getPauseDuration = (punctuation) => {
   if (!punctuation) return 0.1;
   if (/[.!?]/.test(punctuation)) {
-    return 0.6; // Faster, natural pause between sentences
+    return 0.6;
   }
   if (/,|;|:/.test(punctuation)) {
-    return 0.3; // Short pause at commas / clauses for faster pacing
+    return 0.3;
   }
   return 0.2;
 };
 
-const splitIntoSentences = (text) => {
-  if (!text) return [];
-  const raw = text.split(/(?<=[.!?])\s+/);
-  return raw.map(s => s.trim()).filter(Boolean);
-};
-
 const generateAudio = async (text, outputPath, langCode = 'en', voiceId = null) => {
   try {
+    if (!text || text.trim() === '') {
+      const res = await generateSilence(1, outputPath);
+      const strObj = new String(res);
+      strObj.outputPath = res;
+      strObj.sentenceTimings = [];
+      return strObj;
+    }
+
+    // 1. Direct High-Quality Gemini 3.8 Flash TTS Generation (Single-Call Prosody)
+    if (isGeminiTTSVoice(voiceId)) {
+      try {
+        const gemini = getGeminiTTSProvider();
+        await gemini.generateSpeech({
+          text,
+          language: langCode,
+          voiceId,
+          outputPath
+        });
+
+        const strObj = new String(outputPath);
+        strObj.outputPath = outputPath;
+        strObj.sentenceTimings = [];
+        return strObj;
+      } catch (geminiError) {
+        console.warn(`[TTS] Gemini 3.8 Flash TTS generation error: ${geminiError.message}. Falling back to segmented Google Cloud TTS...`);
+      }
+    }
+
+    // 2. Segmented TTS Pipeline for Legacy Google Cloud TTS Wavenet
     const uniqueId = path.basename(outputPath, '.mp3');
     const outputDir = path.dirname(outputPath);
 
-    // Split the text into speech segments and punctuation, keeping sentence/clause structures
     const parts = text.split(/([.,!?;]+(?=\s|$))/);
     const segments = [];
 
@@ -154,7 +214,6 @@ const generateAudio = async (text, outputPath, langCode = 'en', voiceId = null) 
         await generateSingleAudio(seg.text, speechPath, langCode, voiceId);
         tempFiles.push(speechPath);
 
-        // Measure speech duration
         let speechDur = 0;
         try {
           speechDur = await getAudioDuration(speechPath);
@@ -173,7 +232,6 @@ const generateAudio = async (text, outputPath, langCode = 'en', voiceId = null) 
           currentTime += pauseDur;
         }
 
-        // If this segment ends with sentence-terminating punctuation (. ! ?), complete the sentence
         const isSentenceEnd = /[.!?]/.test(seg.punctuation) || (i === segments.length - 1);
         if (isSentenceEnd) {
           sentenceTimings.push({
@@ -187,13 +245,11 @@ const generateAudio = async (text, outputPath, langCode = 'en', voiceId = null) 
         }
       }
 
-      // Concatenate speech and silence chunks using the fast copy method
       await mergeAudioFiles(tempFiles, outputPath);
     } catch (err) {
       console.error('Error generating audio segments:', err);
       throw err;
     } finally {
-      // Clean up temporary segment files
       tempFiles.forEach(p => {
         fs.unlink(p, () => { });
       });
@@ -222,7 +278,6 @@ const mergeAudioFiles = (inputPaths, outputPath) => {
   return new Promise((resolve, reject) => {
     if (inputPaths.length === 0) return resolve(outputPath);
 
-    // Manually create concat file using resolved absolute paths
     const absOutputPath = path.resolve(outputPath);
     const listPath = absOutputPath + '.txt';
     const listContent = inputPaths.map(p => `file '${path.resolve(p).replace(/\\/g, '/')}'`).join('\n');
@@ -249,40 +304,57 @@ const adjustAudioDuration = (inputPath, outputPath, targetDurationSecs) => {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(inputPath, (err, metadata) => {
       if (err) return reject(err);
-      
       const currentDuration = metadata.format.duration;
-      if (Math.abs(currentDuration - targetDurationSecs) < 0.1) {
-         // Close enough, just copy
-         fs.copyFileSync(inputPath, outputPath);
-         return resolve(outputPath);
+      if (!currentDuration || currentDuration <= 0) {
+        return reject(new Error('Invalid audio duration'));
       }
-      
-      const ratio = currentDuration / targetDurationSecs;
-      
-      // FFmpeg atempo filter works between 0.5 and 2.0.
-      let filter = `atempo=${ratio}`;
-      if (ratio > 2.0) {
-        filter = `atempo=2.0,atempo=${ratio/2.0}`;
-      } else if (ratio < 0.5) {
-        filter = `atempo=0.5,atempo=${ratio/0.5}`;
+
+      const speedFactor = currentDuration / targetDurationSecs;
+
+      if (Math.abs(speedFactor - 1.0) < 0.05) {
+        return fs.copyFile(inputPath, outputPath, (copyErr) => {
+          if (copyErr) return reject(copyErr);
+          resolve(outputPath);
+        });
       }
-      
+
+      let filterString = '';
+      let remainingFactor = speedFactor;
+
+      while (remainingFactor > 2.0) {
+        filterString += 'atempo=2.0,';
+        remainingFactor /= 2.0;
+      }
+      while (remainingFactor < 0.5) {
+        filterString += 'atempo=0.5,';
+        remainingFactor /= 0.5;
+      }
+      filterString += `atempo=${remainingFactor}`;
+
       ffmpeg(inputPath)
-        .audioFilter(filter)
-        .on('error', (err) => {
-          console.error('Error adjusting audio duration:', err);
-          reject(err);
-        })
+        .audioFilters(filterString)
+        .output(outputPath)
         .on('end', () => resolve(outputPath))
-        .save(outputPath);
+        .on('error', (filterErr) => {
+          console.warn(`[FFmpeg] Audio tempo adjust failed (${filterErr.message}). Copying original file...`);
+          fs.copyFile(inputPath, outputPath, (copyErr) => {
+            if (copyErr) return reject(copyErr);
+            resolve(outputPath);
+          });
+        })
+        .run();
     });
   });
 };
 
 module.exports = {
   generateAudio,
+  generateSingleAudio,
+  generateSilence,
   getAudioDuration,
   mergeAudioFiles,
   adjustAudioDuration,
-  splitIntoSentences
+  getCustomVoiceProvider,
+  getGeminiTTSProvider,
+  isGeminiTTSVoice
 };

@@ -19,6 +19,8 @@ const cleanJsonString = (str) => {
     }
   }
   str = str.replace(/^```json\s*/gi, '').replace(/\s*```$/gi, '');
+  // In JSON, \' is an invalid escape sequence (causes "Bad escaped character in JSON")
+  str = str.replace(/\\'/g, "'");
   str = str.replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '\\\\');
   return str.trim();
 };

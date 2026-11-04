@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { UploadCloud, Wand2, MonitorPlay, Smartphone, Download } from 'lucide-react';
+import { UploadCloud, Wand2, MonitorPlay, Smartphone, Download, Mic, Sparkles } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import VoiceCloneModal from './VoiceCloneModal';
+
+const DEFAULT_VOICES = [
+  { id: 'voice_74080a81-5951-4b5f-972b-72b4064d116a', name: 'Mohan (My Cloned Voice - Gemini 3.8 Flash)', category: 'Cloned Voices (Gemini 3.8 Flash)', isCloned: true },
+  { id: 'gemini-3.8-flash-tts-aoede', name: 'Gemini 3.8 Flash TTS - Teacher (Female / Aoede)', category: 'Gemini 3.8 Flash TTS' },
+  { id: 'gemini-3.8-flash-tts-achird', name: 'Gemini 3.8 Flash TTS - Friendly Teacher (Male / Achird)', category: 'Gemini 3.8 Flash TTS' },
+  { id: 'gemini-3.8-flash-tts-alnilam', name: 'Gemini 3.8 Flash TTS - Authoritative Teacher (Male / Alnilam)', category: 'Gemini 3.8 Flash TTS' },
+  { id: 'gemini-3.8-flash-tts-achernar', name: 'Gemini 3.8 Flash TTS - Calm Narrator (Female / Achernar)', category: 'Gemini 3.8 Flash TTS' },
+  { id: 'google-cloud-tts-female', name: 'Google Cloud TTS (Female Wavenet)', category: 'Google Cloud Wavenet' },
+  { id: 'google-cloud-tts-male', name: 'Google Cloud TTS (Male Wavenet)', category: 'Google Cloud Wavenet' }
+];
 
 const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [topic, setTopic] = useState('');
@@ -17,17 +28,36 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [progress, setProgress] = useState(0); // Mock progress
   const [scriptProgress, setScriptProgress] = useState(0);
   const [tutorialType, setTutorialType] = useState('programming');
-  const [selectedVoiceId, setSelectedVoiceId] = useState('google-cloud-tts-female');
+  const [selectedVoiceId, setSelectedVoiceId] = useState('voice_74080a81-5951-4b5f-972b-72b4064d116a');
+  const [availableVoices, setAvailableVoices] = useState(DEFAULT_VOICES);
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
 
   const pollIntervalRef = useRef(null);
   const progressIntervalRef = useRef(null);
 
   useEffect(() => {
+    const fetchVoices = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/voice/list`);
+        if (res.data?.success && Array.isArray(res.data.voices) && res.data.voices.length > 0) {
+          setAvailableVoices(res.data.voices);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch voice list, using defaults:', err.message);
+      }
+    };
+    fetchVoices();
+
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
   }, []);
+
+  const handleVoiceCloned = (newVoice) => {
+    setAvailableVoices(prev => [newVoice, ...prev]);
+    setSelectedVoiceId(newVoice.id);
+  };
 
 
 
@@ -454,28 +484,65 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
 
         {/* Voice Selection */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-300 flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
-              </svg>
-              Select Teacher Voice
-            </span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full font-medium border bg-blue-900/30 text-blue-300 border-blue-700/50">
-              Google Cloud TTS
-            </span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              Teacher Voice (Gemini 3.8 Flash TTS)
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsCloneModalOpen(true)}
+              disabled={isGeneratingScript || isGenerating}
+              className="text-xs bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 border border-purple-500/40 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm font-medium"
+            >
+              <Mic className="w-3.5 h-3.5 text-purple-300" />
+              Clone Your Voice
+            </button>
+          </div>
+
           <select
             value={selectedVoiceId}
             onChange={(e) => setSelectedVoiceId(e.target.value)}
             className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
             disabled={isGeneratingScript || isGenerating}
           >
-            <option value="google-cloud-tts-female">Google Cloud TTS (Female Wavenet)</option>
-            <option value="google-cloud-tts-male">Google Cloud TTS (Male Wavenet)</option>
+            {/* Cloned Voices (if any) */}
+            {availableVoices.some(v => v.category?.includes('Cloned') || v.isCloned) && (
+              <optgroup label="🎙️ Your Cloned Voices (Gemini 3.8 Flash)">
+                {availableVoices
+                  .filter(v => v.category?.includes('Cloned') || v.isCloned)
+                  .map(v => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
+              </optgroup>
+            )}
+
+            {/* Gemini 3.8 Flash TTS Models */}
+            <optgroup label="🌟 Gemini 3.8 Flash TTS (High-Fidelity Expressive Teacher)">
+              {availableVoices
+                .filter(v => v.category === 'Gemini 3.8 Flash TTS' || v.id.startsWith('gemini'))
+                .map(v => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+            </optgroup>
+
+            {/* Legacy Google Cloud Wavenet */}
+            <optgroup label="Google Cloud Wavenet (Standard)">
+              {availableVoices
+                .filter(v => v.category?.includes('Wavenet') || v.id.startsWith('google-cloud'))
+                .map(v => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+            </optgroup>
           </select>
           <p className="text-xs text-slate-400">
-            High-quality Google Cloud Wavenet voice will be used for narration.
+            Powered by Google's latest <span className="text-purple-300 font-medium">gemini-3.8-flash-tts</span> model with natural teaching emotion and multilingual fluency.
           </p>
         </div>
 
@@ -517,6 +584,13 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
         )}
 
         </form>
+
+        {/* Voice Cloning Modal */}
+        <VoiceCloneModal
+          isOpen={isCloneModalOpen}
+          onClose={() => setIsCloneModalOpen(false)}
+          onVoiceCloned={handleVoiceCloned}
+        />
       </div>
     </div>
   );

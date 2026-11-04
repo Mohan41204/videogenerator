@@ -26,166 +26,88 @@ The same principle applies to Hindi, Telugu, Kannada, and Malayalam scripts when
 `.trim();
 
 /**
- * Expert Chennai Tamil translation prompt specifically optimized for Google Cloud TTS.
+ * Natural Chennai spoken Tamil translation prompt with English code-mixing for TTS.
+ * Generates conversational classroom speech as spoken by Chennai developers/teachers.
  */
 const buildTamilTranslationPrompt = (text) => `
-You are an expert Tamil translator and Tamil educational voice-script writer.
+You are an expert Tamil teacher and software developer creating natural spoken SPEECH NARRATION for an educational programming video.
 
-Your task is to translate the given English educational narration into natural Chennai Tamil (சென்னை பேச்சுத் தமிழ்) specifically optimized for Google Cloud Text-to-Speech (TTS).
+Your task is to translate the given English narration into natural, conversational Chennai Tamil (சென்னை பேச்சுத் தமிழ்) with English code-mixing, exactly like a friendly Chennai-based developer or teacher explaining concepts to students in an online class.
 
-IMPORTANT:
-These rules apply ONLY when the target language is Tamil.
-Do NOT apply Chennai Tamil slang rules to Hindi, Telugu, Kannada, Malayalam, or English.
+==================================================
+1. CHENNAI SPOKEN TAMIL + CODE-MIXING STYLE
+==================================================
 
-### 1. CHENNAI TAMIL SPEAKING STYLE
+- Speak in natural, casual, friendly Chennai Tamil (சென்னை பேச்சுத் தமிழ்).
+- Freely mix Tamil and English words the way tech professionals naturally speak.
+- The output must sound like a real human teacher explaining live in class, NOT like a textbook, formal announcement, or machine translation.
+- AVOID formal, literary, or archaic Tamil.
 
-Translate into natural, casual, friendly Chennai Tamil, similar to how a Chennai-based teacher or developer would explain a technical topic to students.
+Examples of desired style:
+❌ Formal/Textbook: "இந்த செயல்பாடு ஒரு மதிப்பை எடுத்துக்கொண்டு செயல்படுத்துகிறது."
+✅ Conversational: "இந்த function ஒரு value எடுத்துக்கிட்டு அதுக்கு ஏத்த மாதிரி work பண்ணும்."
 
-The output should sound like a real person speaking, NOT like a textbook.
+❌ Formal/Textbook: "இப்போது இந்த செயல்முறையைப் பார்ப்போம்."
+✅ Conversational: "சரி, இப்போ இது எப்படி work ஆகுதுன்னு பாக்கலாம்."
 
-Prefer natural Chennai conversational words and sentence structures such as:
-* பாக்கலாம்
-* பண்ணலாம்
-* பண்ணுவோம்
-* எப்படி work ஆகுதுன்னு
-* எப்படி use பண்ணுறதுன்னு
-* எப்படி run ஆகுதுன்னு
-* இப்போ
-* அடுத்து
-* சரி
-* இங்கே
-* இதுல
-* அதுல
-* நம்ம
-* நாம
-* இதுக்கு
-* அதுக்கு
-* வேணும்
-* கிடைக்கும்
-* இருக்கு
-* இருக்கும்
-* சொல்லலாம்
-* புரிஞ்சுக்கலாம்
+❌ Formal/Textbook: "இதனை நாம் தரவுத்தளத்தில் சேமிக்கிறோம்."
+✅ Conversational: "இத நம்ம database-ல save பண்ணிக்கிறோம்."
 
-Use these naturally. Do NOT force slang into every sentence.
+❌ Formal/Textbook: "இந்த மாறி ஒரு மதிப்பை சேமிக்கிறது."
+✅ Conversational: "இந்த variable-ல ஒரு value store ஆகும்."
 
-### 2. NATURAL CHENNAI TAMIL, NOT FORMAL TAMIL
+==================================================
+2. NATURAL ENGLISH CODE-MIXING & SUFFIXES
+==================================================
 
-Avoid overly formal/literary Tamil.
+- Keep technical and programming terms in English script (e.g. function, variable, database, code, array, object, loop, class, API, server, value, component, state, etc.).
+- You are COMPLETELY FREE to attach natural Tamil grammatical suffixes and case markers directly to English words using hyphens or natural attachments where Chennai speakers naturally say them:
+  * function-ஐ
+  * variable-ல
+  * database-க்கு
+  * value-ஓட
+  * code-ல
+  * component-க்கு
+- Do NOT artificially restructure sentences to avoid suffixes. Spoken naturalness is the top priority.
 
-Avoid styles such as:
-"இப்போது நாம் இந்த செயல்பாட்டை செயல்படுத்துவோம்."
+==================================================
+3. CHENNAI SLANG AND NATURAL TRANSITIONS
+==================================================
 
-Prefer:
-"இப்போ இந்த function எப்படி work ஆகுதுன்னு பாப்போம்."
+Use natural Chennai conversational markers and expressions where they fit organically:
+* சரி பாக்கலாம்
+* அப்படித்தான்
+* பாத்தீங்கன்னா
+* புரியுதா
+* இப்போ என்ன ஆகுதுன்னா
+* இதுதான் முக்கியமான விஷயம்
+* சிம்பிளா சொல்லணும்னா
+* அடுத்து என்ன பண்ணப்போறோம்னா
+* அதுக்காகத்தான்
+* ஓகேங்களா
+* இங்க கவனிக்க வேண்டியது என்னன்னா
+* இதை நல்லா புரிஞ்சுக்கோங்க
 
-Avoid:
-"இந்த மதிப்பை நாம் பயன்படுத்தலாம்."
+Do NOT force slang into every single line; use them naturally when explaining ideas or transitioning between points.
 
-Prefer:
-"இந்த value எப்படி use பண்ணுறதுன்னு பாப்போம்."
+==================================================
+4. EXPLAIN CODE & OPERATORS NATURALLY
+==================================================
 
-The result should sound like spoken Chennai Tamil used in a technical classroom.
+- Explain code and logic naturally as spoken explanation.
+- Do NOT read code punctuation character-by-character (avoid reading brackets, semicolons, colons, braces literally).
+- Explain operators naturally in conversation (e.g. "plus", "equals", "check பண்ணுது").
+- Keep numbers and units easy to speak (e.g. "ten", "five seconds", "100ms").
 
-### 3. KEEP COMMON TECHNICAL WORDS IN ENGLISH
+==================================================
+5. OUTPUT REQUIREMENTS
+==================================================
 
-Do NOT translate common programming and technical terminology into formal Tamil.
+- Return ONLY the translated Chennai Tamil spoken narration.
+- Do NOT include markdown code blocks, quotes around the output, notes, explanations, or pronunciation guides.
+- Preserve the exact technical meaning of the lesson while making it conversational and engaging.
 
-Keep words such as:
-code, function, variable, value, class, object, method, API, server, database,
-frontend, backend, component, file, folder, project, application, framework,
-library, package, module, loop, array, string, number, boolean, parameter,
-argument, request, response, JSON, HTML, CSS, JavaScript, React, Node.js,
-Python, Docker, Kubernetes, Git, GitHub, AWS, Azure, etc.
-
-Use them naturally inside Chennai Tamil sentences, as bare, standalone words.
-
-Examples:
-"இந்த function என்ன பண்ணுதுன்னு பாப்போம்."
-"இந்த variable உள்ளே value store ஆகுது."
-
-This applies to inflected forms too — plurals and possessives of English technical words (functions, variables, object's, arrays) follow the same rule as the base word. See Rule 4 for how to handle case relations without modifying the English word itself.
-
-### 4. ${TAMIL_NO_SUFFIX_BLOCK}
-
-Additional worked examples:
-
-BAD: "price-ஐ quantity-ஓட multiply பண்ணி total-ல store பண்ணுறோம்."
-GOOD: "price, quantity ரெண்டையும் multiply பண்ணினா, அந்த மதிப்பு total ஆகும்."
-
-BAD: "இந்த application-க்கு five GB storage வேணும்."
-GOOD: "இது ஒரு application, இதுக்கு five GB storage வேணும்."
-
-BAD: "அந்த amount-ஐ ten-ஆ multiply பண்ணி result-ஆ return பண்ணுது."
-GOOD: "இந்த function ஒரு amount எடுத்துக்கிட்டு, அதை ten multiply பண்ணி, கடைசி மதிப்பை return பண்ணும்."
-
-### 5. TTS SYMBOL RULE
-
-The narration will be sent directly to Google Cloud TTS.
-Therefore, do NOT make the TTS literally speak programming symbols unless the lesson is specifically teaching those symbols.
-Avoid narration containing unnecessary: ( ) { } [ ] _ : ; " ' \` # @
-Do not read code character-by-character.
-
-### 6. EXPLAIN CODE NATURALLY
-
-If the screen contains: const total = price * quantity;
-Prefer natural Chennai Tamil: "price, quantity ரெண்டையும் multiply பண்ணினா, அந்த மதிப்பு total ஆகும்."
-
-If the screen contains: function calculateTotal(amount) { return amount * 10; }
-Prefer: "இந்த function ஒரு amount எடுத்துக்கிட்டு, அதை ten multiply பண்ணி, கடைசி மதிப்பை return பண்ணும்."
-
-### 7. NUMBERS AND UNITS
-
-Convert numbers into natural spoken forms when this improves Google Cloud TTS pronunciation:
-10 → ten
-5 → five
-100ms → one hundred milliseconds
-5GB → five GB
-404 → four hundred and four
-
-Never attach a Tamil suffix directly to the number word or unit (avoid "milliseconds-ல", "GB-க்கு") — restructure the sentence instead, the same way Rule 4 shows.
-
-### 8. PROGRAMMING OPERATORS
-
-When a programming operator is important to understanding the lesson, explain its meaning naturally instead of making TTS speak the symbol (= -> assign a value, == -> equal, != -> not equal, > -> greater than, < -> less than, >= -> greater than or equal, <= -> less than or equal, + -> add, - -> subtract, * -> multiply, / -> divide, % -> modulo, && -> and, || -> or, ! -> not, => -> arrow function).
-
-### 9. DO NOT USE ROMANIZED TAMIL
-
-Use actual Tamil Unicode for Tamil conversational words.
-English technical terms should remain in English.
-
-### 10. DO NOT OVERUSE SLANG
-
-Keep narration natural, friendly, conversational, technically accurate, easy to understand, and professional enough for an educational video. Use Chennai conversational grammar naturally without making the narration sound exaggerated or comedic.
-
-### 11. TTS-FRIENDLY SENTENCE STRUCTURE
-
-Write short, naturally spoken sentences. Avoid extremely long sentences. Use natural pauses through normal punctuation. Do NOT use excessive commas, dots, hyphens, emojis, markdown, or decorative symbols.
-
-### 12. MEANING MUST NOT CHANGE
-
-Preserve the original technical meaning exactly. Do not add information that does not exist in the original narration. Do not remove important technical information. Do not translate code. Do not translate programming keywords.
-
-### 13. OUTPUT REQUIREMENT
-
-Return ONLY the translated Tamil narration.
-Do not provide: explanations, English translation, notes, comments, quotation marks around the answer, markdown, bullet points, or pronunciation instructions.
-
-The final output must be directly usable as Google Cloud TTS input.
-
-### FINAL PRIORITY
-
-Follow these priorities in this order:
-1. Preserve the original technical meaning.
-2. Use natural Chennai spoken Tamil.
-3. Keep common technical/programming words (and their inflected forms) in English, always as bare standalone words.
-4. Never attach a Tamil suffix to an English word in any form — always restructure the sentence instead (Rule 4).
-5. Do not make TTS speak unnecessary programming symbols or bare digits/units.
-6. Make the narration sound like a real Chennai teacher explaining technology to students.
-7. Keep the output TTS-friendly and easy to understand.
-
-Translate the following English narration into Chennai spoken Tamil following ALL rules above:
-
+Translate the following English narration into natural Chennai spoken Tamil:
 "${text}"
 `.trim();
 
@@ -460,10 +382,8 @@ Narration to translate:
       translatedText = translatedText.slice(1, -1);
     }
 
-    // Process TTS normalization if target language is Tamil
-    translatedText = await processNarrationForTTS(translatedText, targetLanguageName);
-
-    return translatedText;
+    // Direct TTS flow: The translated Chennai Tamil text goes directly to TTS with no AI normalization or validation
+    return translatedText.trim();
   } catch (error) {
     console.error(`Translation to ${targetLanguageName} failed:`, error);
     throw error;
@@ -686,11 +606,8 @@ Example (Kannada):
 Example (Malayalam):
 "ഈ function ഒരു value return ചെയ്യും."
 
-Use the target language for the explanation and English for commonly used technical terminology, and keep the English word bare — no native-language suffix attached directly to it.
-
-==================================================
-3.5 ${TAMIL_NO_SUFFIX_BLOCK}
-==================================================
+- For Tamil: Use natural Chennai spoken Tamil (சென்னை பேச்சுத் தமிழ்) with English code-mixing (e.g. function-ஐ, variable-ல, database-க்கு, value-ஓட, code-ல). Freely mix English and Tamil without forcing artificial sentence restructuring or suffix separation.
+- For Hindi, Telugu, Kannada, Malayalam: Use natural spoken classroom language with English technical terms.
 
 ==================================================
 4. CODE AND SCREEN CONTENT
@@ -803,7 +720,7 @@ SPEECH:
 8. Is there ZERO Tanglish/Hinglish/Tenglish/Kanglish/Manglish?
 9. Does it sound like a real Indian teacher?
 10. Is it conversational rather than formal/literary?
-11. Are common technical terms kept in English, and are they bare with no native suffix attached directly to them?
+11. Are common technical terms kept in English (with natural code-mixing allowed)?
 12. Are all emojis removed?
 13. Are unnecessary symbols removed?
 14. Is programming punctuation NOT being read literally?
@@ -813,7 +730,7 @@ SPEECH:
 
 If the screen content sounds too pure/formal, rewrite it into modern technical educational language.
 If the narration sounds too formal, rewrite it into natural conversational classroom speech.
-If the narration contains emojis, unnecessary symbols, or a native suffix attached to an English word, fix it before returning it.
+If the narration contains emojis or unnecessary symbols, fix it before returning it.
 
 Return structured outputs according to the application's existing scene/slide schema, keeping SCREEN CONTENT and SPEECH NARRATION as separate fields.
 Translate human-readable fields: heading, subheading, bullets, narration, title, description, buttonText, labels, etc.
@@ -899,15 +816,6 @@ ${JSON.stringify(slides, null, 2)}
             }
             transSlide.board = mergedBoard;
           }
-        }
-      }
-    }
-
-    // Process slide narration for TTS if target language is Tamil
-    if (Array.isArray(translatedSlides) && isTamil) {
-      for (const slide of translatedSlides) {
-        if (slide && slide.narration) {
-          slide.narration = await processNarrationForTTS(slide.narration, targetLanguageName);
         }
       }
     }
@@ -1102,110 +1010,23 @@ const cleanTextForTTS = (text) => {
 };
 
 /**
- * Tamil-only Gemini cleanup assistant to rewrite narration so suffixes aren't attached to Latin words.
+ * DEPRECATED: Previously performed a secondary Gemini AI normalization pass on Tamil narration.
+ * Completely bypassed/removed — no secondary AI requests occur.
  */
 const normalizeNarrationForTTS = async (text, attemptNumber = 1, previousIssues = []) => {
-  const cacheKey = `tamil:${text}`;
-  if (attemptNumber === 1 && normalizationCache.has(cacheKey)) {
-    return normalizationCache.get(cacheKey);
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  const clientConfig = {};
-  if (apiKey && apiKey.trim()) {
-    clientConfig.apiKey = apiKey.trim();
-  } else {
-    clientConfig.vertexai = true;
-    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT || 'sky-meet-01';
-    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'asia-south1';
-  }
-  const client = new GoogleGenAI(clientConfig);
-
-  let strictInstruction = '';
-  if (previousIssues.length > 0) {
-    strictInstruction = `\nCRITICAL FIX REQUIRED: The previous output still contained the following issues: ${previousIssues.join(', ')}. FIX SPECIFICALLY THAT. Ensure NO Latin technical word has a Tamil suffix attached to it directly, via hyphen, or as an isolated following particle, remove any emoji, and ensure NO programming syntax or code punctuation is read literally.`;
-  }
-
-  const prompt = `
-You are a pronunciation and Text-to-Speech (TTS) normalization assistant for Tamil educational narration.
-
-Your task is to rewrite the following Tamil speech narration so it is 100% TTS-friendly without changing its technical meaning.
-
-RULES:
-1. Preserve the original meaning exactly.
-2. Keep common English technical terms in English script (e.g. function, class, object, variable, method, API, database, component, React, Node.js, code, etc.), always as bare standalone words.
-3. NEVER attach Tamil grammatical suffixes directly to English technical words in any form (e.g., NEVER use "function-ஐ", "code-ஐ", "functionஐ", "variable-ல", "class-க்கு", or a spaced-out isolated suffix like "value ஐ").
-4. If an English technical word needs a native grammatical relationship, REWRITE THE ENTIRE SENTENCE naturally so that the native suffix lands on a Tamil pronoun or noun (இதை, அதை, இதுக்கு, மதிப்பு) instead of on the English word.
-5. NEVER produce isolated Tamil suffixes or particles (like standalone "ஐ", "ல", "க்கு") next to an English word, in any spacing.
-6. NEVER produce grammatically broken output or Romanized Tanglish.
-7. Remove all emojis, markdown symbols, decorative arrows, and NEVER read programming punctuation literally (no "open bracket", "close parenthesis", "underscore", "semicolon", "colon", etc.). Explain code naturally.
-8. Return ONLY the normalized Tamil narration text. Do NOT include markdown code blocks, JSON, notes, SSML, or explanations.
-${strictInstruction}
-
-Narration to normalize:
-"${text}"
-  `.trim();
-
-  try {
-    const result = await client.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
-    let normalized = result.text?.trim() || '';
-    if (normalized.startsWith('"') && normalized.endsWith('"')) {
-      normalized = normalized.slice(1, -1);
-    }
-    normalized = cleanTextForTTS(normalized);
-
-    // Re-validation guard
-    const validation = validateTTSInput(normalized);
-    if (!validation.hasIssues) {
-      if (attemptNumber === 1) {
-        normalizationCache.set(cacheKey, normalized);
-      }
-      return normalized;
-    }
-
-    if (attemptNumber === 1) {
-      console.warn(`[TTS Cleanup] Re-validation failed on 1st attempt. Issues: ${validation.issues.join(', ')}. Retrying once...`);
-      return await normalizeNarrationForTTS(text, 2, validation.issues);
-    }
-
-    console.warn(`[TTS Cleanup] Re-validation failed after retry. Issues remaining: ${validation.issues.join(', ')}. Falling back to original.`);
-    return cleanTextForTTS(text);
-  } catch (err) {
-    console.warn(`[TTS Cleanup] Gemini normalization failed: ${err.message}. Falling back to cleanTextForTTS.`);
-    return cleanTextForTTS(text);
-  }
+  return cleanTextForTTS(text);
 };
 
 /**
  * Pipeline helper to process narration for TTS across all target languages.
+ * Secondary Gemini normalization and validation passes have been removed.
+ * Spoken narration goes directly to the TTS engine.
  */
 const processNarrationForTTS = async (translatedText, targetLanguageName = 'English') => {
   if (!translatedText) {
     return translatedText;
   }
-
-  const isTamil = targetLanguageName && targetLanguageName.toLowerCase() === 'tamil';
-  const validation = validateTTSInput(translatedText);
-
-  let ttsText = translatedText;
-  if (isTamil && validation.hasIssues) {
-    console.log(`[TTS Validation] Issues detected for ${targetLanguageName}: ${validation.issues.join(', ')}`);
-    console.log(`Original narration: ${translatedText}`);
-
-    try {
-      ttsText = await normalizeNarrationForTTS(translatedText);
-      console.log(`After Tamil TTS cleanup: ${ttsText}`);
-    } catch (error) {
-      console.warn('[TTS Cleanup] Failed, using original narration:', error.message);
-      ttsText = translatedText;
-    }
-  }
-
-  ttsText = cleanTextForTTS(ttsText);
-  return ttsText;
+  return cleanTextForTTS(translatedText);
 };
 
 module.exports = {

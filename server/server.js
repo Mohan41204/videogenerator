@@ -64,6 +64,7 @@ const generateRoutes = require('./routes/generate.routes');
 
 app.use('/api/videos', videoRoutes);
 app.use('/api/voice', voiceRoutes);
+app.use('/api', voiceRoutes);
 app.use('/api/generate', generateRoutes);
 
 // Health check endpoint
