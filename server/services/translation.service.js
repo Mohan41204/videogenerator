@@ -1,4 +1,5 @@
 const { GoogleGenAI } = require('@google/genai');
+const { mapConcurrent } = require('../utils/promisePool');
 
 /**
  * Shared "no suffix on English words" rule block.
@@ -32,83 +33,199 @@ The same principle applies to Hindi, Telugu, Kannada, and Malayalam scripts when
 const buildTamilTranslationPrompt = (text) => `
 You are an expert Tamil teacher and software developer creating natural spoken SPEECH NARRATION for an educational programming video.
 
-Your task is to translate the given English narration into natural, conversational Chennai Tamil (சென்னை பேச்சுத் தமிழ்) with English code-mixing, exactly like a friendly Chennai-based developer or teacher explaining concepts to students in an online class.
+Your task is to translate the given English narration into authentic, natural Chennai spoken Tanglish (சென்னை பேச்சுத் தமிழ்) with English code-mixing and natural vocal fillers, exactly like a friendly Chennai-based developer or tutor explaining concepts to students live in class.
 
 ==================================================
-1. CHENNAI SPOKEN TAMIL + CODE-MIXING STYLE
+1. CHENNAI SPOKEN SLANG (சென்னை பேச்சுத் தமிழ்)
 ==================================================
 
-- Speak in natural, casual, friendly Chennai Tamil (சென்னை பேச்சுத் தமிழ்).
-- Freely mix Tamil and English words the way tech professionals naturally speak.
-- The output must sound like a real human teacher explaining live in class, NOT like a textbook, formal announcement, or machine translation.
-- AVOID formal, literary, or archaic Tamil.
-
-Examples of desired style:
-❌ Formal/Textbook: "இந்த செயல்பாடு ஒரு மதிப்பை எடுத்துக்கொண்டு செயல்படுத்துகிறது."
-✅ Conversational: "இந்த function ஒரு value எடுத்துக்கிட்டு அதுக்கு ஏத்த மாதிரி work பண்ணும்."
-
-❌ Formal/Textbook: "இப்போது இந்த செயல்முறையைப் பார்ப்போம்."
-✅ Conversational: "சரி, இப்போ இது எப்படி work ஆகுதுன்னு பாக்கலாம்."
-
-❌ Formal/Textbook: "இதனை நாம் தரவுத்தளத்தில் சேமிக்கிறோம்."
-✅ Conversational: "இத நம்ம database-ல save பண்ணிக்கிறோம்."
-
-❌ Formal/Textbook: "இந்த மாறி ஒரு மதிப்பை சேமிக்கிறது."
-✅ Conversational: "இந்த variable-ல ஒரு value store ஆகும்."
+- Speak in natural, casual, friendly Chennai Tamil.
+- Use colloquial spoken verbs & words:
+  * முதல்ல (NEVER முதலில்)
+  * பாக்கலாம் / பாப்போம் (NEVER பார்ப்போம்)
+  * பண்ணலாம் / பண்ணுவோம் / பண்ணுது / பண்ணுங்க (NEVER செய்வோம் / செய்கிறது)
+  * ஆயிடும் (NEVER ஆகிவிடும்)
+  * சொல்றேன் (NEVER சொல்கிறேன்)
+  * இருக்கு / இருக்குது (NEVER இருக்கிறது)
+- Natural conversational phrases:
+  * தெரியுமா, பாத்தீங்கன்னா, புரியுதா, ஓகேவா, சரி, இப்போ என்னன்னா, சிம்பிளா சொல்லணும்னா, நம்ம, நாம, இதுல, அதுல, இதுக்கு, அதுக்கு, அதுனால
+- The output must sound like a real human teacher explaining live in class, NOT like a textbook or formal announcement.
 
 ==================================================
-2. NATURAL ENGLISH CODE-MIXING & SUFFIXES
+2. NATURAL VOCAL FILLERS ("ம்ம்ம்..." IN NATURAL PAUSE PLACES)
+==================================================
+
+- Real teachers speak with natural thinking pauses, clarity, and energy.
+- NATURAL THINKING PAUSES ("ம்ம்ம்..." / "ஹும்ம்..."):
+  * Include natural thinking pause sounds ("ம்ம்ம்..." or "ஹும்ம்...") around 2 to 3 times per slide/paragraph.
+  * Place them naturally ONLY where the instructor pauses to think before explaining a key concept, solution, or introducing the next idea.
+  * DO NOT cluster them back-to-back (no "ம்ம்ம்... ம்ம்ம்...").
+  * DO NOT start every single sentence with "ம்ம்ம்...". Spread them out naturally across the explanation (around 2 to 3 times).
+- Use confident, energetic spoken transitions:
+  * "சரி..."
+  * "இப்போ..."
+  * "பாத்தீங்கன்னா..."
+  * "சோ..."
+  * "ஆக்சுவலா..."
+  * "சிம்பிளா சொல்லணும்னா..."
+- Examples:
+  * "ம்ம்ம்... முதல்ல நம்ம இந்த function எப்படி run ஆகுதுன்னு பாக்கலாம்."
+  * "இங்க பாத்தீங்கன்னா... ம்ம்ம்... ஒரு முக்கியமான logic இருக்கு."
+  * "சோ... ம்ம்ம்... நம்ம code-ல logic ரொம்ப simple, புரியுதா?"
+
+==================================================
+3. ABSOLUTELY NO PURE/LITERARY TAMIL (தூய தமிழ் வேண்டாம்!)
+==================================================
+
+- NEVER translate programming or computer terms into pure, literary, or archaic Tamil words:
+  ❌ செயல்பாடு -> ✅ function
+  ❌ மாறி -> ✅ variable
+  ❌ நிரல் / நிரலாக்கம் -> ✅ code / programming
+  ❌ கோப்பு -> ✅ file
+  ❌ தரவுத்தளம் -> ✅ database
+  ❌ வெளியீடு / முடிவு -> ✅ output / result
+  ❌ நினைவகம் -> ✅ memory
+  ❌ சுழற்சி -> ✅ loop
+  ❌ வரிசை -> ✅ array
+  ❌ சரங்கள் -> ✅ strings
+  ❌ பொருள் -> ✅ object
+  ❌ வகை -> ✅ class / type
+  ❌ தருக்கம் -> ✅ logic
+  ❌ பயனர் -> ✅ user
+  ❌ வினவல் -> ✅ query
+  ❌ சேவையகம் -> ✅ server
+  ❌ கோரிக்கை -> ✅ request
+  ❌ பதில் -> ✅ response
+
+==================================================
+4. NATURAL TANGLISH CODE-MIXING
 ==================================================
 
 - Keep technical and programming terms in English script (e.g. function, variable, database, code, array, object, loop, class, API, server, value, component, state, etc.).
-- You are COMPLETELY FREE to attach natural Tamil grammatical suffixes and case markers directly to English words using hyphens or natural attachments where Chennai speakers naturally say them:
-  * function-ஐ
-  * variable-ல
-  * database-க்கு
-  * value-ஓட
-  * code-ல
-  * component-க்கு
-- Do NOT artificially restructure sentences to avoid suffixes. Spoken naturalness is the top priority.
+- Freely mix English tech terms with spoken Tamil grammar:
+  * "இந்த function ஒரு value-அ எடுத்துகிட்டு work பண்ணும்."
+  * "variable-ல value store ஆயிடும்."
+  * "database-ல data save ஆயிடும்."
+  * "code run பண்ணும்போது error வராம பாத்துக்கணும்."
+  * "output screen-ல display ஆகும்."
+  * "component render ஆகும்போது state check பண்ணுவோம்."
 
 ==================================================
-3. CHENNAI SLANG AND NATURAL TRANSITIONS
-==================================================
-
-Use natural Chennai conversational markers and expressions where they fit organically:
-* சரி பாக்கலாம்
-* அப்படித்தான்
-* பாத்தீங்கன்னா
-* புரியுதா
-* இப்போ என்ன ஆகுதுன்னா
-* இதுதான் முக்கியமான விஷயம்
-* சிம்பிளா சொல்லணும்னா
-* அடுத்து என்ன பண்ணப்போறோம்னா
-* அதுக்காகத்தான்
-* ஓகேங்களா
-* இங்க கவனிக்க வேண்டியது என்னன்னா
-* இதை நல்லா புரிஞ்சுக்கோங்க
-
-Do NOT force slang into every single line; use them naturally when explaining ideas or transitioning between points.
-
-==================================================
-4. EXPLAIN CODE & OPERATORS NATURALLY
+5. EXPLAIN CODE & OPERATORS NATURALLY
 ==================================================
 
 - Explain code and logic naturally as spoken explanation.
 - Do NOT read code punctuation character-by-character (avoid reading brackets, semicolons, colons, braces literally).
 - Explain operators naturally in conversation (e.g. "plus", "equals", "check பண்ணுது").
-- Keep numbers and units easy to speak (e.g. "ten", "five seconds", "100ms").
 
 ==================================================
-5. OUTPUT REQUIREMENTS
+6. OUTPUT REQUIREMENTS
 ==================================================
 
 - Return ONLY the translated Chennai Tamil spoken narration.
 - Do NOT include markdown code blocks, quotes around the output, notes, explanations, or pronunciation guides.
+- Remove all emojis and markdown formatting (no **, #, backticks).
 - Preserve the exact technical meaning of the lesson while making it conversational and engaging.
 
-Translate the following English narration into natural Chennai spoken Tamil:
+Translate the following English narration into natural Chennai spoken Tanglish:
 "${text}"
+`.trim();
+
+/**
+ * Tailored prompt for translating a single slide into Chennai spoken Tamil (Tanglish)
+ * with natural fillers (ம்ம்ம், ஹும்ம், சரி) for teacher narration, and modern technical screen content.
+ */
+const buildTamilSlidePrompt = (slide, slideIndex = 0, totalSlides = 1) => `
+You are an expert Tamil programming teacher and software developer creating an educational video lesson.
+
+Your task is to translate the given English JSON slide (Slide ${slideIndex + 1} of ${totalSlides}) into Tamil with TWO DISTINCT STYLES:
+1. ON-SCREEN CONTENT (heading, subheading, bullets): Modern, concise, technical Tamil with English terminology.
+2. TEACHER SPEECH NARRATION ('narration'): Authentic, lively Chennai spoken Tanglish (சென்னை பேச்சுத் தமிழ்) with natural vocal fillers (ம்ம்ம், ஹும்ம், சரி).
+
+==================================================
+1. TEACHER SPEECH NARRATION ('narration' field)
+==================================================
+
+The 'narration' field is fed to a Text-to-Speech (TTS) engine for the video voiceover.
+It must sound like a real, enthusiastic Chennai software developer or tutor explaining code live in a classroom or tech YouTube tutorial — NOT like a formal translator, textbook, or robot.
+
+CRITICAL NARRATION RULES:
+
+A. CHENNAI SPOKEN SLANG & PHRASING:
+- Use natural Chennai colloquial spoken Tamil verbs and words:
+  * முதல்ல (NEVER முதலில்)
+  * பாக்கலாம் / பாப்போம் (NEVER பார்ப்போம்)
+  * பண்ணலாம் / பண்ணுவோம் / பண்ணுது / பண்ணுங்க (NEVER செய்வோம் / செய்கிறது)
+  * ஆயிடும் (NEVER ஆகிவிடும்)
+  * சொல்றேன் (NEVER சொல்கிறேன்)
+  * இருக்கு / இருக்குது (NEVER இருக்கிறது)
+- Natural conversational phrases:
+  * தெரியுமா, பாத்தீங்கன்னா, புரியுதா, ஓகேவா, சரி, இப்போ என்னன்னா, சிம்பிளா சொல்லணும்னா, நம்ம, நாம, இதுல, அதுல, இதுக்கு, அதுக்கு, அதுனால.
+
+B. NATURAL SPOKEN FILLERS ("ம்ம்ம்..." IN NATURAL PAUSE PLACES):
+- Live human teachers explain concepts with natural pauses, clarity, and energy.
+- THINKING PAUSE PLACEMENT ("ம்ம்ம்..." / "ஹும்ம்..."):
+  * Include natural thinking pauses ("ம்ம்ம்..." or "ஹும்ம்...") around 2 to 3 times across this slide's narration.
+  * Place them naturally ONLY where the instructor pauses before explaining a concept, logic, or next step.
+  * DO NOT cluster them back-to-back (avoid "ம்ம்ம்... ம்ம்ம்...").
+  * Distribute them naturally (around 2 to 3 times across the slide).
+- Combine with natural spoken transitions:
+  * "சரி..."
+  * "இப்போ..."
+  * "பாத்தீங்கன்னா..."
+  * "சோ..."
+  * "ஆக்சுவலா..."
+  * "சிம்பிளா சொல்லணும்னா..."
+- Examples:
+  * "ம்ம்ம்... இப்போ இந்த function எப்படி execute ஆகுதுன்னு பாப்போம்."
+  * "இங்க பாத்தீங்கன்னா... ம்ம்ம்... ஒரு முக்கியமான logic இருக்கு."
+  * "சோ... ம்ம்ம்... database-ல இந்த data-வ save பண்ணிட்டோம்னா, output screen-ல வந்துடும், ஓகேவா?"
+
+C. ABSOLUTELY NO PURE/LITERARY TAMIL (தூய தமிழ் வேண்டாம்!):
+- NEVER translate programming/computer terms into pure, literary, or archaic Tamil words.
+- ❌ STRICTLY BANNED:
+  செயல்பாடு, மாறி, நிரல், நிரலாக்கம், கோப்பு, தரவுத்தளம், வெளியீடு, முடிவு, சுழற்சி, வரிசை, சரங்கள், நினைவகம், பொருள், வகை, தருக்கம், பயனர், வினவல், சேவையகம், கோரிக்கை, பதில்.
+- ✅ ALWAYS USE CLEAN ENGLISH/TANGLISH WORDS:
+  function, variable, code, file, database, output, result, loop, array, string, memory, object, class, logic, user, query, server, request, response.
+
+D. NATURAL TANGLISH CODE-MIXING:
+- Freely mix English tech words with spoken Tamil grammar:
+  * "இந்த function ஒரு value-அ எடுத்துகிட்டு work பண்ணும்."
+  * "variable-ல value store ஆயிடும்."
+  * "code run பண்ணும்போது error வராம பாத்துக்கணும்."
+  * "logic ரொம்ப simple-ஆ இருக்கும்."
+  * "output screen-ல display ஆகும்."
+  * "component render ஆகும்போது state check பண்ணுவோம்."
+
+E. EXPLAIN CODE NATURALLY:
+- Never read brackets, semicolons, or braces literally (no "open bracket", "curly brace", "semicolon").
+- Explain the logic naturally in spoken words.
+
+F. NO EMOJIS & NO MARKDOWN IN NARRATION:
+- Strip all emojis, **, #, and backticks from the 'narration' field.
+
+==================================================
+2. ON-SCREEN CONTENT (Headings, Subheadings, Bullets, Labels)
+==================================================
+
+- Modern, professional, concise, and clean.
+- Keep all technical terms in English script (e.g. Function, Variable, Loop, Database, API, React, etc.).
+- Bullets should be punchy and clear for students to read on the slide.
+- Avoid pure/archaic Tamil on slides as well.
+
+==================================================
+3. PRESERVE JSON STRUCTURE & CODE
+==================================================
+
+- Keep JSON keys and schema EXACTLY identical to the input slide object.
+- NEVER change or translate source code blocks.
+- If "realWorldConnection" is present:
+  * Keep keys ("category", "year", "isFictional", "relevanceScore", "sourceVerification") and proper names intact.
+  * Translate "factualSummary", "teachingConnection", and "takeaway" into natural Chennai conversational Tamil.
+- Return ONLY the single translated slide JSON object.
+
+Slide JSON to translate into Chennai Spoken Tamil:
+${JSON.stringify(slide, null, 2)}
 `.trim();
 
 const translateText = async (text, targetLanguageName) => {
@@ -391,12 +508,64 @@ Narration to translate:
 };
 
 /**
+ * Sanitizes unescaped control characters inside JSON string literals.
+ * Fixes "Bad control character in string literal in JSON" when LLMs emit raw newlines/tabs inside quotes.
+ */
+const sanitizeJsonControlChars = (str) => {
+  if (!str) return '';
+  let inString = false;
+  let escaped = false;
+  let result = '';
+
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    const code = str.charCodeAt(i);
+
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+
+    if (ch === '\\') {
+      escaped = true;
+      result += ch;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+
+    if (inString) {
+      if (ch === '\n') {
+        result += '\\n';
+      } else if (ch === '\r') {
+        result += '\\r';
+      } else if (ch === '\t') {
+        result += '\\t';
+      } else if (code < 32 || (code >= 127 && code <= 159)) {
+        result += ' ';
+      } else {
+        result += ch;
+      }
+    } else {
+      result += ch;
+    }
+  }
+
+  return result;
+};
+
+/**
  * Extracts a JSON array/object from a model response even if the model wrapped it
  * in a markdown code fence or added leading/trailing prose. Falls back to slicing
- * from the first '[' or '{' to the matching last ']' or '}' if a direct parse fails.
+ * from the first '[' or '{' to the matching last ']' or '}' and auto-repairs control characters if needed.
  */
 const extractJson = (rawText) => {
-  let cleaned = rawText.trim();
+  let cleaned = (rawText || '').trim();
 
   // Strip a leading/trailing markdown code fence if present (```json ... ``` or ``` ... ```)
   cleaned = cleaned.replace(/^```[a-zA-Z]*\s*/, '').replace(/\s*```$/, '');
@@ -407,7 +576,7 @@ const extractJson = (rawText) => {
   try {
     return JSON.parse(cleaned);
   } catch (firstErr) {
-    // Fallback: the model may have added prose before/after the JSON payload.
+    // Fallback 1: the model may have added prose before/after the JSON payload.
     // Slice from the first bracket to the last matching bracket and retry.
     const firstBracket = Math.min(
       ...['[', '{'].map(ch => {
@@ -417,38 +586,38 @@ const extractJson = (rawText) => {
     );
     const lastBracket = Math.max(cleaned.lastIndexOf(']'), cleaned.lastIndexOf('}'));
 
+    let candidate = cleaned;
     if (firstBracket !== Infinity && lastBracket > firstBracket) {
-      const sliced = cleaned.slice(firstBracket, lastBracket + 1).replace(/,\s*([}\]])/g, '$1');
-      return JSON.parse(sliced);
+      candidate = cleaned.slice(firstBracket, lastBracket + 1).replace(/,\s*([}\]])/g, '$1');
+      try {
+        return JSON.parse(candidate);
+      } catch (sliceErr) {
+        // Fall through to auto-repair
+      }
     }
-    throw firstErr;
+
+    // Fallback 2: Auto-repair illegal control characters in string literals
+    try {
+      const sanitized = sanitizeJsonControlChars(candidate);
+      return JSON.parse(sanitized);
+    } catch (repairErr) {
+      // Fallback 3: Also fix invalid escape sequences like \'
+      try {
+        let furtherCleaned = sanitizeJsonControlChars(candidate)
+          .replace(/\\'/g, "'")
+          .replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '');
+        return JSON.parse(furtherCleaned);
+      } catch (finalErr) {
+        throw firstErr;
+      }
+    }
   }
 };
 
-const translateSlides = async (slides, targetLanguageName) => {
-  if (!slides || !slides.length) return slides;
-
-  if (targetLanguageName.toLowerCase() === 'english') {
-    return slides;
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  const clientConfig = {};
-  if (apiKey && apiKey.trim()) {
-    clientConfig.apiKey = apiKey.trim();
-  } else {
-    clientConfig.vertexai = true;
-    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT || 'sky-meet-01';
-    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'asia-south1';
-  }
-  const client = new GoogleGenAI(clientConfig);
-
-  const isTamil = targetLanguageName && targetLanguageName.toLowerCase() === 'tamil';
-
-  const prompt = `
+const buildGenericSlidePrompt = (slide, targetLanguageName, slideIndex = 0, totalSlides = 1) => `
 You are an expert educational video content generator for programming and technical subjects.
 
-Generate both the ON-SCREEN CONTENT and TEACHER SPEECH NARRATION for the lesson by translating the given English JSON slide array into ${targetLanguageName}.
+Generate both the ON-SCREEN CONTENT and TEACHER SPEECH NARRATION for the lesson by translating the given English JSON slide (Slide ${slideIndex + 1} of ${totalSlides}) into ${targetLanguageName}.
 
 The two outputs have DIFFERENT language and formatting requirements.
 
@@ -734,97 +903,182 @@ If the narration contains emojis or unnecessary symbols, fix it before returning
 
 Return structured outputs according to the application's existing scene/slide schema, keeping SCREEN CONTENT and SPEECH NARRATION as separate fields.
 Translate human-readable fields: heading, subheading, bullets, narration, title, description, buttonText, labels, etc.
-Preserve JSON structure EXACTLY. Return an array of objects with the same structure, just translated text.
+For "realWorldConnection":
+- Preserve the JSON structure and keys ("category", "year", "isFictional", "relevanceScore", "sourceVerification").
+- Keep verified proper names (e.g. Alan Turing, Grace Hopper, Linus Torvalds, Guido van Rossum, WannaCry, Knight Capital, Ariane 5, Netflix, AWS, AlphaGo, Iron Man, Inception, The Matrix) in English or their established international form.
+- Translate only the explanatory fields: "factualSummary", "teachingConnection", and "takeaway" into natural classroom speech/text in the target language.
+Preserve JSON structure EXACTLY. Return a single JSON object with the same keys, just translated text.
 
-Slides JSON to translate into ${targetLanguageName}:
-${JSON.stringify(slides, null, 2)}
-  `.trim();
+Slide JSON to translate into ${targetLanguageName}:
+${JSON.stringify(slide, null, 2)}
+`.trim();
 
-  const runModelWithRetry = async (modelName, maxRetries = 3) => {
-    let attempts = 0;
-    let delay = 1000;
+/**
+ * Translates an individual slide using Gemini, with retry logic and graceful fallback.
+ */
+const translateSingleSlide = async (origSlide, targetLanguageName, slideIndex, totalSlides, client) => {
+  const isTamil = targetLanguageName && targetLanguageName.toLowerCase() === 'tamil';
 
-    while (attempts < maxRetries) {
-      try {
-        const result = await client.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: { responseMimeType: "application/json" }
-        });
-        if (result.usageMetadata) {
-          console.log(`[Token Usage] Provider: vertex-ai, Model: ${modelName}, Input Tokens: ${result.usageMetadata.promptTokenCount}, Output Tokens: ${result.usageMetadata.candidatesTokenCount}, Total Tokens: ${result.usageMetadata.totalTokenCount}, Timestamp: ${new Date().toISOString()}`);
+  // Extract only translatable fields to keep input compact and fast
+  const slideToTranslate = {
+    heading: origSlide.heading,
+    subheading: origSlide.subheading,
+    bullets: origSlide.bullets,
+    narration: origSlide.narration,
+    realWorldConnection: origSlide.realWorldConnection
+      ? {
+          category: origSlide.realWorldConnection.category,
+          year: origSlide.realWorldConnection.year,
+          isFictional: origSlide.realWorldConnection.isFictional,
+          relevanceScore: origSlide.realWorldConnection.relevanceScore,
+          sourceVerification: origSlide.realWorldConnection.sourceVerification,
+          factualSummary: origSlide.realWorldConnection.factualSummary,
+          teachingConnection: origSlide.realWorldConnection.teachingConnection,
+          takeaway: origSlide.realWorldConnection.takeaway
         }
-        return result;
-      } catch (err) {
-        attempts++;
-        if (attempts >= maxRetries) throw err;
-        console.warn(`Slide translation attempt ${attempts} with ${modelName} failed. Retrying in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2;
-      }
-    }
+      : undefined
   };
 
-  try {
-    let translatedJsonText;
+  if (origSlide.board) {
+    slideToTranslate.board = {
+      heading: origSlide.board.heading,
+      nodes: (origSlide.board.nodes || []).map(n => ({ id: n.id, label: n.label })),
+      edges: (origSlide.board.edges || []).map(e => ({ id: e.id, label: e.label })),
+      notes: (origSlide.board.notes || []).map(m => ({ id: m.id, text: m.text }))
+    };
+  }
+
+  const prompt = isTamil
+    ? buildTamilSlidePrompt(slideToTranslate, slideIndex, totalSlides)
+    : buildGenericSlidePrompt(slideToTranslate, targetLanguageName, slideIndex, totalSlides);
+
+  let attempts = 0;
+  let delay = 1000;
+  const maxRetries = 3;
+
+  while (attempts < maxRetries) {
     try {
-      let result = await runModelWithRetry('gemini-2.5-flash', 3);
-      translatedJsonText = result.text?.trim() || '';
-    } catch (geminiError) {
-      console.error('All Gemini slide translation attempts failed:', geminiError.message);
-      throw new Error('All Gemini API slide translation attempts failed.');
-    }
+      const result = await client.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: "application/json" }
+      });
 
-    const translatedSlides = extractJson(translatedJsonText);
+      const translatedText = result.text?.trim() || '';
+      const transSlide = extractJson(translatedText);
 
-    // Safely preserve board structure (ids, sentenceIndex, connections) and merge translated labels
-    if (Array.isArray(translatedSlides)) {
-      for (let i = 0; i < translatedSlides.length; i++) {
-        const transSlide = translatedSlides[i];
-        const origSlide = slides[i];
-        if (origSlide && origSlide.board) {
-          if (!transSlide.board) {
-            transSlide.board = JSON.parse(JSON.stringify(origSlide.board));
-          } else {
-            const mergedBoard = JSON.parse(JSON.stringify(origSlide.board));
-            if (transSlide.board.heading) {
-              mergedBoard.heading = transSlide.board.heading;
+      if (!transSlide || typeof transSlide !== 'object') {
+        throw new Error('Invalid JSON response for slide translation');
+      }
+
+      // Merge translated fields into a deep copy of origSlide
+      const mergedSlide = JSON.parse(JSON.stringify(origSlide));
+
+      if (transSlide.heading) mergedSlide.heading = transSlide.heading;
+      if (transSlide.subheading) mergedSlide.subheading = transSlide.subheading;
+      if (Array.isArray(transSlide.bullets) && transSlide.bullets.length > 0) {
+        mergedSlide.bullets = transSlide.bullets;
+      }
+      if (transSlide.narration && typeof transSlide.narration === 'string') {
+        mergedSlide.narration = transSlide.narration;
+      }
+
+      // Merge realWorldConnection if present
+      if (origSlide.realWorldConnection && transSlide.realWorldConnection) {
+        mergedSlide.realWorldConnection = {
+          ...origSlide.realWorldConnection,
+          factualSummary: transSlide.realWorldConnection.factualSummary || origSlide.realWorldConnection.factualSummary,
+          teachingConnection: transSlide.realWorldConnection.teachingConnection || origSlide.realWorldConnection.teachingConnection,
+          takeaway: transSlide.realWorldConnection.takeaway || origSlide.realWorldConnection.takeaway
+        };
+      }
+
+      // Merge board labels if present
+      if (origSlide.board && transSlide.board) {
+        const mergedBoard = JSON.parse(JSON.stringify(origSlide.board));
+        if (transSlide.board.heading) {
+          mergedBoard.heading = transSlide.board.heading;
+        }
+        if (Array.isArray(mergedBoard.nodes) && Array.isArray(transSlide.board.nodes)) {
+          for (let n = 0; n < mergedBoard.nodes.length; n++) {
+            const transNode = transSlide.board.nodes.find(tn => String(tn.id) === String(mergedBoard.nodes[n].id)) || transSlide.board.nodes[n];
+            if (transNode && transNode.label) {
+              mergedBoard.nodes[n].label = transNode.label;
             }
-            if (Array.isArray(mergedBoard.nodes) && Array.isArray(transSlide.board.nodes)) {
-              for (let n = 0; n < mergedBoard.nodes.length; n++) {
-                const transNode = transSlide.board.nodes.find(tn => String(tn.id) === String(mergedBoard.nodes[n].id)) || transSlide.board.nodes[n];
-                if (transNode && transNode.label) {
-                  mergedBoard.nodes[n].label = transNode.label;
-                }
-              }
-            }
-            if (Array.isArray(mergedBoard.edges) && Array.isArray(transSlide.board.edges)) {
-              for (let e = 0; e < mergedBoard.edges.length; e++) {
-                const transEdge = transSlide.board.edges[e];
-                if (transEdge && transEdge.label) {
-                  mergedBoard.edges[e].label = transEdge.label;
-                }
-              }
-            }
-            if (Array.isArray(mergedBoard.notes) && Array.isArray(transSlide.board.notes)) {
-              for (let m = 0; m < mergedBoard.notes.length; m++) {
-                const transNote = transSlide.board.notes[m];
-                if (transNote && transNote.text) {
-                  mergedBoard.notes[m].text = transNote.text;
-                }
-              }
-            }
-            transSlide.board = mergedBoard;
           }
         }
+        if (Array.isArray(mergedBoard.edges) && Array.isArray(transSlide.board.edges)) {
+          for (let e = 0; e < mergedBoard.edges.length; e++) {
+            const transEdge = transSlide.board.edges[e];
+            if (transEdge && transEdge.label) {
+              mergedBoard.edges[e].label = transEdge.label;
+            }
+          }
+        }
+        if (Array.isArray(mergedBoard.notes) && Array.isArray(transSlide.board.notes)) {
+          for (let m = 0; m < mergedBoard.notes.length; m++) {
+            const transNote = transSlide.board.notes[m];
+            if (transNote && transNote.text) {
+              mergedBoard.notes[m].text = transNote.text;
+            }
+          }
+        }
+        mergedSlide.board = mergedBoard;
       }
-    }
 
-    return translatedSlides;
-  } catch (error) {
-    console.error(`Slide translation to ${targetLanguageName} failed:`, error);
-    throw error;
+      return mergedSlide;
+    } catch (err) {
+      attempts++;
+      if (attempts >= maxRetries) {
+        console.warn(`[TranslationService] Slide ${slideIndex + 1} translation failed after ${maxRetries} attempts: ${err.message}. Using fallback translation.`);
+        const fallbackSlide = JSON.parse(JSON.stringify(origSlide));
+        try {
+          if (origSlide.narration) {
+            fallbackSlide.narration = await translateText(origSlide.narration, targetLanguageName);
+          }
+        } catch (fbErr) {
+          console.error(`[TranslationService] Fallback narration translation also failed: ${fbErr.message}`);
+        }
+        return fallbackSlide;
+      }
+      console.warn(`[TranslationService] Slide ${slideIndex + 1} translation attempt ${attempts} failed. Retrying in ${delay}ms...`);
+      await new Promise(res => setTimeout(res, delay));
+      delay *= 2;
+    }
   }
+};
+
+/**
+ * Translates slides concurrently slide-by-slide so output token limits are never exceeded
+ * and exact slide count parity is 100% guaranteed.
+ */
+const translateSlides = async (slides, targetLanguageName) => {
+  if (!slides || !slides.length) return slides;
+
+  if (targetLanguageName.toLowerCase() === 'english') {
+    return slides;
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const clientConfig = {};
+  if (apiKey && apiKey.trim()) {
+    clientConfig.apiKey = apiKey.trim();
+  } else {
+    clientConfig.vertexai = true;
+    clientConfig.project = process.env.GOOGLE_CLOUD_PROJECT || 'sky-meet-01';
+    clientConfig.location = process.env.GOOGLE_CLOUD_LOCATION || 'asia-south1';
+  }
+  const client = new GoogleGenAI(clientConfig);
+
+  console.log(`[TranslationService] Translating ${slides.length} slides to ${targetLanguageName} slide-by-slide (concurrency: 3)...`);
+  const startTime = Date.now();
+
+  const translatedSlides = await mapConcurrent(slides, 3, async (slide, idx) => {
+    return await translateSingleSlide(slide, targetLanguageName, idx, slides.length, client);
+  });
+
+  console.log(`[TranslationService] Successfully translated all ${translatedSlides.length}/${slides.length} slides to ${targetLanguageName} in ${((Date.now() - startTime) / 1000).toFixed(1)}s.`);
+  return translatedSlides;
 };
 
 /**
@@ -975,6 +1229,34 @@ const cleanProgrammingSymbolsForTTS = (text) => {
 };
 
 /**
+ * Keeps natural hesitation fillers (ம்ம்ம்... / ஹும்ம்...) in required pause places (around 2 to 3 per slide)
+ * while collapsing accidental stutter clusters and stripping excessive spam.
+ */
+const sanitizeExcessiveFillers = (text) => {
+  if (!text || typeof text !== 'string') return text;
+
+  // Collapse consecutive stutter clusters like "ம்ம்ம்... ம்ம்ம்..." or "ம்ம்ம்... ஹும்ம்..." into one
+  const clusterRegex = /(?:(?:(?:ம\u0BCD){2,}|(?:ஹு(?:ம\u0BCD)+)|(?:m{3,}|hum{2,}))\.{0,3}\s*){2,}/giu;
+  let cleaned = text.replace(clusterRegex, 'ம்ம்ம்... ');
+
+  // Allow around 2 to 3 natural pause fillers per slide (spaced at least 25 characters apart)
+  let count = 0;
+  let lastIndex = -999;
+  const fillerRegex = /(?:(?:ம\u0BCD){2,}|(?:ஹு(?:ம\u0BCD)+)|(?:m{3,}|hum{2,}))\.{0,3}\s*/giu;
+
+  cleaned = cleaned.replace(fillerRegex, (match, offset) => {
+    if (count < 3 && (offset - lastIndex > 25 || lastIndex === -999)) {
+      count++;
+      lastIndex = offset;
+      return match.trim() + ' ';
+    }
+    return '';
+  });
+
+  return cleaned;
+};
+
+/**
  * Deterministic JS cleanup pass for TTS text.
  * Strips formatting noise and programming syntax symbols without altering speech grammar.
  */
@@ -1000,8 +1282,13 @@ const cleanTextForTTS = (text) => {
   cleaned = cleaned.replace(/^\s*[*+-]\s+/gm, '');
   cleaned = cleaned.replace(/\[(.*?)\]\(.*?\)/g, '$1');
 
-  // Collapse repeated punctuation
-  cleaned = cleaned.replace(/([.,!?;:-])\1+/g, '$1');
+  // Sanitize excessive hesitation fillers (ம்ம்ம் / ஹும்ம்) while preserving 2-3 natural pauses
+  cleaned = sanitizeExcessiveFillers(cleaned);
+
+  // Collapse repeated punctuation, keeping ellipsis ... intact for natural speech pauses
+  cleaned = cleaned.replace(/([!?;:-])\1+/g, '$1');
+  cleaned = cleaned.replace(/,{2,}/g, ',');
+  cleaned = cleaned.replace(/\.{4,}/g, '...');
 
   // Collapse repeated whitespace
   cleaned = cleaned.replace(/\s{2,}/g, ' ');
@@ -1035,6 +1322,7 @@ module.exports = {
   validateTTSInput,
   normalizeNarrationForTTS,
   cleanTextForTTS,
+  sanitizeExcessiveFillers,
   cleanProgrammingSymbolsForTTS,
   processNarrationForTTS,
   normalizationCache

@@ -109,7 +109,7 @@ const getJobStatus = async (req, res) => {
 
 const generateScript = async (req, res) => {
   try {
-    const { topic, subTopic, durationMinutes = 5 } = req.body;
+    const { topic, subTopic, durationMinutes = 5, isDemoClass } = req.body;
     if (!topic) {
       return res.status(400).json({ success: false, message: 'Topic is required' });
     }
@@ -117,7 +117,8 @@ const generateScript = async (req, res) => {
     const scriptResult = await teachingEngine.generateTeachingScript({
       topic,
       subTopic,
-      durationMinutes
+      durationMinutes,
+      isDemoClass
     });
 
     res.json({ success: true, data: scriptResult });
@@ -361,9 +362,15 @@ const regenerateLanguageVideo = async (req, res) => {
     const resolvedVoiceId = isCustomVoice ? candidateVoiceId.trim() : null;
 
     for (let i = 0; i < langSlides.length; i++) {
-      const translatedNarration = await translationService.translateText(originalSlides[i].narration || ' ', langConfig.name);
+      let narrationToSpeak = (langSlides[i] && langSlides[i].narration && langSlides[i].narration.trim() && langSlides[i].narration !== originalSlides[i]?.narration)
+        ? langSlides[i].narration.trim()
+        : null;
+      if (!narrationToSpeak) {
+        narrationToSpeak = await translationService.translateText(originalSlides[i]?.narration || ' ', langConfig.name);
+      }
+      const cleanNarration = translationService.cleanTextForTTS(narrationToSpeak);
       const rawChunkPath = path.join(outputDir, `${id}_rawchunk_${i}_${lang}.mp3`);
-      await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, resolvedVoiceId);
+      await audioService.generateAudio(cleanNarration, rawChunkPath, langConfig.code, resolvedVoiceId);
       
       const adjustedChunkPath = path.join(outputDir, `${id}_chunk_${i}_${lang}.mp3`);
       await audioService.adjustAudioDuration(rawChunkPath, adjustedChunkPath, englishDurations[i]);

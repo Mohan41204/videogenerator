@@ -24,6 +24,7 @@
 const path = require('path');
 const { GoogleGenAI } = require('@google/genai');
 const diagramService = require('./diagram.service');
+const realWorldConnectionEngine = require('./realWorldConnectionEngine.service');
 
 if (!process.env.GOOGLE_CLOUD_PROJECT) {
   require('dotenv').config({ path: path.join(__dirname, '../../../.env') });
@@ -61,7 +62,7 @@ function classifyDomain(topic, subTopic) {
   if (/physics|chemistry|biology|science|astronomy|circuit|quantum/i.test(combined)) {
     return 'SCIENCE';
   }
-  if (/python|javascript|typescript|java|c\+\+|c#|golang|rust|php|ruby|swift|kotlin|code|function|class|object|variable|loop|recursion|oop|syntax|inheritance|polymorphism|programming/i.test(combined)) {
+  if (/python|javascript|typescript|java|c\+\+|c#|golang|rust|php|ruby|swift|kotlin|code|function|class|object|variable|loop|recursion|oop|syntax|inheritance|polymorphism|programming|data\s*analyst|data\s*analytics|data\s*science|pandas|numpy|dataframe|machine\s*learning|ai\b/i.test(combined)) {
     return 'PROGRAMMING';
   }
 
@@ -159,16 +160,244 @@ function getDurationPlan(durationMinutes, userSubtopicsCount = 0) {
 }
 
 /**
+ * Generates Instructor Mohan's personal welcome and self-introduction speech for Demo Classes.
+ * @param {string} courseName
+ * @returns {string} Spoken teacher narration
+ */
+function getMohanInstructorIntroNarration(courseName) {
+  const cleanCourse = (courseName || 'Programming').trim();
+  return `Hello everyone! Welcome to our ${cleanCourse} course! Hmm... so, first of all, let me introduce myself. My name is Mohan, and yeah, I'll be your instructor throughout this course. So, I'm currently working as a Software Developer at Skyvers Technology, and I have around 4 years of professional experience in the software development field. Uhh... throughout my career, I've had the opportunity to work on more than 10 real-world applications. I've worked with different technologies, faced various development challenges, and learned quite a lot from those experiences. And, you know, one thing I've understood from working on real-world projects is that learning something theoretically and actually implementing it in a project are two completely different things. Hmm... that's actually what I want to focus on in this course. I don't want you to just memorize definitions or simply learn what a particular tool does. I want you to understand how things actually work, why we use them, and where we use them in real-world applications. So yeah, throughout this course, we'll go step by step. First, we'll understand the fundamentals, then we'll explore practical examples, and gradually we'll move towards real-world applications and industry-relevant projects. And hey, if you're completely new to this technology, don't worry about that. That's absolutely fine! We'll start right from the basics, and I'll make sure each concept is explained in a simple and understandable way. Uhh... and whenever possible, I'll connect the concepts with real-world scenarios, so you can understand not just what is happening, but also what's going on behind the scenes. So... yeah, that's a little bit about me and how we're going to approach this course. I'm really excited to be part of your learning journey. And I hope we'll have a great time learning together. Alright... shall we get started? Let's jump into the course!`;
+}
+
+/**
+ * Returns professional credentials bullet points for Mohan's introduction slide.
+ * @returns {string[]}
+ */
+function getMohanInstructorIntroBullets() {
+  return [
+    'Instructor: Mohan | Software Developer @ Skyvers Technology',
+    '4+ Years Industry Experience | 10+ Production Applications Built',
+    'Practical, Real-World Approach (Zero Rote Memorization)',
+    'Beginner to Industry-Ready Step-by-Step Mentorship'
+  ];
+}
+
+/**
+ * Default subtopics for core subject pillars in demo class roadmaps.
+ * @param {string} topic
+ * @returns {string[]}
+ */
+function getDefaultSubtopicsForTopic(topic) {
+  const t = (topic || '').toLowerCase();
+  if (/data\s*analyst|data\s*analytics|data\s*science/i.test(t)) {
+    return [
+      'Data Collection & Cleaning (Handling Real-World Datasets)',
+      'Relational Databases & SQL Query Optimization',
+      'Python for Data Analysis (Pandas DataFrames & Filtering)',
+      'Exploratory Data Analysis & Statistical Modeling',
+      'Business Intelligence Dashboards & Actionable Insights'
+    ];
+  }
+  if (/python/i.test(t)) {
+    return [
+      'Syntax, Data Types & Variables',
+      'Conditional Logic & Decision Making (if-elif-else)',
+      'Loops & Iterative Processing',
+      'Functions & Modular Architecture',
+      'Data Structures (Lists, Dictionaries, Tuples)'
+    ];
+  }
+  if (/web|javascript|full\s*stack|frontend/i.test(t)) {
+    return [
+      'Semantic HTML & Responsive CSS Architecture',
+      'JavaScript Core Mechanics & DOM Manipulation',
+      'Asynchronous Programming & Fetch APIs',
+      'Backend REST APIs with Node.js & Express',
+      'Database Integration & Production Deployment'
+    ];
+  }
+  return [
+    `Fundamentals & Architecture of ${topic}`,
+    `Core Syntax, Rules & Mechanics`,
+    `Hands-On Programming Implementation`,
+    `Production System Design & Scalability`,
+    `Real-World Case Studies & Industry Applications`
+  ];
+}
+
+/**
  * Constructs an explicit, numbered scene-by-scene syllabus for the lesson.
  * This ensures that for a multi-topic 60m course, every single subtopic is given
  * dedicated deep-dive scenes, diagrams, real-world applications, and recap.
  */
-function createBatchSyllabus(topic, userSubtopics, totalScenes, targetWordsPerScene, domain) {
+function createBatchSyllabus(topic, userSubtopics, totalScenes, targetWordsPerScene, domain, isDemoClass = false) {
   const syllabus = [];
-  const cleanTopic = (topic || 'Core Subject').trim();
-  const subtopics = Array.isArray(userSubtopics) && userSubtopics.length > 0 
-    ? userSubtopics 
-    : [`Fundamentals of ${cleanTopic}`, `Architecture and Mechanism`, `Practical Application and Examples`];
+  const rawTopic = (topic || 'Core Subject').trim();
+  const rawSubtopicsStr = Array.isArray(userSubtopics) ? userSubtopics.join(' ') : '';
+  const detectedDemo = Boolean(isDemoClass) || /demo\s*class|demo\s*session|demo\s*lecture|\bdemo\b/i.test(`${rawTopic} ${rawSubtopicsStr}`);
+  const cleanTopic = rawTopic.replace(/\bdemo\s*(class|session|lecture)?\b/gi, '').replace(/\s{2,}/g, ' ').trim() || rawTopic;
+
+  // Filter out any subtopics that are just "demo class" strings
+  const filteredUserSubtopics = (Array.isArray(userSubtopics) ? userSubtopics : [])
+    .filter(st => !/^\s*demo(\s*class|\s*session|\s*lecture)?\s*$/i.test(st));
+
+  const subtopics = filteredUserSubtopics.length > 0 
+    ? filteredUserSubtopics 
+    : getDefaultSubtopicsForTopic(cleanTopic);
+
+  if (detectedDemo) {
+    // -------------------------------------------------------------
+    // DEMO CLASS SYLLABUS:
+    // Scene 1: Instructor Intro (Mohan's Welcome & Credentials)
+    // Scene 2: Domain Overview & Core Curriculum Roadmap
+    // Scene 3: Chosen Programming Topic Deep Dive (Mechanics + Cinema Analogy)
+    // Scene 4: Hands-On Programming in VS Code (Executable Source Code)
+    // Scene 5: Real-World Visual System Case Study
+    // Scene 6: Demo Conclusion & Course Action Plan
+    // (For >6 scenes, intermediate topics cycle modularly)
+    // -------------------------------------------------------------
+    const deepDiveTopic = subtopics[2] || subtopics[0] || `Core Programming with ${cleanTopic}`;
+
+    // Scene 1: Instructor Introduction
+    syllabus.push({
+      sceneIndex: 1,
+      heading: cleanTopic,
+      subheading: 'Welcome & Instructor Introduction',
+      teachingStage: 'introduction',
+      sceneType: 'introduction',
+      targetWords: 180,
+      guidance: `CRITICAL MANDATORY INSTRUCTOR INTRO FOR DEMO CLASS:
+Scene 1 is Instructor Mohan's personal welcome speech.
+Spoken Narration MUST be exactly:
+"${getMohanInstructorIntroNarration(cleanTopic)}"
+Whiteboard bullets:
+${getMohanInstructorIntroBullets().map(b => `- ${b}`).join('\n')}
+isCode: false, isDiagram: false, realWorldVisual.enabled: false.`
+    });
+
+    // Scene 2: Domain Overview & Curriculum Roadmap
+    syllabus.push({
+      sceneIndex: 2,
+      heading: cleanTopic,
+      subheading: 'Domain Overview & Core Curriculum Roadmap',
+      teachingStage: 'concept_explanation',
+      sceneType: 'concept',
+      targetWords: targetWordsPerScene,
+      guidance: `Introduce the domain of "${cleanTopic}". Explain why modern technology and businesses depend on it, what problems it solves in industry, and present the 4 to 5 major pillars that make up this professional curriculum:
+${subtopics.slice(0, 5).map((st, idx) => `${idx + 1}. ${st}`).join('\n')}
+Explain that students will master every one of these pillars in the upcoming course, and announce that for today's demo class, we will immediately jump into a deep-dive hands-on programming topic: "${deepDiveTopic}"!`
+    });
+
+    // Allocate intermediate scenes (from Scene 3 up to totalScenes - 1)
+    const remainingScenesCount = Math.max(1, totalScenes - 3); // excluding scene 1, 2, and last scene
+    if (remainingScenesCount === 1) {
+      syllabus.push({
+        sceneIndex: 3,
+        heading: cleanTopic,
+        subheading: `Hands-On Programming: ${deepDiveTopic}`,
+        teachingStage: 'example',
+        sceneType: 'code',
+        targetWords: targetWordsPerScene,
+        guidance: `Provide executable code for "${deepDiveTopic}" in VS Code with clean terminal output.`
+      });
+    } else if (remainingScenesCount === 2) {
+      syllabus.push({
+        sceneIndex: 3,
+        heading: cleanTopic,
+        subheading: `Deep-Dive: ${deepDiveTopic} - Mechanics & Logic`,
+        teachingStage: 'concept_explanation',
+        sceneType: 'concept',
+        targetWords: targetWordsPerScene,
+        guidance: `First explain the inner mechanics, syntax, rules, and logic behind ${deepDiveTopic}. THEN introduce an intuitive Indian cinema dilemma analogy in spoken audio. Whiteboard bullets must be clean technical rules!`
+      });
+      syllabus.push({
+        sceneIndex: 4,
+        heading: cleanTopic,
+        subheading: `Hands-On Programming: ${deepDiveTopic} in VS Code`,
+        teachingStage: 'example',
+        sceneType: 'code',
+        targetWords: targetWordsPerScene,
+        guidance: `Provide complete, clean, executable source code for ${deepDiveTopic} matching fileName (e.g. main.py or index.js) in VS Code. Provide exact console output.`
+      });
+    } else if (remainingScenesCount === 3) {
+      // Standard 6-scene Demo Class (5-7 mins):
+      syllabus.push({
+        sceneIndex: 3,
+        heading: cleanTopic,
+        subheading: `Deep-Dive: ${deepDiveTopic} - Mechanics & Logic`,
+        teachingStage: 'concept_explanation',
+        sceneType: 'concept',
+        targetWords: targetWordsPerScene,
+        guidance: `First explain the inner mechanics, syntax, rules, and logic behind ${deepDiveTopic}. THEN introduce an intuitive Indian cinema dilemma analogy (e.g. Vikram Vedha for if-else, Maanaadu for loops, Jailer for functions) in spoken audio. Whiteboard bullets must be clean technical rules!`
+      });
+      syllabus.push({
+        sceneIndex: 4,
+        heading: cleanTopic,
+        subheading: `Hands-On Implementation: ${deepDiveTopic} in VS Code`,
+        teachingStage: 'example',
+        sceneType: 'code',
+        targetWords: targetWordsPerScene,
+        guidance: `Provide complete, clean, executable source code snippet (6 to 15 lines) matching fileName (e.g. main.py or index.js) in VS Code. Provide exact console output.`
+      });
+      syllabus.push({
+        sceneIndex: 5,
+        heading: cleanTopic,
+        subheading: `Production Architecture & Real-World Case Study`,
+        teachingStage: 'real_world_application',
+        sceneType: 'concept',
+        targetWords: targetWordsPerScene,
+        guidance: `Provide an industry-grade real-world visual scenario with realWorldVisual.enabled = true. In spoken audio, FIRST thoroughly describe the visual diagram on screen, and THEN connect it to a high-stakes real-world production incident or Indian system (e.g. DigiYatra, UPI, ISRO Chandrayaan-3, IRCTC Tatkal).`
+      });
+    } else {
+      // Multi-scene Demo Class (10m, 15m, 30m, 40m, 60m):
+      const modularCycle = ['concept_explanation', 'technical_visual', 'example', 'real_world_application'];
+      for (let i = 0; i < remainingScenesCount; i++) {
+        const sceneNum = i + 3;
+        const subIdx = Math.floor((i / remainingScenesCount) * subtopics.length);
+        const currentSubtopic = subtopics[Math.min(subIdx, subtopics.length - 1)];
+        const stage = modularCycle[i % modularCycle.length];
+
+        let visualFocus = '';
+        let sceneType = 'concept';
+        if (stage === 'concept_explanation') {
+          visualFocus = 'First deep-dive into the inner mechanics, syntax, rules, and logic behind the concept. THEN, in the same spoken AUDIO narration, introduce an intuitive Indian cinema analogy explaining how that movie scene relates directly to the programming concept. DO NOT write movie storylines in Notepad bullet points—Notepad bullets must remain clean, professional technical rules!';
+          sceneType = 'concept';
+        } else if (stage === 'technical_visual') {
+          visualFocus = 'Must provide an interactive whiteboard diagram or technical flow representing the concept architecture.';
+          sceneType = 'diagram';
+        } else if (stage === 'example') {
+          visualFocus = 'Provide executable code example with clean comments in VS Code.';
+          sceneType = 'code';
+        } else if (stage === 'real_world_application') {
+          visualFocus = 'Provide an industry-grade real-world visual scenario with realWorldVisual enabled. In spoken audio, FIRST explain the diagram/image on screen, and THEN connect it to a high-stakes real-world incident or Indian/Tamil famous pioneer.';
+          sceneType = 'concept';
+        }
+
+        syllabus.push({
+          sceneIndex: sceneNum,
+          heading: cleanTopic,
+          subheading: currentSubtopic,
+          teachingStage: stage,
+          sceneType,
+          targetWords: targetWordsPerScene,
+          guidance: `Teaching module on "${currentSubtopic}". Stage: ${stage}. ${visualFocus} Teach naturally and thoroughly for an advanced learner.`
+        });
+      }
+    }
+
+    // Final Scene: Demo Class Conclusion & Roadmap
+    syllabus.push({
+      sceneIndex: totalScenes,
+      heading: cleanTopic,
+      subheading: 'Demo Class Conclusion & Course Roadmap',
+      teachingStage: 'recap',
+      sceneType: 'summary',
+      targetWords: Math.max(160, Math.min(260, targetWordsPerScene)),
+      guidance: `Synthesize today's demo class. Summarize instructor Mohan's welcome, the curriculum roadmap, our deep dive into ${deepDiveTopic}, the live VS Code coding demo, and the real-world production case study. Provide an inspiring call to action encouraging students to join the full course with instructor Mohan.`
+    });
+
+    return syllabus;
+  }
 
   // Scene 1: Course Introduction & Overview
   syllabus.push({
@@ -183,35 +412,49 @@ function createBatchSyllabus(topic, userSubtopics, totalScenes, targetWordsPerSc
 
   // Allocate intermediate scenes (2 to totalScenes - 1)
   const remainingScenesCount = totalScenes - 2;
-  const stagesCycle = [
-    'concept_explanation',
-    'technical_visual',
-    'diagram_explanation',
-    'example',
-    'real_world_application',
-    'real_world_annotation',
-    'concept_mapping'
-  ];
+  let assignedStages = [];
+
+  if (remainingScenesCount === 1) {
+    assignedStages = ['concept_explanation'];
+  } else if (remainingScenesCount === 2) {
+    assignedStages = ['concept_explanation', 'real_world_application'];
+  } else if (remainingScenesCount === 3) {
+    assignedStages = ['concept_explanation', 'technical_visual', 'real_world_application'];
+  } else if (remainingScenesCount === 4) {
+    assignedStages = ['concept_explanation', 'technical_visual', 'example', 'real_world_application'];
+  } else {
+    // 5 or more intermediate scenes (15 min, 30 min, 40 min, 60 min courses)
+    // Structure intermediate scenes into recurring pedagogical modules:
+    // [Concept (Movie Analogy in audio) -> Visual Diagram -> Code Example -> Real-World Application (Incident/Pioneer in audio)]
+    const modularCycle = ['concept_explanation', 'technical_visual', 'example', 'real_world_application'];
+    assignedStages = [];
+    for (let sIdx = 0; sIdx < remainingScenesCount; sIdx++) {
+      assignedStages.push(modularCycle[sIdx % modularCycle.length]);
+    }
+  }
 
   for (let i = 0; i < remainingScenesCount; i++) {
     const sceneNum = i + 2;
     // Map to user subtopic
     const subIdx = Math.floor((i / remainingScenesCount) * subtopics.length);
     const currentSubtopic = subtopics[Math.min(subIdx, subtopics.length - 1)];
-    const stage = stagesCycle[i % stagesCycle.length];
+    const stage = assignedStages[i];
 
     let visualFocus = '';
     let sceneType = 'concept';
-    if (stage === 'technical_visual') {
+    if (stage === 'concept_explanation') {
+      visualFocus = 'First deep-dive into the inner mechanics, syntax, rules, and logic behind the concept. THEN, in the same spoken AUDIO narration, introduce an intuitive Indian cinema analogy (e.g. Vikram Vedha for if-else, Maanaadu for loops, Jailer for functions) explaining how that movie scene relates directly to the programming concept. DO NOT write movie storylines in Notepad bullet points—Notepad bullets must remain clean, professional technical rules!';
+      sceneType = 'concept';
+    } else if (stage === 'technical_visual') {
       visualFocus = 'Must provide an interactive whiteboard diagram or technical flow representing the concept architecture.';
       sceneType = 'diagram';
     } else if (stage === 'example') {
       visualFocus = domain === 'PROGRAMMING' 
-        ? 'Provide executable code example with clean comments.' 
+        ? 'Provide executable code example with clean comments in VS Code.' 
         : 'Provide a concrete visual walkthrough example.';
       sceneType = domain === 'PROGRAMMING' ? 'code' : 'concept';
     } else if (stage === 'real_world_application' || stage === 'real_world_annotation') {
-      visualFocus = 'Provide an industry-grade real-world production scenario with realWorldVisual enabled.';
+      visualFocus = 'Provide an industry-grade real-world visual scenario with realWorldVisual enabled. In the spoken AUDIO narration, FIRST thoroughly explain the diagram/image on screen, and THEN connect it to a high-stakes real-world incident or Indian/Tamil famous pioneer (e.g. UPI, IRCTC Tatkal, ISRO Chandrayaan-3, Aadhaar, Ramanujan, Kalam). DO NOT write long incident narrative text in Notepad—keep Notepad bullets focused on clean architectural takeaways!';
       sceneType = 'concept';
     }
 
@@ -222,7 +465,7 @@ function createBatchSyllabus(topic, userSubtopics, totalScenes, targetWordsPerSc
       teachingStage: stage,
       sceneType,
       targetWords: targetWordsPerScene,
-      guidance: `Deep-dive teaching on "${currentSubtopic}". Focus on stage: ${stage}. ${visualFocus} Explain the inner mechanics thoroughly and naturally for an advanced learner.`
+      guidance: `Teaching module on "${currentSubtopic}". Stage: ${stage}. ${visualFocus} Teach naturally and thoroughly for an advanced learner.`
     });
   }
 
@@ -243,8 +486,29 @@ function createBatchSyllabus(topic, userSubtopics, totalScenes, targetWordsPerSc
 /**
  * Builds the focused pedagogical prompt for a batch of scenes.
  */
-function buildBatchPrompt(topic, batchSyllabus, totalCourseScenes, durationMinutes, domain) {
+function buildBatchPrompt(topic, batchSyllabus, totalCourseScenes, durationMinutes, domain, isDemoClass = false) {
   const domainStrategy = getDomainTeachingStrategy(domain);
+
+  const hasIntroScene = batchSyllabus.some(s => s.sceneIndex === 1 && /instructor\s*intro|welcome/i.test(s.subheading));
+  const isDemo = Boolean(isDemoClass) || hasIntroScene;
+  const demoClassInstructions = isDemo ? `
+7. DEMO CLASS SPECIAL INSTRUCTIONS (INSTRUCTOR MOHAN & HANDS-ON CODING):
+   - SCENE 1 (INSTRUCTOR WELCOME & SELF-INTRODUCTION):
+     * The spoken narration MUST be Instructor Mohan's authentic speech:
+       "${getMohanInstructorIntroNarration(topic)}"
+     * Whiteboard bullets MUST be:
+       - Instructor: Mohan (Software Developer @ Skyvers Technology)
+       - 4+ Years Industry Experience | 10+ Production Applications Built
+       - Practical, Real-World Approach (Zero Rote Memorization)
+       - Beginner to Industry-Ready Step-by-Step Mentorship
+     * isCode: false, isDiagram: false, realWorldVisual: { enabled: false }.
+   - SCENE 2 (DOMAIN OVERVIEW & ROADMAP):
+     * Explain what the domain "${topic}" is, why modern industries rely on it, and outline the 4 to 5 major pillars that make up this professional curriculum.
+     * Conclude the narration by announcing that for today's demo class, we will immediately dive deep into a hands-on programming topic!
+   - CODE SCENES (MANDATORY VS CODE HANDS-ON):
+     * Must be a real programming topic implemented in VS Code (e.g. Python, SQL, JavaScript).
+     * Set isCode: true, sceneType: "code", and provide the complete runnable source code in "code" and terminal output in "codeOutput".
+` : '';
 
   const sceneSpecs = batchSyllabus.map(s => {
     return `### SCENE ${s.sceneIndex} of ${totalCourseScenes}:
@@ -283,7 +547,33 @@ STRICT NARRATION & TEACHING GUIDELINES:
    - In "code": Provide the complete, clean, executable source code snippet (6 to 15 lines) matching fileName (e.g. valid Python, JavaScript, Java, C++, HTML/CSS).
    - In "codeOutput": Provide the exact terminal stdout result when the code executes.
    - In "bullets": Set to [code] or leave empty [].
-4. VALID JSON ONLY:
+5. REAL-WORLD CONNECTIONS & MOVIE ANALOGIES (TWO-TIER PEDAGOGICAL PLACEMENT):
+   - TIER 1 (Concept Explanation / Slide 2 & all concept_explanation scenes):
+     * Spoken Narration Step 1 (FIRST): Deeply explain the technical concept, syntax, mechanics, rules, and logic so the student grasps the fundamental computer science.
+     * Spoken Narration Step 2 (THEN): Smoothly transition to an intuitive Indian cinema reference (e.g. Vikram Vedha for if-else, Maanaadu for loops, Jailer for functions, Anniyan for validation rules, 24 for time/timing, Baahubali for data structures).
+     * CONCRETE MOVIE STORYTELLING DIRECTIVE (FOR ALL MOVIES):
+       - NEVER speak in vague generalities like "Action A vs Action B", "two paths", or "one truth"!
+       - You MUST explicitly explain the concrete story dilemma, character, and the TWO SPECIFIC CHOICES:
+         * Example (Vikram Vedha): Explain that gangster Vedha corners police officer Vikram with a real riddle where Vikram has two clear options: Option 1 is shoot the innocent brother to catch the villain, or Option 2 is let the villain escape to save the brother. If Vikram evaluates the condition to save the brother, he executes Option 2; else, he executes Option 1. Both options are mutually exclusive and can never happen at the same time!
+         * Apply this exact same concrete, vivid storytelling with explicit physical choices to ALL movies you use!
+     * Notepad Bullets: Strictly clean technical syntax, rules, and logic! NEVER write movie stories or character dialogue on the Notepad (AUDIO ONLY!).
+     * Visual: Notepad callout card (realWorldVisual.enabled = false).
+   - TIER 2 (Real-World Application / Slide 5 & all real_world_application scenes):
+     * Visual: Set realWorldVisual.enabled = true with a clean educational system/architecture diagram.
+     * CRITICAL AUDIENCE RULE (SIMPLE & RELATABLE FOR SCHOOL & COLLEGE STUDENTS):
+       - Explain the real-world application in simple, friendly, crystal-clear everyday English that a 10th-grade school or 1st-year college student can easily understand in 10 seconds!
+       - ABSOLUTELY NO dense aerospace, telemetry, or complex academic jargon (avoid words like "telemetry attitude thruster anomalies", "compound boolean heuristics", or "state space evaluation")!
+       - Keep it intuitive and relatable (e.g., airport smart gates opening if face matches ticket, stock market pausing if prices drop 10%, payment apps sending money if balance is sufficient).
+       - FOCUS ON ONLY ONE SCENARIO PER SLIDE: The narration MUST match the visual diagram on screen exactly. NEVER talk about two different incidents in the same slide (e.g. do NOT talk about Chandrayaan-3 if the diagram shows DigiYatra)!
+     * Spoken Narration Step 1 (FIRST): Thoroughly describe and explain the educational visual on screen in simple, clear terms (describe the components, inputs, decision nodes, and outputs).
+     * Spoken Narration Step 2 (THEN): Detail the real-world incident or famous Indian pioneer (e.g. DigiYatra airport gate, Indian Stock Market circuit breakers, UPI switch, ISRO safe mode, Ramanujan, or Dennis Ritchie for C), explaining what happened and the simple software engineering takeaway.
+     * Notepad Bullets: Strictly clean architectural principles and engineering takeaways! NEVER write narrative incident prose on Notepad (AUDIO ONLY!).
+   - This two-tier pedagogical architecture applies across ALL course durations (5 min, 15 min, 30 min, 40 min, 60 min).
+   - Weave these references naturally into the spoken teacher narration! Only set "hasConnection": true on the dedicated real-world application or concept slide.
+
+${realWorldConnectionEngine.getPromptInstructions()}
+${demoClassInstructions}
+6. VALID JSON ONLY:
    - Return ONLY a JSON array with exactly ${batchSyllabus.length} scene objects conforming to the provided schema.`;
 }
 
@@ -690,9 +980,12 @@ Follow this deliberate teaching order:
    - Introduce what we are learning and hook student curiosity.
    - Strictly NO real-world scenario images and NO technical diagrams in Scene 1!
 
-2. CORE CONCEPT EXPLANATION (Scene 2):
+2. CORE CONCEPT EXPLANATION (Scene 2 / All concept_explanation scenes):
    - "teachingStage": "concept_explanation"
-   - Explain how the concept works mechanically or logically. Build foundational understanding.
+   - Spoken Narration Step 1 (FIRST): Deep-dive into the inner mechanics, syntax, rules, and logic behind the concept.
+   - Spoken Narration Step 2 (THEN): Smoothly introduce an intuitive Indian cinema analogy (e.g. Vikram Vedha for if-else, Maanaadu for loops, Jailer for functions) explaining the concrete story scene and the two specific choices. NEVER use abstract placeholders like 'Action A vs Action B'—state the real physical choices!
+   - Bullets: Strictly clean technical rules and syntax! DO NOT write movie stories in Notepad bullets (AUDIO ONLY!).
+   - Set "realWorldVisual": { "enabled": false }.
 
 3. TECHNICAL DIAGRAM / CODE VISUALIZATION (Scene 3):
    - "teachingStage": "technical_visual"
@@ -704,17 +997,21 @@ Follow this deliberate teaching order:
    - "teachingStage": "diagram_explanation" or "example"
    - Deep dive into how data, requests, or states move through the diagram or code.
 
-5. REAL-WORLD REINFORCEMENT & ANNOTATIONS (Scene 5 / Penultimate Scene):
+5. REAL-WORLD APPLICATION & CASE STUDY (Scene 5 / All real_world_application scenes):
    - "teachingStage": "real_world_application" or "real_world_annotation"
    - The real-world visual is a REINFORCEMENT stage answering: "Where can I see this concept in the real world?"
-   - Place the real-world visual HERE, in the later part of the lesson, AFTER the technical diagram has been explained and BEFORE the final recap.
-   - Set "realWorldVisual": { "enabled": true, "scenario": "...", "purpose": "...", "annotations": [...], "conceptMapping": [...] }.
-   - The narration introduces the real-world scenario, then explicitly maps it back to the technical concept learned earlier.
+   - Visual: Set "realWorldVisual": { "enabled": true, "scenario": "...", "purpose": "...", "annotations": [...], "conceptMapping": [...] }.
+   - SIMPLE FOR SCHOOL & COLLEGE STUDENTS: Explain in simple everyday English without dense aerospace or math jargon! Focus on ONE scenario matching the visual.
+   - Spoken Narration Step 1 (FIRST): Thoroughly describe and explain the educational visual on screen (components, flow, states in simple terms).
+   - Spoken Narration Step 2 (THEN): Detail a real-world incident or Indian/Tamil famous pioneer (e.g. DigiYatra, UPI, IRCTC, ISRO Chandrayaan-3, Aadhaar, NSE/BSE circuit breakers, Ramanujan, Dennis Ritchie for C), explaining what happened and the core takeaway.
+   - Bullets: Strictly clean architectural principles and engineering takeaways! DO NOT write narrative incident prose on Notepad (AUDIO ONLY!).
 
 6. FINAL RECAP & MENTAL MODEL (Scene ${plan.sceneCount}):
    - "teachingStage": "recap"
    - Consolidate key takeaways and lasting mental model.
    - Strictly NO new real-world images and NO new diagrams in the final recap!
+
+${realWorldConnectionEngine.getPromptInstructions()}
 
 ================================================================================
 OUTPUT FORMAT: JSON ARRAY OF SCENE OBJECTS
@@ -733,6 +1030,7 @@ Each Scene object must have:
 - "board": (Object - optional) Structured whiteboard drawing: { "heading": "...", "layout": "horizontal"|"vertical"|"flowchart"|"tree"|"free", "nodes": [{ "id": "1", "label": "...", "shape": "rect"|"ellipse", "sentenceIndex": 0, "color": "..." }], "edges": [{ "from": "1", "to": "2", "label": "...", "arrow": true, "sentenceIndex": 1 }], "notes": [{ "text": "...", "sentenceIndex": 2 }] }. When board is present, isDiagram must be false and realWorldVisual must be disabled.
 - "realWorldVisual": (Object - optional) Structured real-world object: { "enabled": true, "scenario": "...", "purpose": "...", "visualType": "direct"|"analogy"|"process"|"comparison"|"spatial", "imagePrompt": "...", "conceptMapping": [...], "annotations": [...] }. If not helpful, { "enabled": false }.
 - "realWorldVisualTiming": (Object - optional) Timing configuration: { "enabled": true, "appearAtSecond": 10, "triggerPhrase": "Let's look at a real-world example." }.
+- "realWorldConnection": (Object - optional) Real-world connection object: { "hasConnection": true, "category": "real_world_incident"|"famous_personality"|"movie_reference", "title": "...", "year": "...", "personOrEntity": "...", "relevanceScore": 85, "technicalConcept": "...", "factualSummary": "...", "teachingConnection": "...", "takeaway": "...", "isFictional": false, "sourceVerification": "..." }. If not relevant, { "hasConnection": false }.
 - "fileName": (String) E.g. "main.py" if isCode is true, else "".
 - "runCommand": (String) E.g. "python main.py" if isCode is true, else "".
 - "sceneType": (String) One of: "hook", "intuition", "concept", "analogy", "example", "code", "code_execution", "diagram", "process", "comparison", "real_world", "misconception", "failure_scenario", "summary".
@@ -1100,9 +1398,48 @@ int main() {
   }
 }
 
-function postProcessSlides(slides, plan, domain, topic, subTopic) {
+function postProcessSlides(slides, plan, domain, topic, subTopic, isDemoClass = false) {
   if (!Array.isArray(slides)) {
     throw new Error('Teaching engine expected an array of slides');
+  }
+
+  const rawTopic = (topic || 'Core Subject').trim();
+  const rawSubTopic = (subTopic || '').trim();
+  const detectedDemo = Boolean(isDemoClass) || /demo\s*class|demo\s*session|demo\s*lecture|\bdemo\b/i.test(`${rawTopic} ${rawSubTopic}`);
+  const cleanTopic = rawTopic.replace(/\bdemo\s*(class|session|lecture)?\b/gi, '').replace(/\s{2,}/g, ' ').trim() || rawTopic;
+
+  // ── PASS 0: DEMO CLASS GUARANTEED INSTRUCTOR INTRO & VS CODE CODING ──
+  if (detectedDemo && slides.length > 0) {
+    slides[0].heading = cleanTopic;
+    slides[0].subheading = 'Welcome & Instructor Introduction';
+    slides[0].bullets = getMohanInstructorIntroBullets();
+    slides[0].narration = getMohanInstructorIntroNarration(cleanTopic);
+    slides[0].isCode = false;
+    slides[0].isDiagram = false;
+    slides[0].mermaid = '';
+    if (slides[0].visual) slides[0].visual.enabled = false;
+    slides[0].realWorldVisual = { enabled: false };
+    slides[0].realWorldVisualTiming = { enabled: false, appearAtSecond: 0, triggerPhrase: '' };
+    slides[0].teachingStage = 'introduction';
+    slides[0].sceneType = 'introduction';
+
+    // Ensure at least one code slide (VS Code live coding) exists
+    const hasCode = slides.some(s => s.isCode);
+    if (!hasCode && slides.length >= 4) {
+      const codeIdx = Math.min(3, slides.length - 2);
+      slides[codeIdx].isCode = true;
+      slides[codeIdx].sceneType = 'code';
+      slides[codeIdx].teachingStage = 'example';
+      slides[codeIdx].isDiagram = false;
+      slides[codeIdx].mermaid = '';
+      if (slides[codeIdx].visual) slides[codeIdx].visual.enabled = false;
+      if (slides[codeIdx].realWorldVisual) slides[codeIdx].realWorldVisual.enabled = false;
+      if (!slides[codeIdx].code) {
+        slides[codeIdx].code = synthesizeRealCode(cleanTopic, slides[codeIdx].subheading || 'Hands-On Programming', 'PROGRAMMING');
+        slides[codeIdx].codeOutput = 'Filtered Records: 42 matches found.\nExecution status: 0';
+        slides[codeIdx].bullets = [slides[codeIdx].code];
+      }
+    }
   }
 
   // ── PASS 1: STRUCTURED VISUAL TEACHING ORDER & GUARDRAILS ─────────────
@@ -1164,21 +1501,24 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
     }
   }
 
-  return slides.map((slide, idx) => {
+  const usedReferencesSet = new Set();
+
+  let processedSlides = slides.map((slide, idx) => {
     // Sanitize narration
     slide.narration = sanitizeNarration(slide.narration || '');
 
     // Strict preservation of user topic and subtopic as heading and subheading
     const parsedSubtopics = parseUserSubtopics(subTopic);
     if (idx === 0) {
-      slide.heading = topic ? topic.trim() : (slide.heading || 'Lesson Overview');
-      if (parsedSubtopics.length > 1) {
+      slide.heading = cleanTopic || (slide.heading || 'Lesson Overview');
+      if (detectedDemo) {
+        slide.subheading = 'Welcome & Instructor Introduction';
+      } else if (parsedSubtopics.length > 1) {
         slide.subheading = parsedSubtopics[0];
       } else {
-        slide.subheading = (subTopic && subTopic.trim()) ? subTopic.trim() : (slide.subheading || topic.trim());
+        slide.subheading = (subTopic && subTopic.trim()) ? subTopic.trim() : (slide.subheading || cleanTopic);
       }
-    } else if (topic && topic.trim()) {
-      const cleanTopic = topic.trim();
+    } else if (cleanTopic) {
       if (!slide.heading || /blueprint|restaurant|magic|journey|adventure|story|mystery|secret|intro|welcome/i.test(slide.heading)) {
         slide.heading = cleanTopic;
       }
@@ -1408,6 +1748,9 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
     } else {
       slide.visualTiming = { enabled: false, appearAtSecond: 0, triggerPhrase: '' };
     }
+
+    // ── INTELLIGENT REAL-WORLD CONNECTION ENGINE ENRICHMENT & VALIDATION ──
+    slide = realWorldConnectionEngine.enrichAndValidateSlide(slide, topic, domain, usedReferencesSet, subTopic);
 
     // Process realWorldVisual and realWorldVisualTiming (Topic-Independent AI Decision)
     const hasRealWorld = !!(slide.realWorldVisual && slide.realWorldVisual.enabled === true &&
@@ -1649,6 +1992,11 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
 
     return slide;
   });
+
+  // Guarantee at least one authentic real-world connection across the course
+  processedSlides = realWorldConnectionEngine.ensureCourseConnection(processedSlides, topic, subTopic, domain);
+
+  return processedSlides;
 }
 
 /**
@@ -1660,16 +2008,25 @@ function postProcessSlides(slides, plan, domain, topic, subTopic) {
  * @param {number|string} params.durationMinutes - Target video duration in minutes
  * @returns {Promise<Object>} { success: true, text: string, plan: Object, domain: string }
  */
-async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) {
+async function generateTeachingScript({ topic, subTopic, durationMinutes = 5, isDemoClass }) {
   if (!topic || topic.trim() === '') {
     throw new Error('Topic is required for script generation');
   }
 
-  const domain = classifyDomain(topic, subTopic);
-  const userSubtopics = parseUserSubtopics(subTopic);
+  const rawTopic = topic.trim();
+  const rawSubTopic = (subTopic || '').trim();
+  const detectedDemo = Boolean(isDemoClass) || /demo\s*class|demo\s*session|demo\s*lecture|\bdemo\b/i.test(`${rawTopic} ${rawSubTopic}`);
+  const cleanTopic = rawTopic.replace(/\bdemo\s*(class|session|lecture)?\b/gi, '').replace(/\s{2,}/g, ' ').trim() || rawTopic;
+
+  let domain = classifyDomain(cleanTopic, rawSubTopic);
+  if (detectedDemo && (domain === 'GENERAL' || domain === 'GENERAL_ACADEMIC')) {
+    domain = 'PROGRAMMING';
+  }
+
+  const userSubtopics = parseUserSubtopics(rawSubTopic).filter(st => !/^\s*demo(\s*class|\s*session|\s*lecture)?\s*$/i.test(st));
   const plan = getDurationPlan(durationMinutes, userSubtopics.length);
 
-  console.log(`[TeachingEngine] Planning lesson: Topic="${topic}", SubTopic="${subTopic}", Duration=${plan.mins}m, Domain=${domain}, Scenes=${plan.sceneCount}, TargetWords=~${plan.totalTargetWords}, ParsedSubtopics=${userSubtopics.length}`);
+  console.log(`[TeachingEngine] Planning lesson: Topic="${cleanTopic}" (DemoMode=${detectedDemo}), SubTopic="${rawSubTopic}", Duration=${plan.mins}m, Domain=${domain}, Scenes=${plan.sceneCount}, TargetWords=~${plan.totalTargetWords}, ParsedSubtopics=${userSubtopics.length}`);
 
   // Initialize @google/genai client with proper Vertex AI / API Key precedence
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -2010,15 +2367,15 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
 
   // If sceneCount <= 7 (short lessons 2-7 mins), run in a single high-quality call
   if (plan.sceneCount <= 7) {
-    const syllabus = createBatchSyllabus(topic, userSubtopics, plan.sceneCount, plan.avgWordsPerScene, domain);
-    const prompt = buildBatchPrompt(topic, syllabus, plan.sceneCount, plan.mins, domain);
+    const syllabus = createBatchSyllabus(cleanTopic, userSubtopics, plan.sceneCount, plan.avgWordsPerScene, domain, detectedDemo);
+    const prompt = buildBatchPrompt(cleanTopic, syllabus, plan.sceneCount, plan.mins, domain, detectedDemo);
     console.log(`[TeachingEngine] Generating ${syllabus.length} scenes in single prompt for ${plan.mins}m lesson...`);
     const rawText = await callModelWithRetry(prompt);
     const parsed = parseSlideJson(rawText);
     rawSlides = Array.isArray(parsed) ? parsed : (parsed.scenes || []);
   } else {
     // Multi-batch chunked generation for comprehensive masterclass lessons (15m, 30m, 40m, 60m)
-    const syllabus = createBatchSyllabus(topic, userSubtopics, plan.sceneCount, plan.avgWordsPerScene, domain);
+    const syllabus = createBatchSyllabus(cleanTopic, userSubtopics, plan.sceneCount, plan.avgWordsPerScene, domain, detectedDemo);
     const BATCH_SIZE = 5;
     const batches = [];
     for (let i = 0; i < syllabus.length; i += BATCH_SIZE) {
@@ -2033,7 +2390,7 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
       const endScene = batchSyllabus[batchSyllabus.length - 1].sceneIndex;
       console.log(`[TeachingEngine] Generating Batch ${bIdx + 1}/${batches.length} (Scenes ${startScene} to ${endScene})...`);
 
-      const batchPrompt = buildBatchPrompt(topic, batchSyllabus, plan.sceneCount, plan.mins, domain);
+      const batchPrompt = buildBatchPrompt(cleanTopic, batchSyllabus, plan.sceneCount, plan.mins, domain, detectedDemo);
       try {
         const rawText = await callModelWithRetry(batchPrompt);
         const parsed = parseSlideJson(rawText);
@@ -2051,10 +2408,10 @@ async function generateTeachingScript({ topic, subTopic, durationMinutes = 5 }) 
   }
 
   // Validate and post-process
-  const processedSlides = postProcessSlides(rawSlides, plan, domain, topic, subTopic);
+  const processedSlides = postProcessSlides(rawSlides, plan, domain, cleanTopic, rawSubTopic, detectedDemo);
   const formattedJsonText = JSON.stringify(processedSlides, null, 2);
 
-  console.log(`[TeachingEngine] Successfully generated ${processedSlides.length} educational scenes for "${topic}" (Duration: ${plan.mins}m).`);
+  console.log(`[TeachingEngine] Successfully generated ${processedSlides.length} educational scenes for "${cleanTopic}" (DemoMode=${detectedDemo}, Duration: ${plan.mins}m).`);
 
   return {
     success: true,
@@ -2075,5 +2432,9 @@ module.exports = {
   visualToMermaid,
   postProcessSlides,
   parseUserSubtopics,
-  createBatchSyllabus
+  createBatchSyllabus,
+  getMohanInstructorIntroNarration,
+  getMohanInstructorIntroBullets,
+  getDefaultSubtopicsForTopic,
+  realWorldConnectionEngine
 };

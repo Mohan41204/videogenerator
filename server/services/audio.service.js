@@ -309,7 +309,16 @@ const adjustAudioDuration = (inputPath, outputPath, targetDurationSecs) => {
         return reject(new Error('Invalid audio duration'));
       }
 
-      const speedFactor = currentDuration / targetDurationSecs;
+      if (!targetDurationSecs || targetDurationSecs <= 0) {
+        return fs.copyFile(inputPath, outputPath, (copyErr) => {
+          if (copyErr) return reject(copyErr);
+          resolve(outputPath);
+        });
+      }
+
+      const rawSpeedFactor = currentDuration / targetDurationSecs;
+      // Clamp tempo adjustment safely between 0.85x and 1.20x to prevent distorted robotic/slow audio
+      const speedFactor = Math.max(0.85, Math.min(1.20, rawSpeedFactor));
 
       if (Math.abs(speedFactor - 1.0) < 0.05) {
         return fs.copyFile(inputPath, outputPath, (copyErr) => {
@@ -318,18 +327,7 @@ const adjustAudioDuration = (inputPath, outputPath, targetDurationSecs) => {
         });
       }
 
-      let filterString = '';
-      let remainingFactor = speedFactor;
-
-      while (remainingFactor > 2.0) {
-        filterString += 'atempo=2.0,';
-        remainingFactor /= 2.0;
-      }
-      while (remainingFactor < 0.5) {
-        filterString += 'atempo=0.5,';
-        remainingFactor /= 0.5;
-      }
-      filterString += `atempo=${remainingFactor}`;
+      let filterString = `atempo=${Number(speedFactor.toFixed(3))}`;
 
       ffmpeg(inputPath)
         .audioFilters(filterString)

@@ -1422,6 +1422,23 @@
       margin: 0 auto;
     }
 
+    /* Real-World Connection Badge */
+    .wb-connection-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #0369a1;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 6px;
+      padding: 3px 10px;
+      margin-top: 4px;
+      margin-bottom: 4px;
+      width: fit-content;
+    }
+
     /* Real-World Visual Scenario Container */
     .wb-image-container {
       width: 100%;
@@ -1466,6 +1483,108 @@
       border-radius: 12px;
       display: block;
       box-shadow: none;
+    }
+
+    /* Split layout for Real-World Visual Slide: Left Text (42%) / Right Visual Diagram (56%) */
+    /* Prevents both text and images from ever going out of screen! */
+    .wb-canvas.wb-has-realworld {
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      padding: 14px 24px !important;
+      gap: 18px !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+    }
+    .wb-canvas.wb-has-realworld #wb-main-text-card {
+      flex: 0 0 42% !important;
+      max-width: 42% !important;
+      width: 42% !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      padding: 8px 12px !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .wb-canvas.wb-has-realworld #wb-main-text-card .wb-title {
+      font-size: 26px !important;
+      margin-bottom: 2px !important;
+      line-height: 1.2 !important;
+    }
+    .wb-canvas.wb-has-realworld #wb-main-text-card .wb-section-heading {
+      font-size: 15px !important;
+      margin-top: 2px !important;
+      margin-bottom: 4px !important;
+      line-height: 1.2 !important;
+    }
+    .wb-canvas.wb-has-realworld #wb-main-text-card .wb-connection-badge {
+      font-size: 11px !important;
+      padding: 2px 8px !important;
+      margin-top: 2px !important;
+      margin-bottom: 6px !important;
+      max-width: 100% !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+      display: inline-block !important;
+    }
+    .wb-canvas.wb-has-realworld #wb-blocks-container {
+      margin-top: 4px !important;
+      width: 100% !important;
+    }
+    .wb-canvas.wb-has-realworld #wb-blocks-container .wb-bullet-item {
+      font-size: 14px !important;
+      line-height: 1.4 !important;
+      margin-bottom: 6px !important;
+    }
+    .wb-canvas.wb-has-realworld .wb-image-container {
+      flex: 0 0 56% !important;
+      max-width: 56% !important;
+      width: 56% !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      margin: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+      opacity: 0;
+      transform: scale(0.96);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .wb-canvas.wb-has-realworld .wb-image-container.visible {
+      opacity: 1 !important;
+      transform: scale(1) !important;
+    }
+    .wb-canvas.wb-has-realworld .wb-image-wrapper {
+      width: 100% !important;
+      height: 100% !important;
+      max-height: 480px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 8px !important;
+      overflow: hidden !important;
+    }
+    .wb-canvas.wb-has-realworld .wb-scenario-img {
+      max-width: 100% !important;
+      max-height: 460px !important;
+      width: auto !important;
+      height: auto !important;
+      object-fit: contain !important;
+      border-radius: 8px !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+      background: #ffffff !important;
     }
 
     /* Annotation Layer (SVG & HTML Badges) */
@@ -3503,9 +3622,11 @@ function _buildWhiteboardSlide(slide) {
 
   // Adjust canvas padding for maximum visual display area when diagram or real-world image is shown
   if (hasRealWorld) {
-    canvas.style.padding = '20px 40px';
-    canvas.style.gap = '8px';
+    canvas.classList.add('wb-has-realworld');
+    canvas.style.padding = '14px 24px';
+    canvas.style.gap = '18px';
   } else {
+    canvas.classList.remove('wb-has-realworld');
     canvas.style.padding = '';
     canvas.style.gap = '';
   }
@@ -3539,6 +3660,17 @@ function _buildWhiteboardSlide(slide) {
       subHeadingEl.style.marginBottom = '4px';
     }
     textCard.appendChild(subHeadingEl);
+  }
+
+  // Real-World Connection Badge (Incidents, Pioneers & Analogies)
+  if (slide.realWorldConnection && slide.realWorldConnection.hasConnection) {
+    var conn = slide.realWorldConnection;
+    var badgeEl = document.createElement('div');
+    badgeEl.className = 'wb-connection-badge';
+    var icon = (conn.category === 'real_world_incident') ? '⚠️ Case Study: ' : ((conn.category === 'famous_personality') ? '👤 Pioneer: ' : '🎬 Concept Analogy: ');
+    var yearText = conn.year ? ' (' + conn.year + ')' : '';
+    badgeEl.textContent = icon + (conn.title || 'Real-World Reference') + yearText;
+    textCard.appendChild(badgeEl);
   }
   
   canvas.appendChild(textCard);

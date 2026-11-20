@@ -19,6 +19,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
   const [topic, setTopic] = useState('');
   const [subtopic, setSubtopic] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(5);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [text, setText] = useState('');
   const [format, setFormat] = useState('16:9');
@@ -99,6 +100,8 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
       });
     }, 600);
 
+    const isDemoClassDetected = isDemoMode || /demo(\s*class|\s*session|\s*lecture)?/i.test(`${topic} ${subtopic}`);
+
     try {
       const endpoint = tutorialType === 'aws' 
         ? `${API_BASE_URL}/api/videos/generate-aws-script`
@@ -107,7 +110,8 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
       const response = await axios.post(endpoint, {
         topic,
         subTopic: subtopic,
-        durationMinutes
+        durationMinutes,
+        isDemoClass: isDemoClassDetected
       });
 
       clearInterval(scriptProgressInterval);
@@ -245,22 +249,42 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
       <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
 
         <div className="space-y-4">
-          <div className="flex bg-slate-800/50 p-1 rounded-xl border border-slate-700 w-fit">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex bg-slate-800/50 p-1 rounded-xl border border-slate-700 w-fit">
+              <button
+                type="button"
+                onClick={() => { setTutorialType('programming'); setTopic(''); setText(''); }}
+                className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${tutorialType === 'programming' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                disabled={isGeneratingScript || isGenerating}
+              >
+                Programming
+              </button>
+              <button
+                type="button"
+                onClick={() => { setTutorialType('aws'); setTopic(''); setText(''); }}
+                className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${tutorialType === 'aws' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                disabled={isGeneratingScript || isGenerating}
+              >
+                AWS Console
+              </button>
+            </div>
+
             <button
               type="button"
-              onClick={() => { setTutorialType('programming'); setTopic(''); setText(''); }}
-              className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${tutorialType === 'programming' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+              onClick={() => setIsDemoMode(prev => !prev)}
+              className={`px-4 py-2 text-sm font-medium rounded-xl border transition-all flex items-center gap-2 ${
+                (isDemoMode || /demo(\s*class|\s*session|\s*lecture)?/i.test(`${topic} ${subtopic}`))
+                  ? 'bg-purple-600/30 border-purple-500 text-purple-200 shadow-md ring-1 ring-purple-500/50'
+                  : 'bg-slate-800/40 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+              }`}
               disabled={isGeneratingScript || isGenerating}
+              title="Activate Demo Class mode: Begins with Instructor Mohan's personal intro, topic roadmap, deep-dive programming concept with VS Code, Indian movie analogy & real-world case study!"
             >
-              Programming
-            </button>
-            <button
-              type="button"
-              onClick={() => { setTutorialType('aws'); setTopic(''); setText(''); }}
-              className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${tutorialType === 'aws' ? 'bg-orange-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-              disabled={isGeneratingScript || isGenerating}
-            >
-              AWS Console
+              <span>🎓</span>
+              <span>Demo Class Mode</span>
+              {(isDemoMode || /demo(\s*class|\s*session|\s*lecture)?/i.test(`${topic} ${subtopic}`)) && (
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+              )}
             </button>
           </div>
           
@@ -306,7 +330,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
                   type="text"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="e.g., Python"
+                  placeholder="e.g., Data Analyst, Python"
                   className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
                   disabled={isGeneratingScript || isGenerating}
                 />
@@ -320,7 +344,7 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
                 type="text"
                 value={subtopic}
                 onChange={(e) => setSubtopic(e.target.value)}
-                placeholder="e.g., OOPs"
+                placeholder="e.g., Demo Class, Pandas"
                 className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
                 disabled={isGeneratingScript || isGenerating}
               />
@@ -343,6 +367,23 @@ const VideoGeneratorForm = ({ onVideoGenerated }) => {
               </select>
             </div>
           </div>
+
+          {(isDemoMode || /demo(\s*class|\s*session|\s*lecture)?/i.test(`${topic} ${subtopic}`)) && (
+            <div className="bg-purple-950/40 border border-purple-500/40 rounded-xl p-3.5 text-xs text-purple-200 flex items-start gap-3 shadow-inner">
+              <span className="text-xl leading-none">🎓</span>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-purple-200 text-sm">Demo Class Masterclass Active</span>
+                  <span className="bg-purple-500/30 text-purple-300 text-[10px] px-2 py-0.5 rounded-full font-medium border border-purple-400/30">
+                    Instructor: Mohan (Skyvers Technology)
+                  </span>
+                </div>
+                <p className="text-purple-300/80 leading-relaxed">
+                  Begins with <strong>Instructor Mohan's personal welcome &amp; 4+ yrs experience intro</strong>, presents the complete industry curriculum roadmap, dives deep into a core programming topic with <strong>live coding in VS Code</strong>, relatable Indian cinema dilemma analogy, and high-stakes real-world production architecture!
+                </p>
+              </div>
+            </div>
+          )}
 
           <button
             type="button"

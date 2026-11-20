@@ -441,6 +441,13 @@ async function main() {
             const transStartTime = Date.now();
             console.log(`[VideoJob] Translating slides for ${langName}...`);
             const langSlides = await translationService.translateSlides(slides, langName);
+
+            // Guardrail: Verify 1:1 slide count parity
+            if (!Array.isArray(langSlides) || langSlides.length !== slides.length) {
+              console.error(`[VideoJob] CRITICAL: Translated slides count (${langSlides ? langSlides.length : 0}) does not match original slides count (${slides.length})!`);
+              throw new Error(`Slide count mismatch for ${langName}: expected ${slides.length}, got ${langSlides ? langSlides.length : 0}`);
+            }
+
             // Ensure code slides keep identical code across all languages
             langSlides.forEach((lSlide, sIdx) => {
               if (slides[sIdx] && slides[sIdx].isCode) {
@@ -458,18 +465,27 @@ async function main() {
             const ttsStartTime = Date.now();
             console.log(`[VideoJob] Generating TTS for ${langName}...`);
             const langChunks = [];
+            const langDurations = new Array(langSlides.length);
 
             // Perform controlled concurrent chunk TTS generation for this language
             await mapConcurrent(langSlides, TTS_CONCURRENCY, async (slide, i) => {
               const originalNarration = (slides && slides[i] && slides[i].narration) ? slides[i].narration : (slide.narration || ' ');
-              const translatedNarration = await translationService.translateText(originalNarration, langName);
-              slide.narration = translatedNarration;
+              let narrationToSpeak = (slide && slide.narration && slide.narration.trim()) ? slide.narration.trim() : null;
+              if (!narrationToSpeak) {
+                narrationToSpeak = await translationService.translateText(originalNarration, langName);
+                slide.narration = narrationToSpeak;
+              }
+              const cleanNarration = translationService.cleanTextForTTS(narrationToSpeak);
               const rawChunkPath = path.join(langDir, `${jobId}_rawchunk_${i}_${lang}.mp3`);
-              await audioService.generateAudio(translatedNarration, rawChunkPath, langConfig.code, resolvedVoiceId);
+              await audioService.generateAudio(cleanNarration, rawChunkPath, langConfig.code, resolvedVoiceId);
 
               const adjustedChunkPath = path.join(langDir, `${jobId}_chunk_${i}_${lang}.mp3`);
               await audioService.adjustAudioDuration(rawChunkPath, adjustedChunkPath, englishDurations[i]);
               langChunks[i] = adjustedChunkPath;
+
+              const actualDuration = await audioService.getAudioDuration(adjustedChunkPath);
+              langDurations[i] = actualDuration;
+
               if (fs.existsSync(rawChunkPath)) fs.unlinkSync(rawChunkPath);
             });
 
@@ -479,7 +495,7 @@ async function main() {
             // Step C: Isolated Puppeteer Video Rendering
             const renderStartTime = Date.now();
             console.log(`[VideoJob] Rendering localized video for ${langName}...`);
-            await renderer.renderVideo(langSlides, englishDurations, langScreenVideoPath);
+            await renderer.renderVideo(langSlides, langDurations, langScreenVideoPath);
             console.log(`[PERF] Rendering - ${lang}: ${((Date.now() - renderStartTime) / 1000).toFixed(1)}s`);
 
             // Step D: FFmpeg Merge

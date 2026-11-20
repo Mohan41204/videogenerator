@@ -37,21 +37,23 @@ const generateOneShot = async (req, res) => {
       subTopic,
       durationMinutes = 5,
       languages,
-      voiceId
+      voiceId,
+      isDemoClass
     } = req.body;
 
     if (!topic) {
       return res.status(400).json({ success: false, message: 'Topic is required' });
     }
 
-    console.log(`[ONE-SHOT] Starting full pipeline for topic: "${topic}", subTopic: "${subTopic || 'N/A'}", duration: ${durationMinutes}min`);
+    console.log(`[ONE-SHOT] Starting full pipeline for topic: "${topic}", subTopic: "${subTopic || 'N/A'}", duration: ${durationMinutes}min, isDemoClass: ${Boolean(isDemoClass)}`);
 
     // --- PHASE 1: Generate script via teaching engine ---
     console.log('[ONE-SHOT] Phase 1: Generating teaching script...');
     const scriptResult = await teachingEngine.generateTeachingScript({
       topic,
       subTopic,
-      durationMinutes: parseInt(durationMinutes, 10) || 5
+      durationMinutes: parseInt(durationMinutes, 10) || 5,
+      isDemoClass
     });
 
     if (!scriptResult || !scriptResult.text) {
